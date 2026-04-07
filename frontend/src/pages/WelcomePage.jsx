@@ -13,7 +13,7 @@ export default function WelcomePage() {
       <section
         style={{
           minHeight: '100vh',
-          background: 'linear-gradient(to right, #FFFBFB 0%, #FFE0E0 100%)',
+          background: ' #FFFBFB ',
           display: 'flex',
           flexDirection: 'column',
         }}
@@ -62,7 +62,7 @@ export default function WelcomePage() {
         </main>
       </section>
 
-      {/* ── Features Section ── */}
+      {/* ── Features and Vendor Section ── */}
       <FeaturesSection />
 <VendorSection />
     </div>
