@@ -1,4 +1,3 @@
-// src/pages/VendorSection.jsx
 import { CheckCircle } from 'lucide-react';
 
 const BRAND = '#C0474A';
@@ -8,7 +7,7 @@ export default function VendorSection() {
     <section
       style={{
         minHeight: '100vh',
-        backgroundColor: '#FFFBFB',
+        backgroundColor: '#F7F5F2',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -23,11 +22,11 @@ export default function VendorSection() {
           overflow: 'hidden',
           maxWidth: '900px',
           width: '100%',
-          backgroundColor: BRAND,
-           boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)',
+          boxShadow: '0 8px 40px rgba(192, 71, 74, 0.25)',
         }}
       >
-        {/* Left: Text content */}
+        {/* Left: Text */}
         <div
           style={{
             flex: 1,
@@ -53,7 +52,7 @@ export default function VendorSection() {
           <p
             style={{
               fontSize: '1rem',
-              color: 'white',
+              color: 'rgba(255,255,255,0.85)',
               margin: 0,
               lineHeight: 1.7,
             }}
@@ -75,7 +74,7 @@ export default function VendorSection() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem',
-                  color: '#FFFBFB',
+                  color: 'white',
                   fontSize: '0.95rem',
                 }}
               >
@@ -87,20 +86,11 @@ export default function VendorSection() {
         </div>
 
         {/* Right: Image */}
-        <div
-          style={{
-            width: '380px',
-            flexShrink: 0,
-            overflow: 'hidden',
-          }}
-        >
+        <div style={{ width: '380px', flexShrink: 0, overflow: 'hidden' }}>
           <img
             src="https://th.bing.com/th/id/OIP.ITVRktmx9qGPdjDJTWxBewHaE7?w=221&h=180&c=7&r=0&o=7&pid=1.7&rm=3"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-            }}
+            alt="Vendor serving customers at a food counter"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         </div>
       </div>

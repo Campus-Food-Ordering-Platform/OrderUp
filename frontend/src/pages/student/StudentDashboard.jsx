@@ -1,0 +1,358 @@
+import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { ShoppingCart, Bell, UserRound, Star, Clock, Search } from 'lucide-react';
+
+const BRAND = '#C0474A';
+
+const filters = ['All', 'Asian', 'Fast Food', 'Cafe', 'Healthy', 'Pizza'];
+
+const vendors = [
+  {
+    id: 1,
+    name: 'Chinese Lantern',
+    description: 'Authentic Chinese food made with love.',
+    rating: 4.5,
+    wait: 8,
+    bgFrom: '#FFE5D0',
+    bgTo: '#FFBFA0',
+    emoji: '🍜',
+  },
+  {
+    id: 2,
+    name: "Jimmy's",
+    description: 'For delectable filling meals. Value for money!',
+    rating: 4.1,
+    wait: 20,
+    bgFrom: '#FFF3CD',
+    bgTo: '#FFE08A',
+    emoji: '🍔',
+  },
+  {
+    id: 3,
+    name: 'Xpresso Cafe',
+    description: 'Everything is R16!!',
+    rating: 3.2,
+    wait: 20,
+    bgFrom: '#E8F4FD',
+    bgTo: '#B3D9F5',
+    emoji: '☕',
+  },
+  {
+    id: 4,
+    name: 'Pizza Palace',
+    description: 'Fresh oven-baked pizzas daily.',
+    rating: 4.7,
+    wait: 15,
+    bgFrom: '#FFE8E8',
+    bgTo: '#FFB3B3',
+    emoji: '🍕',
+  },
+  {
+    id: 5,
+    name: 'Green Bowl',
+    description: 'Healthy wraps, salads and smoothies.',
+    rating: 4.3,
+    wait: 10,
+    bgFrom: '#E8F8E8',
+    bgTo: '#B3EBB3',
+    emoji: '🥗',
+  },
+  {
+    id: 6,
+    name: 'Spice Route',
+    description: 'Flavourful Indian and Cape Malay cuisine.',
+    rating: 4.6,
+    wait: 25,
+    bgFrom: '#FFF0D0',
+    bgTo: '#FFD580',
+    emoji: '🍛',
+  },
+];
+
+function VendorCard({ vendor }) {
+  return (
+    <article
+      style={{
+        backgroundColor: 'white',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
+        cursor: 'pointer',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-3px)';
+        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.07)';
+      }}
+    >
+      {/* Image / placeholder */}
+      <div
+        style={{
+          height: '100px',
+          background: `linear-gradient(135deg, ${vendor.bgFrom}, ${vendor.bgTo})`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '2.5rem',
+        }}
+        aria-hidden="true"
+      >
+        {vendor.emoji}
+      </div>
+
+      <div style={{ padding: '10px 12px' }}>
+        <h3
+          style={{
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            color: '#1a1a2e',
+            marginBottom: '3px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.03em',
+          }}
+        >
+          {vendor.name}
+        </h3>
+        <p
+          style={{
+            fontSize: '0.72rem',
+            color: '#888',
+            marginBottom: '10px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {vendor.description}
+        </p>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Rating */}
+          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 600, color: '#F59E0B' }}>
+            <Star size={11} fill="#F59E0B" strokeWidth={0} />
+            {vendor.rating}
+          </span>
+
+          {/* Wait time */}
+          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', color: '#888' }}>
+            <Clock size={11} strokeWidth={2} />
+            {vendor.wait} min
+          </span>
+
+          {/* Arrow */}
+          <div
+            style={{
+              width: '22px',
+              height: '22px',
+              borderRadius: '50%',
+              backgroundColor: '#FFF0F0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: BRAND,
+              fontWeight: 700,
+              fontSize: '0.85rem',
+            }}
+          >
+            ›
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export default function StudentDashboard() {
+  const [activeFilter, setActiveFilter] = useState('All');
+  const location = useLocation();                              
+  const name = location.state?.name || 'there'; 
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
+
+      {/* ── Nav ── */}
+      <header
+        style={{
+          backgroundColor: BRAND,
+          padding: '14px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              backgroundColor: 'white',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
+          </div>
+          <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {[Bell, UserRound].map((Icon, i) => (
+            <div
+              key={i}
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <Icon size={16} color="white" strokeWidth={2} />
+            </div>
+          ))}
+        </div>
+      </header>
+
+      {/* ── Hero Banner ── */}
+      <section
+        style={{
+          margin: '16px',
+          background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`,
+          borderRadius: '18px',
+          padding: '20px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <div>
+          <h1 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, marginBottom: '4px' }}>
+            Hey {name}! 👋
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem' }}>
+            What are you craving today?
+          </p>
+        </div>
+      </section>
+
+      {/* ── Active Order Status ── */}
+      <section
+        style={{
+          margin: '0 16px 16px',
+          backgroundColor: 'white',
+          borderRadius: '14px',
+          padding: '14px 16px',
+          borderLeft: `4px solid ${BRAND}`,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <div>
+          <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: '2px' }}>
+            Active order · Jimmy's
+          </p>
+          <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1a1a2e' }}>
+            Chips & Chicken Burger
+          </p>
+        </div>
+        <span
+          style={{
+            backgroundColor: '#FFF0F0',
+            color: BRAND,
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            padding: '4px 14px',
+            borderRadius: '20px',
+          }}
+        >
+          Preparing
+        </span>
+      </section>
+
+      {/* ── Search ── */}
+      <section style={{ margin: '0 16px 16px', position: 'relative' }}>
+        <Search
+          size={16}
+          color="#aaa"
+          style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }}
+        />
+        <input
+          type="text"
+          placeholder="Search vendors, cuisines, dishes..."
+          style={{
+            width: '100%',
+            padding: '12px 16px 12px 42px',
+            borderRadius: '14px',
+            border: '1.5px solid #EBEBEB',
+            backgroundColor: 'white',
+            fontSize: '0.9rem',
+            color: '#444',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+            outline: 'none',
+          }}
+        />
+      </section>
+
+      {/* ── Filter Chips ── */}
+      <nav
+        style={{
+          display: 'flex',
+          gap: '8px',
+          padding: '0 16px 16px',
+          overflowX: 'auto',
+        }}
+      >
+        {filters.map((filter) => (
+          <button
+            key={filter}
+            onClick={() => setActiveFilter(filter)}
+            style={{
+              padding: '6px 18px',
+              borderRadius: '20px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              cursor: 'pointer',
+              border: activeFilter === filter ? 'none' : '1.5px solid #E0E0E0',
+              backgroundColor: activeFilter === filter ? BRAND : 'white',
+              color: activeFilter === filter ? 'white' : '#666',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {filter}
+          </button>
+        ))}
+      </nav>
+
+      {/* ── Vendor Grid ── */}
+      <section style={{ padding: '0 16px 32px' }}>
+        <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#1a1a2e', marginBottom: '12px' }}>
+          Vendors Near You
+        </h2>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '12px',
+          }}
+        >
+          {vendors.map((vendor) => (
+            <VendorCard key={vendor.id} vendor={vendor} />
+          ))}
+        </div>
+      </section>
+
+    </div>
+  );
+}
