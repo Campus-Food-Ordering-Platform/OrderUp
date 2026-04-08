@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
 import { GraduationCap, Store, CheckCircle, ShoppingCart } from 'lucide-react';
 
 const BRAND = '#C0474A';
@@ -36,8 +37,10 @@ const roles = [
 ];
 
 export default function RoleSelectionPage() {
+    const { user } = useAuth0();
   const [selected, setSelected] = useState(null);
-  const [nameInputs, setNameInputs] = useState({ student: '', vendor: '' });
+  const [nameInputs, setNameInputs] = useState({ student: user?.given_name || '',
+  vendor: '', });
   const navigate = useNavigate();
 
   const handleContinue = () => {
