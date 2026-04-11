@@ -25,7 +25,14 @@ jobs:
         cd backend
         npm ci
 
-    - name: Run backend tests
+    - name: Run backend tests with coverage
       run: |
         cd backend
-        npm test
+        npm run test:coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./backend/coverage/lcov.info
+        fail_ci_if_error: true

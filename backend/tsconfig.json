@@ -2,14 +2,14 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
-    "rootDir": "./src",//new
+    "rootDir": "./",//new
     "outDir": "./dist",//new
-
+    "ignoreDeprecations": "6.0",
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
+    "module": "commonjs",
     "target": "esnext",
-    "types": ["node"],
+    "types": ["jest","node"],
      // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -34,13 +34,15 @@
 
     // Recommended Options
     "strict": true,
-    "jsx": "react-jsx",
     "verbatimModuleSyntax": false,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
+
+    
+    
   },
-  "include":["src/**/*.ts"],  //new
+  "include":["src/**/*.ts","tests/**/*.ts"],  //new
   "exclude":["node_modules"]  //new
 }
