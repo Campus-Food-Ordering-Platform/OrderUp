@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ShoppingCart, Bell, UserRound, Star, Clock, Search } from 'lucide-react';
+import { ShoppingCart, Menu, Package, History, UserRound, Star, Clock, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const BRAND = '#C0474A';
 
@@ -69,9 +70,10 @@ const vendors = [
   },
 ];
 
-function VendorCard({ vendor }) {
+function VendorCard({ vendor , onPress}) {
   return (
     <article
+    onClick={onPress}
       style={{
         backgroundColor: 'white',
         borderRadius: '16px',
@@ -168,7 +170,8 @@ function VendorCard({ vendor }) {
 
 export default function StudentDashboard() {
   const [activeFilter, setActiveFilter] = useState('All');
-  const location = useLocation();                              
+  const location = useLocation();             
+  const navigate = useNavigate();                 
   const name = location.state?.name || 'there'; 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
@@ -176,7 +179,7 @@ export default function StudentDashboard() {
       {/* ── Nav ── */}
       <header
         style={{
-          backgroundColor: BRAND,
+          backgroundColor: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)',
           padding: '14px 20px',
           display: 'flex',
           alignItems: 'center',
@@ -201,8 +204,8 @@ export default function StudentDashboard() {
           <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {[Bell, UserRound].map((Icon, i) => (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {[Menu, Package, History, ShoppingCart, UserRound].map((Icon, i) => (
             <div
               key={i}
               style={{
@@ -347,9 +350,16 @@ export default function StudentDashboard() {
             gap: '12px',
           }}
         >
-          {vendors.map((vendor) => (
-            <VendorCard key={vendor.id} vendor={vendor} />
-          ))}
+         {vendors.map((vendor) => (
+  <VendorCard
+    key={vendor.id}
+    vendor={vendor}
+    onPress={() => {
+      console.log('clicked vendor:', vendor.name);
+      navigate('/vendor-menu', { state: { vendor } });
+    }}
+  />
+      ))}
         </div>
       </section>
 

@@ -5,6 +5,7 @@ import RoleSelectionPage from './pages/auth/RoleSelectionPage.jsx';
 import StudentDashboard from './pages/student/StudentDashboard.jsx';
 import VendorDashboard from './pages/vendor/VendorDashboard.jsx';
 import AdminDashboard from './pages/admin/AdminDashboard.jsx';
+import VendorMenuPage from './pages/student/VendorMenuPage.jsx';
 
 function App() {
   const { isLoading, isAuthenticated } = useAuth0();
@@ -28,13 +29,13 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* If logged in, redirect from welcome page to role selection */}
         <Route
           path="/"
           element={isAuthenticated ? <Navigate to="/role-selection" /> : <WelcomePage />}
         />
         <Route path="/role-selection" element={<RoleSelectionPage />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
+         <Route path="/vendor-menu" element={<VendorMenuPage />} />
         <Route path="/vendor-dashboard" element={<VendorDashboard />} />
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
       </Routes>
