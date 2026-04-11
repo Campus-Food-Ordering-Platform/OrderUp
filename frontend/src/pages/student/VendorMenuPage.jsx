@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart, Plus, Minus, Leaf, Flame, Menu, Package, History, UserRound } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Plus, Minus, Leaf, Flame, Home, Package, History, UserRound } from 'lucide-react';
 
 const BRAND = '#C0474A';
 
@@ -140,23 +140,38 @@ export default function VendorMenuPage() {
 
         {/* Nav bar icons */}
 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-  {[Menu, Package, History, UserRound].map((Icon, i) => (
-    <div
-      key={i}
-      style={{
-        width: '34px',
-        height: '34px',
-        borderRadius: '50%',
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-      }}
-    >
-      <Icon size={16} color="white" strokeWidth={2} />
-    </div>
-  ))}
+  {[Home, History, UserRound].map((Icon, i) => (
+  <div
+    key={i}
+    style={{
+      width: '34px',
+      height: '34px',
+      borderRadius: '50%',
+      backgroundColor: 'rgba(255,255,255,0.2)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+    }}
+  >
+                <Icon size={16} color="white" strokeWidth={2} />
+            </div>
+            ))}
+            <div
+            onClick={() => navigate('/order-confirmed')}
+            style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+            }}
+>
+  <Package size={16} color="white" strokeWidth={2} />
+</div>
 
   {/* Cart with badge */}
   <div style={{ position: 'relative', width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>

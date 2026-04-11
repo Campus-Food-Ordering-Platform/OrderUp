@@ -176,10 +176,10 @@ export default function StudentDashboard() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
 
-      {/* ── Nav ── */}
+      {/* ── Header ── */}
       <header
         style={{
-          backgroundColor: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)',
+          background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)',
           padding: '14px 20px',
           display: 'flex',
           alignItems: 'center',
@@ -205,24 +205,30 @@ export default function StudentDashboard() {
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
-          {[Menu, Package, History, ShoppingCart, UserRound].map((Icon, i) => (
-            <div
-              key={i}
-              style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <Icon size={16} color="white" strokeWidth={2} />
-            </div>
-          ))}
+          {[Menu, History].map((Icon, i) => (
+          <div key={i} style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Icon size={16} color="white" strokeWidth={2} />
+          </div>
+        ))}
+        <div
+          onClick={() => navigate('/order-confirmed')}
+          style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        >
+          <Package size={16} color="white" strokeWidth={2} />
         </div>
+          {/* Clickable cart */}
+          <div
+            onClick={() => navigate('/checkout', { state: { vendor: null, cart: {}, items: [] } })}
+            style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
+            <ShoppingCart size={16} color="white" strokeWidth={2} />
+          </div>
+          <div
+            style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
+            <UserRound size={16} color="white" strokeWidth={2} />
+          </div>
+</div>
       </header>
 
       {/* ── Hero Banner ── */}
