@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Home, Package, History, UserRound, CheckCircle, Clock, MapPin, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Home, Package, History, UserRound, CheckCircle, Clock, MapPin } from 'lucide-react';
 
 const BRAND = '#C0474A';
 
@@ -248,47 +248,6 @@ export default function OrderConfirmedPage() {
           </div>
         )}
 
-        {/* ── Actions ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <button
-            onClick={() => navigate('/student-dashboard')}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)',
-              color: 'white',
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              border: 'none',
-              borderRadius: '2rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-            }}
-          >
-            Order More Food
-            <ChevronRight size={18} />
-          </button>
-
-          <button
-            onClick={() => navigate('/student-dashboard')}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              background: 'white',
-              color: BRAND,
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              border: `1.5px solid ${BRAND}`,
-              borderRadius: '2rem',
-              cursor: 'pointer',
-            }}
-          >
-            Back to Dashboard
-          </button>
-        </div>
       </div>
     </div>
   );
