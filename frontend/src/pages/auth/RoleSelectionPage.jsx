@@ -37,17 +37,46 @@ const roles = [
 ];
 
 export default function RoleSelectionPage() {
-    const { user } = useAuth0();
+    //const { user } = useAuth0();
+    const { user, getAccessTokenSilently } = useAuth0();
   const [selected, setSelected] = useState(null);
   const [nameInputs, setNameInputs] = useState({ student: user?.given_name || '',
   vendor: '', });
   const navigate = useNavigate();
 
-  const handleContinue = () => {
+ 
+
+const handleContinue = async () => {
   if (!canContinue) return;
-  const name = nameInputs[selected].trim();
-  if (selected === 'student') navigate('/student-dashboard', { state: { name } });
-  if (selected === 'vendor') navigate('/vendor-dashboard', { state: { name } });
+  
+  try {
+    // Get the Auth0 token
+    const token = await getAccessTokenSilently();
+    
+    // Send to backend
+    const response = await fetch('http://localhost:3000/api/auth/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+  auth0Id: user?.sub,    // changed from azureId
+  name: nameInputs[selected].trim(),
+  role: selected === 'student' ? 'customer' : 'vendor'
+})
+    });
+
+    const data = await response.json();
+    console.log('Response status:', response.status); // ADD THIS
+    console.log('Response data:', data); 
+    if (response.ok) {
+      if (selected === 'student') navigate('/student-dashboard');
+      if (selected === 'vendor') navigate('/vendor-dashboard');
+    }
+  } catch (error) {
+    console.error('Error during signup:', error);
+  }
 };
 
   const canContinue = selected && nameInputs[selected].trim().length > 0;
