@@ -24,7 +24,7 @@ export default function AuthCallback() {
         const token = await getAccessTokenSilently();
 
         const response = await fetch(
-          `http://localhost:3000/api/auth/me/${user.sub}`,
+          `${import.meta.env.VITE_API_URL}/api/auth/me/${user.sub}`,
           {
             headers: {
               Authorization: `Bearer ${token}`

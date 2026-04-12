@@ -4,7 +4,7 @@
     // File Layout
     "rootDir": "./",//new
     "outDir": "./dist",//new
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "commonjs",
