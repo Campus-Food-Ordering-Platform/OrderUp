@@ -17,11 +17,11 @@ export const userService = {
   },
 
   // Create a new user
-  async createUser(data: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+  async createUser(data: Omit<User, 'id' | 'created_at'>): Promise<User> {
     const newUser: User = {
       id: Math.random().toString(36).substring(2),  // temp ID generator
       ...data,
-      createdAt: new Date()
+      created_at: new Date()
     };
     users.push(newUser);
     return newUser;

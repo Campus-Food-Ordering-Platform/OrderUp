@@ -8,6 +8,7 @@ import AdminDashboard from './pages/admin/AdminDashboard.jsx';
 import VendorMenuPage from './pages/student/VendorMenuPage.jsx';
 import CheckoutPage from './pages/student/CheckoutPage.jsx';
 import OrderConfirmedPage from './pages/student/OrderConfirmedPage.jsx';
+import AuthCallback from './components/auth/AuthCallback';
 
 function App() {
   const { isLoading, isAuthenticated } = useAuth0();
@@ -33,13 +34,14 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={isAuthenticated ? <Navigate to="/role-selection" /> : <WelcomePage />}
+          element={isAuthenticated ? <Navigate to="/auth/callback" /> : <WelcomePage />}
         />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/role-selection" element={<RoleSelectionPage />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
-         <Route path="/vendor-menu" element={<VendorMenuPage />} />
-         <Route path="/checkout" element={<CheckoutPage />} />
-         <Route path="/order-confirmed" element={<OrderConfirmedPage />} />
+        <Route path="/vendor-menu" element={<VendorMenuPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/order-confirmed" element={<OrderConfirmedPage />} />
         <Route path="/vendor-dashboard" element={<VendorDashboard />} />
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
       </Routes>

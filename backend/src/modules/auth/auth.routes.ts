@@ -6,7 +6,7 @@ const router = Router();
 // POST /api/auth/signup
 router.post('/signup', authController.signup);
 
-// GET /api/auth/me/:azureId
-router.get('/me/:azureId', authController.getMe);
+// GET /api/auth/me/:auth0Id
+router.get('/me/:auth0Id', authController.getMe);
 
 export default router;
