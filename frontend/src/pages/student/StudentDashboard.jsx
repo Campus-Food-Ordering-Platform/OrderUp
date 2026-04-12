@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ShoppingCart, Menu, Package, History, UserRound, Star, Clock, Search } from 'lucide-react';
+import { ShoppingCart, Home, Package, History, UserRound, Star, Clock, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const BRAND = '#C0474A';
@@ -170,9 +170,26 @@ function VendorCard({ vendor , onPress}) {
 
 export default function StudentDashboard() {
   const [activeFilter, setActiveFilter] = useState('All');
-  const location = useLocation();             
-  const navigate = useNavigate();                 
-  const name = location.state?.name || 'there'; 
+const [searchQuery, setSearchQuery] = useState('');
+const location = useLocation();             
+const navigate = useNavigate();                 
+const name = location.state?.name || 'there';
+
+const vendorCategories = {
+  1: 'Asian',
+  2: 'Fast Food',
+  3: 'Cafe',
+  4: 'Pizza',
+  5: 'Healthy',
+  6: 'Asian',
+};
+
+const filteredVendors = vendors.filter((vendor) => {
+  const matchesFilter = activeFilter === 'All' || vendorCategories[vendor.id] === activeFilter;
+  const matchesSearch = vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    vendor.description.toLowerCase().includes(searchQuery.toLowerCase());
+  return matchesFilter && matchesSearch;
+});
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
 
@@ -205,11 +222,15 @@ export default function StudentDashboard() {
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
-          {[Menu, History].map((Icon, i) => (
-          <div key={i} style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <Icon size={16} color="white" strokeWidth={2} />
-          </div>
-        ))}
+          <div
+        onClick={() => navigate('/student-dashboard')}
+        style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+      >
+        <Home size={16} color="white" strokeWidth={2} />
+      </div>
+      <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <History size={16} color="white" strokeWidth={2} />
+      </div>
         <div
           onClick={() => navigate('/order-confirmed')}
           style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
@@ -299,6 +320,8 @@ export default function StudentDashboard() {
         <input
           type="text"
           placeholder="Search vendors, cuisines, dishes..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           style={{
             width: '100%',
             padding: '12px 16px 12px 42px',
@@ -356,16 +379,25 @@ export default function StudentDashboard() {
             gap: '12px',
           }}
         >
-         {vendors.map((vendor) => (
-  <VendorCard
-    key={vendor.id}
-    vendor={vendor}
-    onPress={() => {
-      console.log('clicked vendor:', vendor.name);
-      navigate('/vendor-menu', { state: { vendor } });
-    }}
-  />
-      ))}
+         {filteredVendors.length === 0 ? (
+        <div style={{
+          gridColumn: '1 / -1',
+          textAlign: 'center',
+          padding: '3rem',
+          color: '#aaa',
+          fontSize: '0.9rem',
+        }}>
+          No vendors found for "{searchQuery}"
+        </div>
+      ) : filteredVendors.map((vendor) => (
+          <VendorCard
+            key={vendor.id}
+            vendor={vendor}
+            onPress={() => {
+              navigate('/vendor-menu', { state: { vendor } });
+            }}
+          />
+        ))}
         </div>
       </section>
 
