@@ -3,19 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 
 export default function AuthCallback() {
-  const { user, getAccessTokenSilently, isLoading } = useAuth0();
+  const { user, getAccessTokenSilently, isLoading, isAuthenticated } = useAuth0();
   const navigate = useNavigate();
 
   useEffect(() => {
     const checkUser = async () => {
-      if (isLoading || !user) return;
+      // Still loading, wait
+      if (isLoading) return;
+
+      // Not authenticated at all, go to welcome page
+      if (!isAuthenticated) {
+        navigate('/');
+        return;
+      }
+
+      // Authenticated but user not ready yet, wait
+      if (!user) return;
 
       try {
         const token = await getAccessTokenSilently();
 
-        // Check if user exists in your backend
         const response = await fetch(
-  `http://localhost:3000/api/auth/me/${user.sub}`,
+          `http://localhost:3000/api/auth/me/${user.sub}`,
           {
             headers: {
               Authorization: `Bearer ${token}`
@@ -24,12 +33,10 @@ export default function AuthCallback() {
         );
 
         if (response.ok) {
-          // User exists → get their role and redirect
           const data = await response.json();
           if (data.role === 'customer') navigate('/student-dashboard');
           if (data.role === 'vendor') navigate('/vendor-dashboard');
         } else {
-          // User doesn't exist → go to role selection
           navigate('/role-selection');
         }
       } catch (error) {
@@ -39,7 +46,7 @@ export default function AuthCallback() {
     };
 
     checkUser();
-  }, [user, isLoading]);
+  }, [user, isLoading, isAuthenticated]);
 
   return (
     <div style={{ 
