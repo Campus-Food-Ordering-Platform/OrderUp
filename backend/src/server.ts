@@ -1,9 +1,7 @@
-import express from "express";
-const app =express();
-app.get("/",(req,res)=>{
+import app from './app';
 
-res.send("youre doin ight bro");
+const PORT = process.env.PORT || 3000;
 
-
-})
-export default app;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

@@ -22,12 +22,15 @@
   },
   "homepage": "https://github.com/Campus-Food-Ordering-Platform/OrderUp#readme",
   "dependencies": {
-    "express": "^5.2.1"
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
+    "@types/pg": "^8.20.0",
     "@types/supertest": "^7.2.0",
     "nodemon": "^3.1.14",
     "supertest": "^7.2.2",
