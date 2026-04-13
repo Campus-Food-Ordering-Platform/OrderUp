@@ -117,14 +117,3 @@ is always accurate and up to date.
 | 8 | I have a menu item | I toggle the Available switch off | The item shows as Sold Out | Pass |
 | 9 | I am on the menu tab | I click a category filter | Only items in that category are shown | Pass |
 
----
-
-## UAT Sign Off
-| User Story | Tested By | Date | Status |
-|------------|-----------|------|--------|
-| US001 - Browse Vendors | Naomi | April 2026 | Pass |
-| US002 - View Menu & Cart | Naomi | April 2026 | Pass |
-| US003 - Checkout | Naomi | April 2026 | Pass |
-| US004 - Track Order | Naomi | April 2026 | Pass |
-| US005 - Manage Orders | Naomi | April 2026 | Pass |
-| US006 - Manage Menu | Naomi | April 2026 | Pass |
