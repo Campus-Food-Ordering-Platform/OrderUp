@@ -4,11 +4,11 @@ import { authService } from '../auth/auth.service';
 export const authController = {
 
   // POST /api/auth/signup
- async signup(req: Request, res: Response) {
+  async signup(req: Request, res: Response) {
     try {
-      const { azureId, name, email, role } = req.body;
+      const { auth0Id, name, role } = req.body;
 
-      if (!azureId || !name || !email || !role) {
+      if (!auth0Id || !name || !role) {
         return res.status(400).json({ message: 'All fields are required' });
       }
 
@@ -17,9 +17,8 @@ export const authController = {
       }
 
       const { user, isNew } = await authService.getOrCreateUser({
-        azureId,
+        auth0Id,
         name,
-        email,
         role
       });
 
@@ -30,17 +29,17 @@ export const authController = {
       });
 
     } catch (error) {
-      console.error('Signup error:', error); // ADD THIS
+      console.error('Signup error:', error);
       return res.status(500).json({ message: 'Error during signup' });
     }
   },
 
-  // GET /api/auth/me
+  // GET /api/auth/me/:auth0Id
   async getMe(req: Request, res: Response) {
     try {
-      const azureId = req.params['azureId'] as string;
-
-      const user = await authService.findUserByAzureId(azureId);
+      const auth0Id = req.params['auth0Id'] as string;
+      const user = await authService.findUserByAuth0Id(auth0Id);
+      
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
@@ -48,6 +47,7 @@ export const authController = {
       return res.status(200).json(user);
 
     } catch (error) {
+      console.error('GetMe error:', error);
       return res.status(500).json({ message: 'Error fetching user' });
     }
   }
