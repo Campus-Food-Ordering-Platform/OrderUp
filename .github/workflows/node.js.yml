@@ -31,7 +31,7 @@ jobs:
         cd backend
         npm run test:coverage
 
-    - name: Build backend        # <-- product manager siad we missing the backend build step, so I added it here
+    - name: Build backend        # <-- product manager siad we missing the backend build step, so I added it here(siya)
       run: |
         cd backend
         npm run build
