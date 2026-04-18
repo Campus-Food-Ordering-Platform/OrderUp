@@ -50,7 +50,7 @@ describe('AdminDashboard', () => {
     expect(screen.getByText('Application Review')).toBeInTheDocument();
     
     // Check if the mock application details rendered
-    expect(screen.getByText('Valid (Expires Nov 2026)')).toBeInTheDocument();
+    expect(screen.getByText(/Valid \(Expires Nov 2026\)/i)).toBeInTheDocument();
     fireEvent.click(screen.getByText('Approve Vendor'));
   });
 
