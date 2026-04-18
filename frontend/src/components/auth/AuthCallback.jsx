@@ -35,7 +35,8 @@ export default function AuthCallback() {
         if (response.ok) {
           const data = await response.json();
           if (data.role === 'customer') navigate('/student-dashboard');
-          if (data.role === 'vendor') navigate('/vendor-dashboard');
+          else if (data.role === 'vendor') navigate('/vendor-dashboard');
+          else if (data.role === 'admin') navigate('/admin-dashboard');
         } else {
           navigate('/role-selection');
         }
