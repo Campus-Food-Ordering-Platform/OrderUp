@@ -45,7 +45,7 @@ describe('StudentHistoryPage', () => {
       </MemoryRouter>
     );
 
-    const completedTab = screen.getByText('Completed');
+    const completedTab = screen.getByRole('button', { name: 'Completed' });
     fireEvent.click(completedTab);
     
     // Chinese Lantern is completed, Pizza is refunded
