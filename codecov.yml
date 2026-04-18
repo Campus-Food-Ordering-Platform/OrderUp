@@ -1,0 +1,21 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 50%
+      frontend:
+        target: 50%
+        flags:
+          - frontend-ui
+      backend:
+        target: 50%
+        flags:
+          - backend-api
+
+flags:
+  frontend-ui:
+    paths:
+      - "frontend/src/"
+  backend-api:
+    paths:
+      - "backend/src/"
