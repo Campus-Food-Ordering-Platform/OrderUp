@@ -1,0 +1,5 @@
+ALTER TABLE orders
+DROP COLUMN created_at;
+
+ALTER TABLE orders
+ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT NOW();
