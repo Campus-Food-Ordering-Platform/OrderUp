@@ -9,6 +9,7 @@ import AdminSetupPage from './pages/admin/AdminSetupPage.jsx';
 import VendorMenuPage from './pages/student/VendorMenuPage.jsx';
 import CheckoutPage from './pages/student/CheckoutPage.jsx';
 import OrderConfirmedPage from './pages/student/OrderConfirmedPage.jsx';
+import StudentHistoryPage from './pages/student/StudentHistoryPage.jsx';
 import AuthCallback from './components/auth/AuthCallback';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
         <Route path="/vendor-menu" element={<VendorMenuPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/order-confirmed" element={<OrderConfirmedPage />} />
+        <Route path="/student-history" element={<StudentHistoryPage />} />
 
         {/* Fallback - redirect unknown routes back to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
