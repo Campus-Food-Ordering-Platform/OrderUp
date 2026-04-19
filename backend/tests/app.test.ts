@@ -1,15 +1,17 @@
 import request from 'supertest';
-import app from '../src/app';
 
-// Mock the database pool so tests don't hit real Azure DB
+// Mock BEFORE importing app
 jest.mock('../src/config/db', () => ({
   default: {
     query: jest.fn()
   }
 }));
 
+import app from '../src/app';
 import pool from '../src/config/db';
-const mockPool = pool as jest.Mocked<typeof pool>;
+
+const mockQuery = jest.fn();
+(pool as any).query = mockQuery;
 
 describe('Health Check', () => {
   it('GET /health should return 200', async () => {
@@ -43,7 +45,7 @@ describe('Auth Endpoints', () => {
 
   it('POST /api/auth/signup should create a new user', async () => {
     // Mock: user doesn't exist yet
-    (mockPool.query as jest.Mock)
+    mockQuery
       .mockResolvedValueOnce({ rows: [] }) // findUserByAuth0Id returns nothing
       .mockResolvedValueOnce({ rows: [{ // createUser returns new user
         id: 'uuid-123',
@@ -64,7 +66,7 @@ describe('Auth Endpoints', () => {
 
   it('POST /api/auth/signup should return 200 if user already exists', async () => {
     // Mock: user already exists
-    (mockPool.query as jest.Mock)
+    mockQuery
       .mockResolvedValueOnce({ rows: [{
         id: 'uuid-123',
         auth0_id: 'google-oauth2|test123',
@@ -82,7 +84,7 @@ describe('Auth Endpoints', () => {
   });
 
   it('GET /api/auth/me/:auth0Id should return 404 if user not found', async () => {
-    (mockPool.query as jest.Mock)
+    mockQuery
       .mockResolvedValueOnce({ rows: [] });
 
     const res = await request(app)
@@ -93,7 +95,7 @@ describe('Auth Endpoints', () => {
   });
 
   it('GET /api/auth/me/:auth0Id should return user if found', async () => {
-    (mockPool.query as jest.Mock)
+    mockQuery
       .mockResolvedValueOnce({ rows: [{
         id: 'uuid-123',
         auth0_id: 'google-oauth2|test123',
