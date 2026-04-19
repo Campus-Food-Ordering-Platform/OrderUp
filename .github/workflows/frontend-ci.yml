@@ -1,0 +1,45 @@
+name: Frontend CI - Tests & Coverage
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  frontend-tests:
+    runs-on: ubuntu-latest
+    
+    # Tells GitHub that all these npm commands should run inside the frontend folder
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+    # 1. Check out the repository code
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    # 2. Set up the Node environment
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    # 3. Install the dependencies
+    - name: Install Dependencies
+      run: npm install
+
+    # 4. Run the frontend tests and generate the lcov data
+    - name: Run Unit Tests and Generate Coverage
+      run: npm run test
+
+    # 5. Automatically upload the generated coverage file to Codecov
+    - name: Upload Frontend Coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        directory: ./frontend/coverage/
+        flags: frontend-ui
+        fail_ci_if_error: false
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
