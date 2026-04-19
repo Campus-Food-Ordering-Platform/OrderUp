@@ -24,7 +24,7 @@ export default function AuthCallback() {
         const token = await getAccessTokenSilently();
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/auth/me/${user.sub}`,
+          `http://localhost:3000/api/auth/me/${user.sub}`,
           {
             headers: {
               Authorization: `Bearer ${token}`
@@ -35,7 +35,8 @@ export default function AuthCallback() {
         if (response.ok) {
           const data = await response.json();
           if (data.role === 'customer') navigate('/student-dashboard');
-          if (data.role === 'vendor') navigate('/vendor-dashboard');
+          else if (data.role === 'vendor') navigate('/vendor-dashboard');
+          else if (data.role === 'admin') navigate('/admin-dashboard');
         } else {
           navigate('/role-selection');
         }

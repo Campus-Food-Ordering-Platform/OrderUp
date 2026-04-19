@@ -228,7 +228,10 @@ const filteredVendors = vendors.filter((vendor) => {
       >
         <Home size={16} color="white" strokeWidth={2} />
       </div>
-      <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+      <div
+        onClick={() => navigate('/student-history')}
+        style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+      >
         <History size={16} color="white" strokeWidth={2} />
       </div>
         <div

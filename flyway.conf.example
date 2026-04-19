@@ -1,0 +1,5 @@
+flyway.url=jdbc:postgresql://<your-azure-host>:5432/<your-db-name>?sslmode=require
+flyway.user=
+flyway.password=
+flyway.locations=filesystem:db/migrations
+flyway.baselineOnMigrate=true
