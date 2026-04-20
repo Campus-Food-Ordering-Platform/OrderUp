@@ -392,6 +392,14 @@ function MenuManager() {
   );
 }
 
+import {
+  TrendingUp,
+  Users,
+  ShoppingBag,
+  DollarSign,
+  CheckCircle2,
+} from 'lucide-react';
+
 export default function VendorDashboard() {
   const [activeTab, setActiveTab] = useState('orders');
   const [activeFilter, setActiveFilter] = useState('All orders');
@@ -404,6 +412,79 @@ export default function VendorDashboard() {
   const filteredOrders = activeFilter === 'All orders'
     ? orders.filter(o => o.status !== 'Collected')
     : orders.filter(o => o.status === activeFilter);
+
+  const totalOrders = orders.length;
+
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+
+  const completedOrders = orders.filter(o => o.status === 'Collected').length;
+
+  const avgOrderValue = totalOrders ? (totalRevenue / totalOrders).toFixed(2) : 0;
+
+  const totalCustomers = new Set(
+  orders.map(order => order.customer)
+).size;
+
+  const itemSalesMap = {};
+
+orders.forEach(order => {
+  order.items.forEach(item => {
+    const name = item.name;
+
+    if (!itemSalesMap[name]) {
+      itemSalesMap[name] = {
+        name,
+        quantity: 0,
+        revenue: 0,
+      };
+    }
+
+    itemSalesMap[name].quantity += 1;
+    itemSalesMap[name].revenue += item.price;
+  });
+});
+
+const topSellingItems = Object.values(itemSalesMap)
+  .sort((a, b) => b.quantity - a.quantity);
+
+  const cardStyle = {
+  background: 'white',
+  padding: '16px',
+  borderRadius: '14px',
+  boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+};
+
+const labelStyle = {
+  fontSize: '0.75rem',
+  color: '#888',
+  margin: 0,
+};
+
+const valueStyle = {
+  fontSize: '1.2rem',
+  fontWeight: 700,
+  margin: '6px 0 0',
+  color: '#C0474A',
+};
+
+const trends = {
+  orders: '+12%',
+  revenue: '+8%',
+  customers: '+5%',
+  avg: '+3%',
+};
+const cardHeader = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '6px',
+};
+
+const trendStyle = {
+  fontSize: '0.7rem',
+  fontWeight: 700,
+  color: '#2A7D2A',
+};
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
@@ -466,15 +547,167 @@ export default function VendorDashboard() {
         <section style={{ padding: '0 16px 32px' }}>
           <MenuManager />
         </section>
+)}
+{activeTab === 'analytics' && (
+  <section style={{ padding: '16px' }}>
+
+    {/* ───── Overview Cards ───── */}
+    {/* ───── Overview ───── */}
+<h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px' }}>
+  Overview
+</h2>
+
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '12px',
+    marginBottom: '20px',
+  }}
+>
+
+  {/* Total Orders */}
+  <div style={cardStyle}>
+    <div style={cardHeader}>
+      <ShoppingBag size={18} color="#C0474A" />
+      <span style={trendStyle}>{trends.orders}</span>
+    </div>
+    <p style={labelStyle}>Total Orders</p>
+    <h3 style={valueStyle}>{totalOrders}</h3>
+  </div>
+
+  {/* Revenue */}
+  <div style={cardStyle}>
+    <div style={cardHeader}>
+      <DollarSign size={18} color="#2A7D2A" />
+      <span style={{ ...trendStyle, color: '#2A7D2A' }}>
+        {trends.revenue}
+      </span>
+    </div>
+    <p style={labelStyle}>Revenue</p>
+    <h3 style={valueStyle}>R {totalRevenue}</h3>
+  </div>
+
+  {/* Customers */}
+  <div style={cardStyle}>
+    <div style={cardHeader}>
+      <Users size={18} color="#2A6DB5" />
+      <span style={{ ...trendStyle, color: '#2A6DB5' }}>
+        {trends.customers}
+      </span>
+    </div>
+    <p style={labelStyle}>Customers</p>
+    <h3 style={valueStyle}>{totalCustomers}</h3>
+  </div>
+
+  {/* Completed Orders */}
+  <div style={cardStyle}>
+    <div style={cardHeader}>
+      <CheckCircle2 size={18} color="#7B4FBF" />
+      <span style={{ ...trendStyle, color: '#7B4FBF' }}>
+        {trends.avg}
+      </span>
+    </div>
+    <p style={labelStyle}>Completed</p>
+    <h3 style={valueStyle}>{completedOrders}</h3>
+  </div>
+
+  {/* Avg Order Value */}
+  <div style={cardStyle}>
+    <div style={cardHeader}>
+      <TrendingUp size={18} color="#C26A1A" />
+      <span style={{ ...trendStyle, color: '#C26A1A' }}>
+        +2%
+      </span>
+    </div>
+    <p style={labelStyle}>Avg Order</p>
+    <h3 style={valueStyle}>R {avgOrderValue}</h3>
+  </div>
+
+</div>
+
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: '12px',
+      marginBottom: '20px'
+    }}>
+
+      <div style={cardStyle}>
+        <p style={labelStyle}>Total Orders</p>
+        <h3 style={valueStyle}>{totalOrders}</h3>
+      </div>
+
+      <div style={cardStyle}>
+        <p style={labelStyle}>Total Revenue</p>
+        <h3 style={valueStyle}>R {totalRevenue}</h3>
+      </div>
+
+      <div style={cardStyle}>
+        <p style={labelStyle}>Completed Orders</p>
+        <h3 style={valueStyle}>{completedOrders}</h3>
+      </div>
+
+      <div style={cardStyle}>
+        <p style={labelStyle}>Avg Order Value</p>
+        <h3 style={valueStyle}>R {avgOrderValue}</h3>
+      </div>
+
+      <div style={cardStyle}>
+       <p style={labelStyle}>Total Customers</p>
+       <h3 style={valueStyle}>{totalCustomers}</h3>
+      </div>
+
+    </div>
+
+    {/* ───── Top Selling Items ───── */}
+    <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px' }}>
+      Top Selling Items
+    </h2>
+
+    <div style={{
+      background: 'white',
+      borderRadius: '14px',
+      padding: '12px',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+    }}>
+
+      {topSellingItems.length === 0 ? (
+        <p style={{ color: '#aaa' }}>No sales data yet</p>
+      ) : (
+        topSellingItems.map((item) => (
+          <div
+            key={item.name}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '10px 0',
+              borderBottom: '1px solid #f0f0f0',
+            }}
+          >
+            <div>
+              <p style={{ margin: 0, fontWeight: 600 }}>
+                {item.name}
+              </p>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#888' }}>
+                Sold {item.quantity} times
+              </p>
+            </div>
+
+            <div style={{ fontWeight: 700, color: '#C0474A' }}>
+              R {item.revenue}
+            </div>
+          </div>
+        ))
       )}
 
-      {/* ── Analytics Tab ── */}
-      {activeTab === 'analytics' && (
-        <section style={{ padding: '0 16px 32px', textAlign: 'center', color: '#aaa', marginTop: '4rem', fontSize: '0.9rem' }}>
-          <BarChart2 size={40} color="#ddd" style={{ marginBottom: '12px' }} />
-          <p>Analytics coming soon</p>
-        </section>
-      )}
+    </div>
+
+  </section>
+)}
+
+      
+
 
     </div>
   );

@@ -27,7 +27,7 @@ export default function AuthCallback() {
           localStorage.setItem('orderup_user', JSON.stringify(data));
           if (data.role === 'customer') navigate('/student-dashboard');
           else if (data.role === 'vendor') navigate('/vendor-dashboard');
-          else navigate('/role-selection');
+          else if (data.role === 'admin') navigate('/admin-dashboard');
         } else {
           navigate('/role-selection');
         }

@@ -1,0 +1,91 @@
+---
+config:
+  theme: redux-color
+---
+sequenceDiagram
+    actor Student
+    participant React as React Frontend
+    participant API as Express Backend
+    participant DB as PostgreSQL Database
+    participant PS as PayStack
+    actor Vendor
+
+    Student->>React: login()
+    activate React
+    React->>API: authenticate(token)
+    activate API
+    API-->>React: userRole, profile
+    deactivate API
+    React-->>Student: redirect to Student Dashboard
+    deactivate React
+
+    Student->>React: selectVendor(vendorId)
+    activate React
+    React->>API: getMenu(vendorId)
+    activate API
+    API->>DB: SELECT menu_items WHERE vendor_id
+    activate DB
+    DB-->>API: menuItems[]
+    deactivate DB
+    API-->>React: menuItems[]
+    deactivate API
+    React-->>Student: display VendorMenuPage
+    deactivate React
+
+    loop For each item Student wants to add
+        Student->>React: addToCart(itemId, quantity)
+        activate React
+        React-->>Student: update cart display
+        deactivate React
+    end
+
+    Student->>React: clickCheckout()
+    activate React
+    React-->>Student: display CheckoutPage(cart, vendor, total)
+    deactivate React
+
+    Student->>React: placeOrder(cart, note, paymentMethod)
+    activate React
+    React->>API: POST createOrder(customerId, vendorId, cartItems, total)
+    activate API
+    API->>DB: INSERT INTO orders(customer_id, vendor_id, total, status)
+    activate DB
+    DB-->>API: orderId
+    deactivate DB
+    API->>PS: initializePayment(orderId, amount, email)
+    activate PS
+    PS-->>API: paymentURL
+    deactivate PS
+    API-->>React: paymentURL
+    deactivate API
+    React->>PS: redirect(paymentURL)
+    deactivate React
+
+    Student->>PS: completePayment(cardDetails)
+    activate PS
+    PS->>API: webhook(paymentReference, status=success)
+    activate API
+    API->>DB: UPDATE payments SET status=paid
+    activate DB
+    API->>DB: UPDATE orders SET status=confirmed
+    DB-->>API: success
+    deactivate DB
+    API-->>React: orderConfirmed(orderId)
+    deactivate API
+    deactivate PS
+    React-->>Student: display OrderConfirmedPage
+
+    loop While order is being prepared
+        Vendor->>React: updateOrderStatus(orderId, newStatus)
+        activate React
+        React->>API: PATCH updateStatus(orderId, newStatus)
+        activate API
+        API->>DB: UPDATE orders SET status=newStatus
+        activate DB
+        DB-->>API: success
+        deactivate DB
+        API-->>React: statusUpdated
+        deactivate API
+        React-->>Student: update live tracker display
+        deactivate React
+    end

@@ -134,12 +134,25 @@ export default function StudentDashboard() {
           <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <div onClick={() => navigate('/student-dashboard')} style={iconBtn}><Home size={16} color="white" strokeWidth={2} /></div>
-          <div style={iconBtn}><History size={16} color="white" strokeWidth={2} /></div>
-          <div onClick={() => navigate('/order-confirmed')} style={iconBtn}><Package size={16} color="white" strokeWidth={2} /></div>
-          <div onClick={() => navigate('/checkout', { state: { vendor: null, cart: {}, items: [] } })} style={iconBtn}><ShoppingCart size={16} color="white" strokeWidth={2} /></div>
-          <div style={iconBtn}><UserRound size={16} color="white" strokeWidth={2} /></div>
+          <div
+        onClick={() => navigate('/student-dashboard')}
+        style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+      >
+        <Home size={16} color="white" strokeWidth={2} />
+      </div>
+      <div
+        onClick={() => navigate('/student-history')}
+        style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+      >
+        <History size={16} color="white" strokeWidth={2} />
+      </div>
+        <div
+          onClick={() => navigate('/order-confirmed')}
+          style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        >
+          <Package size={16} color="white" strokeWidth={2} />
         </div>
+      </div>
       </header>
 
       {/* ── Hero Banner ── */}
