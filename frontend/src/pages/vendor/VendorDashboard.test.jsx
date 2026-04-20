@@ -22,6 +22,7 @@ describe('VendorDashboard', () => {
   it('renders Jimmy\'s Dashboard', () => {
     render(<MemoryRouter><VendorDashboard /></MemoryRouter>);
     expect(screen.getByText(/Jimmy's Dashboard/i)).toBeInTheDocument();
+    expect(screen.getByText(/Dashboard/i);
   });
 
   it('switches to the Menu tab', () => {
