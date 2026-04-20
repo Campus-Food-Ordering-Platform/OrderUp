@@ -1,47 +1,9 @@
-import { useState } from 'react';
+// CHANGED: added useEffect
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Plus, Minus, Leaf, Flame, Home, Package, History, UserRound } from 'lucide-react';
 
 const BRAND = '#C0474A';
-
-const menuData = {
-  1: [
-    { id: 1, name: 'Beef Noodle Soup', description: 'Rich broth with tender beef and noodles.', price: 55, emoji: '🍜', category: 'Mains', tags: ['Halal'], calories: 420 },
-    { id: 2, name: 'Vegetable Fried Rice', description: 'Wok-fried rice with seasonal vegetables.', price: 40, emoji: '🍚', category: 'Mains', tags: ['Vegan', 'Nut-free'], calories: 380 },
-    { id: 3, name: 'Spring Rolls (3)', description: 'Crispy golden rolls with vegetable filling.', price: 30, emoji: '🥟', category: 'Starters', tags: ['Vegan'], calories: 210 },
-    { id: 4, name: 'Chicken Chow Mein', description: 'Stir-fried noodles with chicken and veggies.', price: 60, emoji: '🍝', category: 'Mains', tags: ['Halal', 'Nut-free'], calories: 460 },
-  ],
-  2: [
-    { id: 1, name: 'Classic Kota', description: 'Quarter loaf filled with chips, polony and sauce.', price: 25, emoji: '🍔', category: 'Mains', tags: ['Nut-free'], calories: 650 },
-    { id: 2, name: 'Chicken Burger', description: 'Crispy chicken fillet with lettuce and mayo.', price: 45, emoji: '🍗', category: 'Mains', tags: ['Halal', 'Nut-free'], calories: 520 },
-    { id: 3, name: 'Chips & Chicken Burger', description: 'Chicken burger served with a side of chips.', price: 55, emoji: '🍟', category: 'Mains', tags: ['Halal'], calories: 720 },
-    { id: 4, name: 'Mini Chips', description: 'Small portion of salted chips.', price: 15, emoji: '🍟', category: 'Sides', tags: ['Vegan', 'Nut-free'], calories: 280 },
-  ],
-  3: [
-    { id: 1, name: 'Filter Coffee', description: 'Classic brewed coffee, hot or iced.', price: 16, emoji: '☕', category: 'Drinks', tags: ['Vegan', 'Nut-free'], calories: 5 },
-    { id: 2, name: 'Toasted Sandwich', description: 'Cheese and tomato on white or brown.', price: 16, emoji: '🥪', category: 'Mains', tags: ['Nut-free'], calories: 310 },
-    { id: 3, name: 'Muffin', description: 'Freshly baked blueberry or chocolate muffin.', price: 16, emoji: '🧁', category: 'Sides', tags: ['Nut-free'], calories: 390 },
-    { id: 4, name: 'Cappuccino', description: 'Espresso with steamed milk foam.', price: 16, emoji: '☕', category: 'Drinks', tags: ['Nut-free'], calories: 90 },
-  ],
-  4: [
-    { id: 1, name: 'Margherita', description: 'Classic tomato, mozzarella and basil.', price: 75, emoji: '🍕', category: 'Mains', tags: ['Vegetarian', 'Nut-free'], calories: 580 },
-    { id: 2, name: 'BBQ Chicken', description: 'BBQ sauce, chicken, red onion and cheese.', price: 90, emoji: '🍕', category: 'Mains', tags: ['Halal', 'Nut-free'], calories: 670 },
-    { id: 3, name: 'Veggie Supreme', description: 'Loaded with roasted seasonal vegetables.', price: 80, emoji: '🍕', category: 'Mains', tags: ['Vegan', 'Nut-free'], calories: 520 },
-    { id: 4, name: 'Garlic Bread', description: 'Toasted bread with garlic butter.', price: 30, emoji: '🥖', category: 'Sides', tags: ['Vegetarian'], calories: 290 },
-  ],
-  5: [
-    { id: 1, name: 'Garden Salad', description: 'Fresh greens, cucumber, tomato and dressing.', price: 45, emoji: '🥗', category: 'Mains', tags: ['Vegan', 'Nut-free'], calories: 180 },
-    { id: 2, name: 'Chicken Wrap', description: 'Grilled chicken with salad in a whole wheat wrap.', price: 55, emoji: '🌯', category: 'Mains', tags: ['Halal', 'Nut-free'], calories: 420 },
-    { id: 3, name: 'Green Smoothie', description: 'Spinach, banana, apple and ginger blend.', price: 40, emoji: '🥤', category: 'Drinks', tags: ['Vegan', 'Nut-free'], calories: 210 },
-    { id: 4, name: 'Protein Bowl', description: 'Brown rice, chickpeas, avocado and tahini.', price: 65, emoji: '🥙', category: 'Mains', tags: ['Vegan'], calories: 490 },
-  ],
-  6: [
-    { id: 1, name: 'Butter Chicken', description: 'Tender chicken in a creamy tomato sauce.', price: 70, emoji: '🍛', category: 'Mains', tags: ['Halal', 'Nut-free'], calories: 540 },
-    { id: 2, name: 'Vegetable Curry', description: 'Seasonal vegetables in a fragrant curry sauce.', price: 55, emoji: '🍲', category: 'Mains', tags: ['Vegan', 'Nut-free'], calories: 380 },
-    { id: 3, name: 'Roti (2)', description: 'Soft flatbreads, freshly made.', price: 20, emoji: '🫓', category: 'Sides', tags: ['Vegan', 'Nut-free'], calories: 240 },
-    { id: 4, name: 'Mango Lassi', description: 'Chilled yoghurt and mango drink.', price: 30, emoji: '🥭', category: 'Drinks', tags: ['Vegetarian', 'Nut-free'], calories: 190 },
-  ],
-};
 
 const tagColors = {
   Halal:       { bg: '#E0F7EF', color: '#2A9D6A' },
@@ -58,7 +20,16 @@ export default function VendorMenuPage() {
   const [cart, setCart] = useState({});
   const [activeCategory, setActiveCategory] = useState('All');
 
-  const items = menuData[vendor?.id] || [];
+  // CHANGED: replaced menuData[vendor?.id] with state + useEffect fetch
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    if (!vendor?.id) return;
+    fetch(`http://localhost:3000/api/vendors/${vendor.id}/menu`)
+      .then(res => res.json())
+      .then(data => setItems(data))
+      .catch(err => console.error('Failed to fetch menu:', err));
+  }, [vendor?.id]);
 
   // Build category list dynamically from items
   const categories = ['All', ...new Set(items.map((i) => i.category))];
@@ -121,21 +92,19 @@ export default function VendorMenuPage() {
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div
-              style={{
-                width: '36px',
-                height: '36px',
-                backgroundColor: 'white',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.2rem',
-              }}
-            >
-              {vendor.emoji}
-            </div>
-            <span style={{ color: 'white', fontSize: '1.1rem', fontWeight: 800 }}>{vendor.name}</span>
-          </div>
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  backgroundColor: 'white',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+    <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
+  </div>
+  <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
+</div>
         </div>
 
         {/* Nav bar icons */}
@@ -295,7 +264,9 @@ export default function VendorMenuPage() {
                     flexShrink: 0,
                   }}
                 >
-                  {item.emoji}
+                {item.image_url
+                ? <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : '🍽️'}
                 </div>
 
                 {/* Card body */}
@@ -307,9 +278,9 @@ export default function VendorMenuPage() {
                     {item.description}
                   </p>
 
-                  {/* Tags */}
+                  {/* Tags — CHANGED: added (item.tags || []) to avoid crash when tags is null */}
                   <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {item.tags.map((tag) => (
+                    {(item.tags || []).map((tag) => (
                       <span
                         key={tag}
                         style={{

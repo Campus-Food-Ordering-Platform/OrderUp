@@ -1,0 +1,1 @@
+ALTER TABLE menu_items DROP CONSTRAINT menu_items_vendor_id_key;

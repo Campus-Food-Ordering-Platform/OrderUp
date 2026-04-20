@@ -117,3 +117,113 @@ is always accurate and up to date.
 | 8 | I have a menu item | I toggle the Available switch off | The item shows as Sold Out | Pass |
 | 9 | I am on the menu tab | I click a category filter | Only items in that category are shown | Pass |
 
+## Sprint 2
+
+---
+
+## US007 - Student View Order History
+
+**User Story:**
+As a student, I want to view my past orders,
+so that I can keep track of what I have previously ordered and spent.
+
+### Acceptance Tests
+
+| # | Given | When | Then | Status |
+|---|-------|------|------|--------|
+| 1 | I am logged in as a student | I click the History icon in the nav bar | I am taken to the Order History page | Pass |
+| 2 | I am on the Order History page | The page loads | I can see a list of my past orders with vendor name, date, order ID, items and total | Pass |
+| 3 | I am on the Order History page | I view an order card | I can see a coloured status badge showing Completed or Refunded | Pass |
+| 4 | I am on the Order History page | I type "Jimmy" in the search bar | Only orders from Jimmy's appear | Pass |
+| 5 | I am on the Order History page | I type a food item name in the search bar | Orders containing that item appear | Pass |
+| 6 | I am on the Order History page | I have no orders matching my search | A "No orders found" empty state is displayed | Pass |
+
+---
+
+## US008 - Student Reorder Previous Order
+
+**User Story:**
+As a student, I want to reorder a previous order,
+so that I can quickly repeat a meal I enjoyed without rebuilding my cart.
+
+### Acceptance Tests
+
+| # | Given | When | Then | Status |
+|---|-------|------|------|--------|
+| 1 | I am on the Order History page | I view a past order card | I can see a "Reorder" button | Pass |
+| 2 | I am on the Order History page | I click "Reorder" on a past order | I am taken to the Checkout page pre-filled with that order's items | Pass |
+| 3 | I clicked Reorder | I view the Checkout page | The vendor name, items, quantities and total from the original order are all pre-filled | Pass |
+| 4 | I am on a past order card | I click "Contact Support" | An alert notifies me that real-time support is a future feature | Pass |
+
+---
+
+## US009 - Admin View Platform Overview
+
+**User Story:**
+As an admin, I want to view a platform overview dashboard,
+so that I can monitor key metrics like total vendors, orders and revenue at a glance.
+
+### Acceptance Tests
+
+| # | Given | When | Then | Status |
+|---|-------|------|------|--------|
+| 1 | I am logged in as an admin | I open the Admin Dashboard | I see the Overview tab selected by default | Pass |
+| 2 | I am on the Overview tab | The page loads | I can see stat cards showing Total Vendors, Approved, Pending and Suspended counts | Pass |
+| 3 | I am on the Overview tab | The page loads | I can see Total Orders and Total Revenue displayed | Pass |
+| 4 | I am on the Overview tab | The page loads | I can see a list of recent orders with vendor, student, total, status and time | Pass |
+| 5 | I am on the Overview tab | I view the recent orders list | Each order displays a colour-coded status badge | Pass |
+
+---
+
+## US010 - Admin Review and Approve Vendor Applications
+
+**User Story:**
+As an admin, I want to review and approve or reject pending vendor applications,
+so that only verified vendors can operate on the platform.
+
+### Acceptance Tests
+
+| # | Given | When | Then | Status |
+|---|-------|------|------|--------|
+| 1 | I am on the Admin Dashboard | I click the Vendors tab | I see a list of all vendors with their statuses | Pass |
+| 2 | I am on the Vendors tab | I click the "Pending" filter | Only vendors awaiting approval are shown | Pass |
+| 3 | I am on the Vendors tab | I click "Review" on a pending vendor | A detailed modal opens showing the vendor's application details | Pass |
+| 4 | I am reviewing a vendor application | I view the modal | I can see phone, location, hours, description, health certificate, banking info and sample menu | Pass |
+| 5 | I am reviewing a pending vendor | I click "Approve" | The vendor's status changes to Approved and the modal closes | Pass |
+| 6 | I am reviewing a pending vendor | I click "Reject" | The vendor's status changes to Suspended and the modal closes | Pass |
+
+---
+
+## US011 - Admin Search and Filter Vendors
+
+**User Story:**
+As an admin, I want to search and filter vendors by status,
+so that I can quickly find and manage specific vendors on the platform.
+
+### Acceptance Tests
+
+| # | Given | When | Then | Status |
+|---|-------|------|------|--------|
+| 1 | I am on the Vendors tab | I type a vendor name in the search bar | Only vendors whose name matches the query are shown | Pass |
+| 2 | I am on the Vendors tab | I type an owner name in the search bar | Only vendors whose owner matches the query are shown | Pass |
+| 3 | I am on the Vendors tab | I click the "Approved" filter | Only approved vendors are displayed | Pass |
+| 4 | I am on the Vendors tab | I click the "Suspended" filter | Only suspended vendors are displayed | Pass |
+| 5 | I am on the Vendors tab | I click "All" filter | All vendors regardless of status are shown | Pass |
+| 6 | I am viewing an approved vendor | I click "Suspend" | The vendor's status immediately updates to Suspended | Pass |
+
+---
+
+## US012 - Admin Manage Disputes
+
+**User Story:**
+As an admin, I want to view and search through platform disputes,
+so that I can identify and resolve student or vendor complaints efficiently.
+
+### Acceptance Tests
+
+| # | Given | When | Then | Status |
+|---|-------|------|------|--------|
+| 1 | I am on the Admin Dashboard | I click the Disputes tab | I see a list of all active disputes | Pass |
+| 2 | I am on the Disputes tab | I view a dispute entry | I can see the order ID, student name, vendor and dispute reason | Pass |
+| 3 | I am on the Disputes tab | I type in the search bar | Only disputes matching the search query are displayed | Pass |
+| 4 | I am on the Disputes tab | No disputes match my search | An empty state message is displayed | Pass |
