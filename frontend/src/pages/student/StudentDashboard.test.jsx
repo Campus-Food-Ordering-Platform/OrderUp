@@ -17,6 +17,7 @@ describe('StudentDashboard', () => {
   it('renders student greeting correctly', () => {
     render(<MemoryRouter><StudentDashboard /></MemoryRouter>);
     expect(screen.getByText('Hey TestStudent! 👋')).toBeInTheDocument();
+    expect(screen.getByText(/TestStudent's Dashboard/i);
     expect(screen.getByText('Chinese Lantern')).toBeInTheDocument();
   });
 
