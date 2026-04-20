@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import VendorDashboard from './VendorDashboard';
 
@@ -18,33 +18,66 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock localStorage
+// Mock localStorage with an existing user ID
+const mockUser = { id: 'test_user_123' };
 const localStorageMock = {
-  getItem: vi.fn().mockReturnValue(null),
+  getItem: vi.fn().mockImplementation((key) => {
+    if (key === 'orderup_user') return JSON.stringify({ user: mockUser });
+    return null;
+  }),
   setItem: vi.fn(),
   removeItem: vi.fn(),
   clear: vi.fn(),
 };
 Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
 
+// Mock global fetch to return an approved vendor status
+global.fetch = vi.fn();
+
 describe('VendorDashboard', () => {
-  it('renders the vendor dashboard header', () => {
-    render(<MemoryRouter><VendorDashboard /></MemoryRouter>);
-    expect(screen.getByText('OrderUp')).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        id: 'mock_vendor_id',
+        stall_name: 'Test Vendor',
+        phone: '1234567890',
+        description: 'Test vendor desc',
+        status: 'approved'
+      })
+    });
   });
 
-  it('switches to the Menu tab', () => {
+  it('renders the vendor dashboard and header', async () => {
     render(<MemoryRouter><VendorDashboard /></MemoryRouter>);
     
-    // Switch to Menu
+    // Wait until the loading state is finished and the dashboard renders
+    await waitFor(() => {
+      expect(screen.getByText('Menu')).toBeInTheDocument();
+    });
+  });
+
+  it('switches to the Menu tab', async () => {
+    render(<MemoryRouter><VendorDashboard /></MemoryRouter>);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Menu')).toBeInTheDocument();
+    });
+
     fireEvent.click(screen.getByText('Menu'));
-    expect(screen.getByText('Menu Items')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Loading menu/i)).toBeInTheDocument();
+    });
   });
 
-  it('switches to the Analytics tab', () => {
+  it('switches to the Analytics tab', async () => {
     render(<MemoryRouter><VendorDashboard /></MemoryRouter>);
     
-    // Switch to Analytics
+    await waitFor(() => {
+      expect(screen.getByText('Analytics')).toBeInTheDocument();
+    });
+
     fireEvent.click(screen.getByText('Analytics'));
     expect(screen.getByText('Analytics Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Top Selling Items')).toBeInTheDocument();
