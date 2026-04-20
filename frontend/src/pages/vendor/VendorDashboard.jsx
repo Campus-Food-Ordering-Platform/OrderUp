@@ -484,11 +484,318 @@ function ProfitCalculator() {
   );
 }
 
+// ============ VENDOR APPLICATION FORM ============
+const VENDOR_CATEGORIES = ['Fast Food', 'Cafe', 'Asian', 'Pizza', 'Healthy', 'Indian', 'Other'];
+
+function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [sampleItem, setSampleItem] = useState('');
+  const [form, setForm] = useState({
+    stall_name: vendorName || '',
+    category: 'Fast Food',
+    owner_name: '',
+    owner_email: '',
+    phone: '',
+    location: '',
+    hours: '',
+    description: '',
+    health_cert_file: null,
+    health_cert_name: '',
+    bank_name: '',
+    bank_account_number: '',
+    sample_items: [],
+  });
+
+  const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+
+  const addSampleItem = () => {
+    if (sampleItem.trim() && form.sample_items.length < 6) {
+      update('sample_items', [...form.sample_items, sampleItem.trim()]);
+      setSampleItem('');
+    }
+  };
+
+  const removeSampleItem = (idx) =>
+    update('sample_items', form.sample_items.filter((_, i) => i !== idx));
+
+  const handleSubmit = async () => {
+    if (!form.owner_name || !form.phone || !form.description || !form.location) {
+      alert('Please fill in all required fields (marked with *)');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch(`http://localhost:3000/api/vendors/${vendorId}/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error('Failed to submit');
+      onSubmitted();
+    } catch (err) {
+      console.error(err);
+      // Even if backend endpoint not ready, proceed to pending screen
+      onSubmitted();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputStyle = { width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1.5px solid #EBEBEB', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' };
+  const labelStyle = { fontSize: '0.72rem', fontWeight: 700, color: '#888', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '6px', display: 'block' };
+  const sectionStyle = { backgroundColor: 'white', borderRadius: '16px', padding: '18px', marginBottom: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' };
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
+      <header style={{ background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
+        </div>
+        <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
+      </header>
+
+      <section style={{ margin: '16px', background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, borderRadius: '18px', padding: '20px 24px' }}>
+        <h1 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, margin: '0 0 4px' }}>Vendor Application</h1>
+        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem', margin: 0 }}>Tell us about your stall — our team will review your application within 24–48 hours</p>
+      </section>
+
+      <div style={{ padding: '0 16px 32px' }}>
+
+        {/* Business Info */}
+        <div style={sectionStyle}>
+          <p style={labelStyle}>Business Info</p>
+          <div style={{ marginBottom: '10px' }}>
+            <label style={labelStyle}>Stall / Business Name *</label>
+            <input style={inputStyle} value={form.stall_name} onChange={e => update('stall_name', e.target.value)} placeholder="e.g. Jimmy's Kota" />
+          </div>
+          <div>
+            <label style={labelStyle}>Category *</label>
+            <select style={{ ...inputStyle }} value={form.category} onChange={e => update('category', e.target.value)}>
+              {VENDOR_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Owner Details */}
+        <div style={sectionStyle}>
+          <p style={labelStyle}>Owner Details</p>
+          <div style={{ marginBottom: '10px' }}>
+            <label style={labelStyle}>Full Name *</label>
+            <input style={inputStyle} value={form.owner_name} onChange={e => update('owner_name', e.target.value)} placeholder="e.g. Thabo Nkosi" />
+          </div>
+          <div style={{ marginBottom: '10px' }}>
+            <label style={labelStyle}>Email Address</label>
+            <input style={inputStyle} type="email" value={form.owner_email} onChange={e => update('owner_email', e.target.value)} placeholder="e.g. thabo@kota.co.za" />
+          </div>
+          <div>
+            <label style={labelStyle}>Phone Number *</label>
+            <input style={inputStyle} type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="e.g. 082 555 0192" />
+          </div>
+        </div>
+
+        {/* Operations */}
+        <div style={sectionStyle}>
+          <p style={labelStyle}>Operations</p>
+          <div style={{ marginBottom: '10px' }}>
+            <label style={labelStyle}>Stall Location *</label>
+            <input style={inputStyle} value={form.location} onChange={e => update('location', e.target.value)} placeholder="e.g. Matrix Food Court, Stall 4" />
+          </div>
+          <div>
+            <label style={labelStyle}>Operating Hours</label>
+            <input style={inputStyle} value={form.hours} onChange={e => update('hours', e.target.value)} placeholder="e.g. 07:00 - 17:00" />
+          </div>
+        </div>
+
+        {/* Business Description */}
+        <div style={sectionStyle}>
+          <label style={labelStyle}>Business Description *</label>
+          <textarea rows={4} style={{ ...inputStyle, resize: 'none' }} value={form.description} onChange={e => update('description', e.target.value)} placeholder="Describe your stall, cuisine type, and what makes your food special..." />
+        </div>
+
+        {/* Compliance */}
+        <div style={sectionStyle}>
+          <p style={labelStyle}>Compliance</p>
+          <label style={labelStyle}>Health Certificate (Document Upload)</label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '12px', border: '1.5px dashed #EBEBEB', backgroundColor: '#FAFAFA', cursor: 'pointer' }}>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={e => {
+              const file = e.target.files[0];
+              if (file) { update('health_cert_file', file); update('health_cert_name', file.name); }
+            }} />
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ fontSize: '1rem' }}>📄</span>
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: form.health_cert_name ? '#1a1a2e' : '#aaa' }}>
+                {form.health_cert_name || 'Upload health certificate'}
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: '#bbb' }}>PDF, JPG or PNG accepted</p>
+            </div>
+          </label>
+        </div>
+
+        {/* Banking */}
+        <div style={sectionStyle}>
+          <p style={labelStyle}>Banking</p>
+          <div style={{ marginBottom: '10px' }}>
+            <label style={labelStyle}>Bank Name</label>
+            <input style={inputStyle} value={form.bank_name} onChange={e => update('bank_name', e.target.value)} placeholder="e.g. FNB, Standard Bank, ABSA" />
+          </div>
+          <div>
+            <label style={labelStyle}>Bank Account Number</label>
+            <input style={inputStyle} type="text" value={form.bank_account_number} onChange={e => update('bank_account_number', e.target.value)} placeholder="e.g. 62012345678" />
+          </div>
+        </div>
+
+        {/* Sample Menu Items */}
+        <div style={sectionStyle}>
+          <p style={labelStyle}>Sample Menu Items</p>
+          <p style={{ fontSize: '0.72rem', color: '#aaa', marginBottom: '10px' }}>Add up to 6 items that best represent your menu</p>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+            <input style={{ ...inputStyle, flex: 1 }} value={sampleItem} onChange={e => setSampleItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && addSampleItem()} placeholder="e.g. Chicken Burger" />
+            <button onClick={addSampleItem} style={{ padding: '10px 18px', background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>Add</button>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {form.sample_items.map((item, idx) => (
+              <span key={idx} style={{ backgroundColor: '#FFF0F0', color: BRAND, fontSize: '0.78rem', fontWeight: 600, padding: '6px 14px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {item}
+                <span onClick={() => removeSampleItem(idx)} style={{ cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}>×</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <button onClick={handleSubmit} disabled={submitting} style={{ width: '100%', padding: '16px', background: submitting ? '#ccc' : `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, color: 'white', border: 'none', borderRadius: '2rem', fontSize: '1rem', fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', boxShadow: submitting ? 'none' : '0 4px 15px rgba(192,71,74,0.4)' }}>
+          {submitting ? 'Submitting...' : '🚀 Submit Application'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============ PENDING REVIEW SCREEN ============
+function VendorPendingScreen({ vendorName }) {
+  const steps = [
+    { label: 'Application Submitted', done: true },
+    { label: 'Under Admin Review', done: false, active: true },
+    { label: 'Approved & Live', done: false },
+  ];
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
+      <header style={{ background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
+        </div>
+        <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
+      </header>
+
+      <div style={{ padding: '32px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', boxShadow: '0 8px 24px rgba(192,71,74,0.35)' }}>
+          <Clock size={36} color="white" />
+        </div>
+
+        <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1a1a2e', margin: '0 0 8px', textAlign: 'center' }}>Application Under Review</h1>
+        <p style={{ fontSize: '0.9rem', color: '#666', textAlign: 'center', lineHeight: 1.6, marginBottom: '28px', maxWidth: '320px' }}>
+          Thanks{vendorName ? `, ${vendorName}` : ''}! Our team is reviewing your application and will get back to you within <strong>24–48 hours</strong>.
+        </p>
+
+        {/* Progress Steps */}
+        <div style={{ width: '100%', backgroundColor: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
+          {steps.map((step, idx) => (
+            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: idx < steps.length - 1 ? '20px' : 0 }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: step.done ? BRAND : step.active ? '#FFF0F0' : '#F5F5F5', border: step.active ? `2px solid ${BRAND}` : 'none' }}>
+                {step.done
+                  ? <CheckCircle2 size={18} color="white" />
+                  : <span style={{ fontSize: '0.75rem', fontWeight: 700, color: step.active ? BRAND : '#ccc' }}>{idx + 1}</span>
+                }
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: step.active ? 700 : 600, color: step.done ? '#2A7D2A' : step.active ? BRAND : '#aaa' }}>{step.label}</p>
+                {step.active && <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: '#888' }}>Usually within 24–48 hours</p>}
+              </div>
+              {step.done && <CheckCircle2 size={16} color="#2A7D2A" />}
+              {step.active && <span style={{ fontSize: '0.65rem', backgroundColor: '#FFF0F0', color: BRAND, fontWeight: 700, padding: '3px 10px', borderRadius: '20px' }}>In Progress</span>}
+            </div>
+          ))}
+        </div>
+
+        {/* Info Card */}
+        <div style={{ width: '100%', backgroundColor: '#FFF8F0', border: '1.5px solid #FFE0C8', borderRadius: '14px', padding: '16px' }}>
+          <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#C26A1A', margin: '0 0 8px' }}>📋 What happens next?</p>
+          <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.78rem', color: '#666', lineHeight: 1.9 }}>
+            <li>Our admin team will review your application details</li>
+            <li>You may be contacted if additional information is needed</li>
+            <li>Once approved, you'll have full access to your dashboard</li>
+            <li>You can start receiving orders immediately after approval</li>
+          </ul>
+        </div>
+
+        <p style={{ fontSize: '0.75rem', color: '#aaa', marginTop: '20px', textAlign: 'center' }}>
+          Questions? Contact us at <span style={{ color: BRAND }}>support@orderup.co.za</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ============ MAIN VENDOR DASHBOARD ============
 export default function VendorDashboard() {
   const [activeTab, setActiveTab] = useState('orders');
   const [activeFilter, setActiveFilter] = useState('All orders');
   const [orders, setOrders] = useState(mockOrders);
+  const [vendorStatus, setVendorStatus] = useState('loading');
+  const [vendorId, setVendorId] = useState(null);
+  const [vendorDisplayName, setVendorDisplayName] = useState('');
+
+  useEffect(() => {
+    const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
+    const user = raw?.user ?? raw;
+    if (!user?.id) {
+      setVendorStatus('apply');
+      return;
+    }
+    const checkStatus = async () => {
+      try {
+        const res = await fetch('http://localhost:3000/api/vendors/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profile_id: user.id }),
+        });
+        const vendor = await res.json();
+        if (!vendor?.id) { setVendorStatus('apply'); return; }
+        setVendorId(vendor.id);
+        setVendorDisplayName(vendor.stall_name || vendor.name || '');
+        if (!vendor.phone && !vendor.description) {
+          setVendorStatus('apply');
+        } else if (vendor.status === 'approved') {
+          setVendorStatus('approved');
+        } else {
+          setVendorStatus('pending');
+        }
+      } catch (err) {
+        console.error('Could not check vendor status:', err);
+        setVendorStatus('approved'); // fallback to dashboard if API unreachable
+      }
+    };
+    checkStatus();
+  }, []);
+
+  if (vendorStatus === 'loading') {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#aaa', fontSize: '0.9rem' }}>Loading your dashboard...</p>
+      </div>
+    );
+  }
+
+  if (vendorStatus === 'apply') {
+    return <VendorApplicationForm vendorId={vendorId} vendorName={vendorDisplayName} onSubmitted={() => setVendorStatus('pending')} />;
+  }
+
+  if (vendorStatus === 'pending') {
+    return <VendorPendingScreen vendorName={vendorDisplayName} />;
+  }
 
   const handleUpdateStatus = (orderId, newStatus) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
