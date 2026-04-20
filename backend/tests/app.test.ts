@@ -145,5 +145,128 @@ describe('User Endpoints', () => {
     const res = await request(app).delete('/api/users/nonexistentid');
     expect(res.statusCode).toBe(404);
   });
+//now vendor stuff:
+
+describe('Vendor Endpoints', () => {
+
+  beforeEach(() => {
+    mockQuery.mockReset();
+  });
+
+  it('GET /api/vendors should return all vendors', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 'vendor-1', name: 'Pizza Place', description: 'Best pizza', is_open: true, logo_url: null },
+        { id: 'vendor-2', name: 'Burger Barn', description: 'Best burgers', is_open: false, logo_url: null }
+      ]
+    });
+
+    const res = await request(app).get('/api/vendors');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.length).toBe(2);
+  });
+
+  it('GET /api/vendors/:id should return a vendor', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 'vendor-1', name: 'Pizza Place', description: 'Best pizza', is_open: true, logo_url: null }]
+    });
+
+    const res = await request(app).get('/api/vendors/vendor-1');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.name).toBe('Pizza Place');
+  });
+
+  it('GET /api/vendors/:id should return 404 if not found', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app).get('/api/vendors/nonexistent');
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('GET /api/vendors/:id/menu should return menu items', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 'item-1', name: 'Margherita', price: 50, category: 'Pizza' },
+        { id: 'item-2', name: 'Pepperoni', price: 60, category: 'Pizza' }
+      ]
+    });
+
+    const res = await request(app).get('/api/vendors/vendor-1/menu');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.length).toBe(2);
+  });
+
+  it('POST /api/vendors/:id/menu should return 400 if name and price missing', async () => {
+    const res = await request(app)
+      .post('/api/vendors/vendor-1/menu')
+      .send({ description: 'No name or price' });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /api/vendors/:id/menu should add a menu item', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 'item-1', name: 'Margherita', price: 50, category: 'Pizza' }]
+    });
+
+    const res = await request(app)
+      .post('/api/vendors/vendor-1/menu')
+      .send({ name: 'Margherita', price: 50, category: 'Pizza' });
+    expect(res.statusCode).toBe(201);
+    expect(res.body.name).toBe('Margherita');
+  });
+
+  it('PUT /api/vendors/:id/menu/:itemId should return 404 if item not found', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app)
+      .put('/api/vendors/vendor-1/menu/nonexistent')
+      .send({ name: 'Updated', price: 60 });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('PUT /api/vendors/:id/menu/:itemId should update a menu item', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 'item-1', name: 'Updated Pizza', price: 60 }]
+    });
+
+    const res = await request(app)
+      .put('/api/vendors/vendor-1/menu/item-1')
+      .send({ name: 'Updated Pizza', price: 60 });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.name).toBe('Updated Pizza');
+  });
+
+  it('DELETE /api/vendors/:id/menu/:itemId should delete a menu item', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app)
+      .delete('/api/vendors/vendor-1/menu/item-1');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.message).toBe('Menu item deleted');
+  });
+
+  it('POST /api/vendors/register should return 400 if profile_id missing', async () => {
+    const res = await request(app)
+      .post('/api/vendors/register')
+      .send({ description: 'No profile id' });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /api/vendors/register should register a vendor', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 'vendor-1', profile_id: 'profile-123', description: 'Best food' }]
+    });
+
+    const res = await request(app)
+      .post('/api/vendors/register')
+      .send({ profile_id: 'profile-123', description: 'Best food' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.profile_id).toBe('profile-123');
+  });
+
+});
+
+
+
 
 });
