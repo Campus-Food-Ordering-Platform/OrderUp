@@ -500,8 +500,7 @@ export default function VendorDashboard() {
 
   const totalOrders = orders.length;
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
-  const completedOrders = orders.filter(o => o.status === 'Collected').length;
-  const avgOrderValue = totalOrders ? (totalRevenue / totalOrders).toFixed(2) : 0;
+
   const totalCustomers = new Set(orders.map(order => order.customer)).size;
 
   const itemSalesMap = {};

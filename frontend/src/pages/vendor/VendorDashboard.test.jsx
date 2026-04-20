@@ -46,7 +46,7 @@ describe('VendorDashboard', () => {
     
     // Switch to Analytics
     fireEvent.click(screen.getByText('Analytics'));
-    expect(screen.getByText('Overview')).toBeInTheDocument();
+    expect(screen.getByText('Analytics Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Top Selling Items')).toBeInTheDocument();
   });
 });
