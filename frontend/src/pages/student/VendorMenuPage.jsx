@@ -1,53 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart, Plus, Minus, Leaf, Flame, Home, Package, History, UserRound } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Plus, Minus, Home, Package, History, UserRound, UtensilsCrossed } from 'lucide-react';
 
 const BRAND = '#C0474A';
 
-const menuData = {
-  1: [
-    { id: 1, name: 'Beef Noodle Soup', description: 'Rich broth with tender beef and noodles.', price: 55, emoji: '🍜', category: 'Mains', tags: ['Halal'], calories: 420 },
-    { id: 2, name: 'Vegetable Fried Rice', description: 'Wok-fried rice with seasonal vegetables.', price: 40, emoji: '🍚', category: 'Mains', tags: ['Vegan', 'Nut-free'], calories: 380 },
-    { id: 3, name: 'Spring Rolls (3)', description: 'Crispy golden rolls with vegetable filling.', price: 30, emoji: '🥟', category: 'Starters', tags: ['Vegan'], calories: 210 },
-    { id: 4, name: 'Chicken Chow Mein', description: 'Stir-fried noodles with chicken and veggies.', price: 60, emoji: '🍝', category: 'Mains', tags: ['Halal', 'Nut-free'], calories: 460 },
-  ],
-  2: [
-    { id: 1, name: 'Classic Kota', description: 'Quarter loaf filled with chips, polony and sauce.', price: 25, emoji: '🍔', category: 'Mains', tags: ['Nut-free'], calories: 650 },
-    { id: 2, name: 'Chicken Burger', description: 'Crispy chicken fillet with lettuce and mayo.', price: 45, emoji: '🍗', category: 'Mains', tags: ['Halal', 'Nut-free'], calories: 520 },
-    { id: 3, name: 'Chips & Chicken Burger', description: 'Chicken burger served with a side of chips.', price: 55, emoji: '🍟', category: 'Mains', tags: ['Halal'], calories: 720 },
-    { id: 4, name: 'Mini Chips', description: 'Small portion of salted chips.', price: 15, emoji: '🍟', category: 'Sides', tags: ['Vegan', 'Nut-free'], calories: 280 },
-  ],
-  3: [
-    { id: 1, name: 'Filter Coffee', description: 'Classic brewed coffee, hot or iced.', price: 16, emoji: '☕', category: 'Drinks', tags: ['Vegan', 'Nut-free'], calories: 5 },
-    { id: 2, name: 'Toasted Sandwich', description: 'Cheese and tomato on white or brown.', price: 16, emoji: '🥪', category: 'Mains', tags: ['Nut-free'], calories: 310 },
-    { id: 3, name: 'Muffin', description: 'Freshly baked blueberry or chocolate muffin.', price: 16, emoji: '🧁', category: 'Sides', tags: ['Nut-free'], calories: 390 },
-    { id: 4, name: 'Cappuccino', description: 'Espresso with steamed milk foam.', price: 16, emoji: '☕', category: 'Drinks', tags: ['Nut-free'], calories: 90 },
-  ],
-  4: [
-    { id: 1, name: 'Margherita', description: 'Classic tomato, mozzarella and basil.', price: 75, emoji: '🍕', category: 'Mains', tags: ['Vegetarian', 'Nut-free'], calories: 580 },
-    { id: 2, name: 'BBQ Chicken', description: 'BBQ sauce, chicken, red onion and cheese.', price: 90, emoji: '🍕', category: 'Mains', tags: ['Halal', 'Nut-free'], calories: 670 },
-    { id: 3, name: 'Veggie Supreme', description: 'Loaded with roasted seasonal vegetables.', price: 80, emoji: '🍕', category: 'Mains', tags: ['Vegan', 'Nut-free'], calories: 520 },
-    { id: 4, name: 'Garlic Bread', description: 'Toasted bread with garlic butter.', price: 30, emoji: '🥖', category: 'Sides', tags: ['Vegetarian'], calories: 290 },
-  ],
-  5: [
-    { id: 1, name: 'Garden Salad', description: 'Fresh greens, cucumber, tomato and dressing.', price: 45, emoji: '🥗', category: 'Mains', tags: ['Vegan', 'Nut-free'], calories: 180 },
-    { id: 2, name: 'Chicken Wrap', description: 'Grilled chicken with salad in a whole wheat wrap.', price: 55, emoji: '🌯', category: 'Mains', tags: ['Halal', 'Nut-free'], calories: 420 },
-    { id: 3, name: 'Green Smoothie', description: 'Spinach, banana, apple and ginger blend.', price: 40, emoji: '🥤', category: 'Drinks', tags: ['Vegan', 'Nut-free'], calories: 210 },
-    { id: 4, name: 'Protein Bowl', description: 'Brown rice, chickpeas, avocado and tahini.', price: 65, emoji: '🥙', category: 'Mains', tags: ['Vegan'], calories: 490 },
-  ],
-  6: [
-    { id: 1, name: 'Butter Chicken', description: 'Tender chicken in a creamy tomato sauce.', price: 70, emoji: '🍛', category: 'Mains', tags: ['Halal', 'Nut-free'], calories: 540 },
-    { id: 2, name: 'Vegetable Curry', description: 'Seasonal vegetables in a fragrant curry sauce.', price: 55, emoji: '🍲', category: 'Mains', tags: ['Vegan', 'Nut-free'], calories: 380 },
-    { id: 3, name: 'Roti (2)', description: 'Soft flatbreads, freshly made.', price: 20, emoji: '🫓', category: 'Sides', tags: ['Vegan', 'Nut-free'], calories: 240 },
-    { id: 4, name: 'Mango Lassi', description: 'Chilled yoghurt and mango drink.', price: 30, emoji: '🥭', category: 'Drinks', tags: ['Vegetarian', 'Nut-free'], calories: 190 },
-  ],
+const tagColors = {
+  Halal:         { bg: '#E0F7EF', color: '#2A9D6A' },
+  Vegan:         { bg: '#E8F8E8', color: '#2A7D2A' },
+  Vegetarian:    { bg: '#F0FFF0', color: '#3A8A3A' },
+  'Nut-free':    { bg: '#FFF8E1', color: '#B8860B' },
+  'Gluten-free': { bg: '#F3E8FF', color: '#7B4FBF' },
+  'Dairy-free':  { bg: '#E8F4FD', color: '#2A6DB5' },
+  'Egg-free':    { bg: '#FFF0F0', color: '#C0474A' },
 };
 
-const tagColors = {
-  Halal:       { bg: '#E0F7EF', color: '#2A9D6A' },
-  Vegan:       { bg: '#E8F8E8', color: '#2A7D2A' },
-  Vegetarian:  { bg: '#F0FFF0', color: '#3A8A3A' },
-  'Nut-free':  { bg: '#FFF8E1', color: '#B8860B' },
+const iconBtn = {
+  width: '34px', height: '34px', borderRadius: '50%',
+  backgroundColor: 'rgba(255,255,255,0.2)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
 };
 
 export default function VendorMenuPage() {
@@ -57,25 +27,30 @@ export default function VendorMenuPage() {
 
   const [cart, setCart] = useState({});
   const [activeCategory, setActiveCategory] = useState('All');
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const items = menuData[vendor?.id] || [];
+  // ── Fetch menu items from backend ─────────────────────────────────────────
+  useEffect(() => {
+    if (!vendor?.id) { setLoading(false); return; }
+    fetch(`http://localhost:3000/api/vendors/${vendor.id}/menu`)
+      .then(res => {
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        return res.json();
+      })
+      .then(data => { setItems(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(err => { console.error('Failed to fetch menu:', err); setLoading(false); });
+  }, [vendor?.id]);
 
-  // Build category list dynamically from items
-  const categories = ['All', ...new Set(items.map((i) => i.category))];
+  const categories = ['All', ...new Set(items.map(i => i.category).filter(Boolean))];
+  const filteredItems = activeCategory === 'All' ? items : items.filter(i => i.category === activeCategory);
 
-  const filteredItems = activeCategory === 'All'
-    ? items
-    : items.filter((i) => i.category === activeCategory);
-
-  const addToCart = (itemId) =>
-    setCart((prev) => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
-
-  const removeFromCart = (itemId) =>
-    setCart((prev) => {
-      const qty = (prev[itemId] || 0) - 1;
-      if (qty <= 0) { const next = { ...prev }; delete next[itemId]; return next; }
-      return { ...prev, [itemId]: qty };
-    });
+  const addToCart = (itemId) => setCart(prev => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
+  const removeFromCart = (itemId) => setCart(prev => {
+    const qty = (prev[itemId] || 0) - 1;
+    if (qty <= 0) { const next = { ...prev }; delete next[itemId]; return next; }
+    return { ...prev, [itemId]: qty };
+  });
 
   const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
   const totalPrice = items.reduce((sum, item) => sum + (cart[item.id] || 0) * item.price, 0);
@@ -92,165 +67,56 @@ export default function VendorMenuPage() {
     <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2', paddingBottom: totalItems > 0 ? '100px' : '32px' }}>
 
       {/* ── Header ── */}
-      <header
-        style={{
-          background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)',
-          padding: '14px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
+      <header style={{ background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            onClick={() => navigate('/student-dashboard')}
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              border: 'none',
-              borderRadius: '50%',
-              width: '34px',
-              height: '34px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
-          >
+          <button onClick={() => navigate('/student-dashboard')}
+            style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <ArrowLeft size={18} color="white" />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                backgroundColor: 'white',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.2rem',
-              }}
-            >
-              {vendor.emoji}
+            <div style={{ width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
+              🍽️
             </div>
-            <span style={{ color: 'white', fontSize: '1.1rem', fontWeight: 800 }}>{vendor.name}</span>
+            <span style={{ color: 'white', fontSize: '1.1rem', fontWeight: 800 }}>{vendor.name || 'Vendor'}</span>
           </div>
         </div>
 
-        {/* Nav bar icons */}
-<div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-  {[Home, History, UserRound].map((Icon, i) => (
-  <div
-    key={i}
-    style={{
-      width: '34px',
-      height: '34px',
-      borderRadius: '50%',
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-    }}
-  >
-                <Icon size={16} color="white" strokeWidth={2} />
-            </div>
-            ))}
-            <div
-            onClick={() => navigate('/order-confirmed')}
-            style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-            }}
->
-  <Package size={16} color="white" strokeWidth={2} />
-</div>
-
-  {/* Cart with badge */}
-  <div style={{ position: 'relative', width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-    <ShoppingCart size={16} color="white" strokeWidth={2} />
-    {totalItems > 0 && (
-      <div style={{ position: 'absolute', top: '-4px', right: '-4px', backgroundColor: 'white', color: BRAND, fontSize: '0.6rem', fontWeight: 800, width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {totalItems}
-      </div>
-    )}
-  </div>
-</div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div onClick={() => navigate('/student-dashboard')} style={iconBtn}><Home size={16} color="white" strokeWidth={2} /></div>
+          <div style={iconBtn}><History size={16} color="white" strokeWidth={2} /></div>
+          <div style={iconBtn}><UserRound size={16} color="white" strokeWidth={2} /></div>
+          <div onClick={() => navigate('/order-confirmed')} style={iconBtn}><Package size={16} color="white" strokeWidth={2} /></div>
+          <div style={{ position: 'relative', ...iconBtn }}>
+            <ShoppingCart size={16} color="white" strokeWidth={2} />
+            {totalItems > 0 && (
+              <div style={{ position: 'absolute', top: '-4px', right: '-4px', backgroundColor: 'white', color: BRAND, fontSize: '0.6rem', fontWeight: 800, width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {totalItems}
+              </div>
+            )}
+          </div>
+        </div>
       </header>
 
       {/* ── Vendor Info Strip ── */}
-      <div
-        style={{
-          backgroundColor: 'white',
-          padding: '16px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          borderBottom: '1px solid #EBEBEB',
-        }}
-      >
-        <div
-          style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '14px',
-            background: `linear-gradient(135deg, ${vendor.bgFrom}, ${vendor.bgTo})`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.8rem',
-            flexShrink: 0,
-          }}
-        >
-          {vendor.emoji}
+      <div style={{ backgroundColor: 'white', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid #EBEBEB' }}>
+        <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'linear-gradient(135deg, #FFE5D0, #FFBFA0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', flexShrink: 0 }}>
+          🍽️
         </div>
         <div>
-          <h1 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1a1a2e', margin: '0 0 4px' }}>
-            {vendor.name}
-          </h1>
-          <p style={{ fontSize: '0.8rem', color: '#888', margin: '0 0 6px' }}>{vendor.description}</p>
+          <h1 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1a1a2e', margin: '0 0 4px' }}>{vendor.name || 'Vendor'}</h1>
+          <p style={{ fontSize: '0.8rem', color: '#888', margin: '0 0 6px' }}>{vendor.description || 'No description'}</p>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <span style={{ fontSize: '0.75rem', color: '#F59E0B', fontWeight: 600 }}>⭐ {vendor.rating}</span>
-            <span style={{ fontSize: '0.75rem', color: '#888' }}>🕐 {vendor.wait} min wait</span>
+            <span style={{ fontSize: '0.75rem', color: '#F59E0B', fontWeight: 600 }}>⭐ {vendor.rating || '—'}</span>
+            <span style={{ fontSize: '0.75rem', color: '#888' }}>🕐 {vendor.wait || '?'} min wait</span>
           </div>
         </div>
       </div>
 
       {/* ── Category Filter Chips ── */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '8px',
-          padding: '14px 16px',
-          overflowX: 'auto',
-          backgroundColor: 'white',
-          borderBottom: '1px solid #EBEBEB',
-        }}
-      >
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            style={{
-              padding: '6px 18px',
-              borderRadius: '20px',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-              cursor: 'pointer',
-              border: activeCategory === cat ? 'none' : '1.5px solid #E0E0E0',
-              backgroundColor: activeCategory === cat ? BRAND : 'white',
-              color: activeCategory === cat ? 'white' : '#666',
-              transition: 'all 0.15s ease',
-            }}
-          >
+      <div style={{ display: 'flex', gap: '8px', padding: '14px 16px', overflowX: 'auto', backgroundColor: 'white', borderBottom: '1px solid #EBEBEB' }}>
+        {categories.map(cat => (
+          <button key={cat} onClick={() => setActiveCategory(cat)}
+            style={{ padding: '6px 18px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer', border: activeCategory === cat ? 'none' : '1.5px solid #E0E0E0', backgroundColor: activeCategory === cat ? BRAND : 'white', color: activeCategory === cat ? 'white' : '#666', transition: 'all 0.15s ease' }}>
             {cat}
           </button>
         ))}
@@ -258,191 +124,86 @@ export default function VendorMenuPage() {
 
       {/* ── Menu Grid ── */}
       <section style={{ padding: '16px' }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '14px',
-          }}
-        >
-          {filteredItems.map((item) => {
-            const qty = cart[item.id] || 0;
-            return (
-              <article
-                key={item.id}
-                style={{
-                  backgroundColor: 'white',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  boxShadow: qty > 0
-                    ? `0 4px 16px rgba(192,71,74,0.15)`
-                    : '0 2px 12px rgba(0,0,0,0.07)',
-                  border: qty > 0 ? `1.5px solid ${BRAND}` : '1.5px solid transparent',
-                  transition: 'all 0.15s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                {/* Emoji thumbnail */}
-                <div
-                  style={{
-                    height: '90px',
-                    background: `linear-gradient(135deg, ${vendor.bgFrom}, ${vendor.bgTo})`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '2.4rem',
-                    flexShrink: 0,
-                  }}
-                >
-                  {item.emoji}
-                </div>
+        {loading && <p style={{ textAlign: 'center', color: '#aaa', padding: '3rem' }}>Loading menu...</p>}
 
-                {/* Card body */}
-                <div style={{ padding: '10px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <h3 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1a1a2e', margin: 0 }}>
-                    {item.name}
-                  </h3>
-                  <p style={{ fontSize: '0.72rem', color: '#888', margin: 0, lineHeight: 1.5, flex: 1 }}>
-                    {item.description}
-                  </p>
+        {!loading && items.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#aaa' }}>
+            <UtensilsCrossed size={40} color="#ddd" style={{ marginBottom: '12px' }} />
+            <p>No menu items yet.</p>
+          </div>
+        )}
 
-                  {/* Tags */}
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {item.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        style={{
-                          backgroundColor: tagColors[tag]?.bg || '#F0F0F0',
-                          color: tagColors[tag]?.color || '#666',
-                          fontSize: '0.62rem',
-                          fontWeight: 600,
-                          padding: '2px 8px',
-                          borderRadius: '20px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '2px',
-                        }}
-                      >
-                        {tag === 'Vegan' && <Leaf size={8} />}
-                        {tag}
-                      </span>
-                    ))}
+        {!loading && items.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+            {filteredItems.map(item => {
+              const qty = cart[item.id] || 0;
+              return (
+                <article key={item.id}
+                  style={{ backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: qty > 0 ? '0 4px 16px rgba(192,71,74,0.15)' : '0 2px 12px rgba(0,0,0,0.07)', border: qty > 0 ? `1.5px solid ${BRAND}` : '1.5px solid transparent', transition: 'all 0.15s ease', display: 'flex', flexDirection: 'column' }}>
+
+                  {/* ── Image / placeholder ── */}
+                  <div style={{ height: '90px', overflow: 'hidden', backgroundColor: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {item.image_url
+                      ? <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <UtensilsCrossed size={28} color="#ddd" />
+                    }
                   </div>
 
-                  {/* Calories */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <Flame size={10} color="#aaa" />
-                    <span style={{ fontSize: '0.68rem', color: '#aaa' }}>{item.calories} kcal</span>
-                  </div>
+                  {/* ── Card body ── */}
+                  <div style={{ padding: '10px 12px', flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <h3 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1a1a2e', margin: 0 }}>{item.name}</h3>
+                    <p style={{ fontSize: '0.72rem', color: '#888', margin: 0, lineHeight: 1.5, flex: 1 }}>{item.description}</p>
 
-                  {/* Price + Add controls */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: BRAND }}>R {item.price}</span>
-
-                    {qty === 0 ? (
-                      <button
-                        onClick={() => addToCart(item.id)}
-                        style={{
-                          backgroundColor: BRAND,
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: '28px',
-                          height: '28px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <Plus size={16} />
-                      </button>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          style={{
-                            width: '24px', height: '24px',
-                            borderRadius: '50%',
-                            border: `1.5px solid ${BRAND}`,
-                            backgroundColor: 'white',
-                            color: BRAND,
-                            cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}
-                        >
-                          <Minus size={12} />
-                        </button>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a1a2e', minWidth: '14px', textAlign: 'center' }}>
-                          {qty}
+                    {/* Tags */}
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {(item.tags || []).map(tag => (
+                        <span key={tag} style={{ backgroundColor: tagColors[tag]?.bg || '#F0F0F0', color: tagColors[tag]?.color || '#666', fontSize: '0.62rem', fontWeight: 600, padding: '2px 8px', borderRadius: '20px' }}>
+                          {tag}
                         </span>
-                        <button
-                          onClick={() => addToCart(item.id)}
-                          style={{
-                            width: '24px', height: '24px',
-                            borderRadius: '50%',
-                            backgroundColor: BRAND,
-                            border: 'none',
-                            color: 'white',
-                            cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}
-                        >
-                          <Plus size={12} />
+                      ))}
+                    </div>
+
+                    {/* Price + Add controls */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: BRAND }}>R {item.price}</span>
+                      {qty === 0 ? (
+                        <button onClick={() => addToCart(item.id)}
+                          style={{ backgroundColor: BRAND, color: 'white', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                          <Plus size={16} />
                         </button>
-                      </div>
-                    )}
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button onClick={() => removeFromCart(item.id)}
+                            style={{ width: '24px', height: '24px', borderRadius: '50%', border: `1.5px solid ${BRAND}`, backgroundColor: 'white', color: BRAND, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Minus size={12} />
+                          </button>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a1a2e', minWidth: '14px', textAlign: 'center' }}>{qty}</span>
+                          <button onClick={() => addToCart(item.id)}
+                            style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: BRAND, border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Plus size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* ── Floating Cart Bar ── */}
       {totalItems > 0 && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            left: '16px',
-            right: '16px',
-            background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)',
-            borderRadius: '2rem',
-            padding: '1rem 1.5rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            boxShadow: '0 8px 32px rgba(192,71,74,0.4)',
-            cursor: 'pointer',
-            zIndex: 100,
-          }}
-          onClick={() => navigate('/checkout', { state: { vendor, cart, items } })}
-        >
+        <div onClick={() => navigate('/checkout', { state: { vendor, cart, items } })}
+          style={{ position: 'fixed', bottom: '20px', left: '16px', right: '16px', background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)', borderRadius: '2rem', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 8px 32px rgba(192,71,74,0.4)', cursor: 'pointer', zIndex: 100 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.25)',
-                borderRadius: '50%',
-                width: '28px',
-                height: '28px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            <div style={{ backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ShoppingCart size={15} color="white" />
             </div>
-            <span style={{ color: 'white', fontSize: '0.85rem', fontWeight: 600 }}>
-              {totalItems} item{totalItems > 1 ? 's' : ''}
-            </span>
+            <span style={{ color: 'white', fontSize: '0.85rem', fontWeight: 600 }}>{totalItems} item{totalItems > 1 ? 's' : ''}</span>
           </div>
-          <span style={{ color: 'white', fontSize: '0.95rem', fontWeight: 800 }}>
-            View Cart · R {totalPrice}.00
-          </span>
+          <span style={{ color: 'white', fontSize: '0.95rem', fontWeight: 800 }}>View Cart · R {totalPrice}.00</span>
         </div>
       )}
     </div>

@@ -14,4 +14,16 @@ const pool = new Pool({
   }
 });
 
+//I added a conection tester to check if the connection is working fine
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('Database connection failed:', err.message);
+  } else {
+    console.log('Connected to PostgreSQL on Azure');
+    release();
+  }
+});
+
+
+
 export default pool;

@@ -3,23 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 
 export default function AuthCallback() {
-  const { user, getAccessTokenSilently, isLoading, isAuthenticated } = useAuth0();
   const navigate = useNavigate();
+  const { user, getAccessTokenSilently } = useAuth0();
 
   useEffect(() => {
+    if (!user) return;
+
     const checkUser = async () => {
-      // Still loading, wait
-      if (isLoading) return;
-
-      // Not authenticated at all, go to welcome page
-      if (!isAuthenticated) {
-        navigate('/');
-        return;
-      }
-
-      // Authenticated but user not ready yet, wait
-      if (!user) return;
-
       try {
         const token = await getAccessTokenSilently();
 
@@ -34,8 +24,10 @@ export default function AuthCallback() {
 
         if (response.ok) {
           const data = await response.json();
+          localStorage.setItem('orderup_user', JSON.stringify(data));
           if (data.role === 'customer') navigate('/student-dashboard');
-          if (data.role === 'vendor') navigate('/vendor-dashboard');
+          else if (data.role === 'vendor') navigate('/vendor-dashboard');
+          else navigate('/role-selection');
         } else {
           navigate('/role-selection');
         }
@@ -46,15 +38,10 @@ export default function AuthCallback() {
     };
 
     checkUser();
-  }, [user, isLoading, isAuthenticated]);
+  }, [user]);
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      minHeight: '100vh' 
-    }}>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
       <p>Loading...</p>
     </div>
   );
