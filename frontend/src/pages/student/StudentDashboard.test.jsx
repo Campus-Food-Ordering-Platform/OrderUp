@@ -3,6 +3,18 @@ import { describe, it, expect, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import StudentDashboard from './StudentDashboard';
 
+beforeEach(() => {
+  global.fetch = vi.fn(() =>
+    Promise.resolve({
+      json: () =>
+        Promise.resolve([
+          { name: "Pizza Palace", category: "Pizza" },
+          { name: "Chinese Lantern", category: "Asian" },
+          { name: "Xpresso Cafe", category: "Cafe" },
+        ]),
+    })
+  );
+});
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
