@@ -9,15 +9,28 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET!,
 });
 
-// POST /api/upload
-// Body: { base64: 'data:image/jpeg;base64,...' }
-// Returns: { url: 'https://res.cloudinary.com/...' }
+// GET /api/upload/sign
+// Returns a signed upload signature for direct frontend → Cloudinary uploads
+router.get('/sign', (req: Request, res: Response) => {
+  const timestamp = Math.round(Date.now() / 1000);
+
+  const signature = cloudinary.utils.api_sign_request(
+    { timestamp, folder: 'orderup/menu-items' },
+    process.env.CLOUDINARY_API_SECRET!
+  );
+
+  res.json({
+    timestamp,
+    signature,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+  });
+});
+
+// POST /api/upload  ← keeping this for now, can delete later
 router.post('/', async (req: Request, res: Response) => {
   const { base64 } = req.body;
-
-  if (!base64) {
-    return res.status(400).json({ error: 'base64 image is required' });
-  }
+  if (!base64) return res.status(400).json({ error: 'base64 image is required' });
 
   try {
     const result = await cloudinary.uploader.upload(base64, {

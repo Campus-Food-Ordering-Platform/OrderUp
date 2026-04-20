@@ -12,7 +12,12 @@ const router = Router();
 // ─────────────────────────────────────────────────────────────
 router.get('/', async (_req: Request, res: Response) => {
   try {
-    const result = await pool.query('SELECT * FROM vendors ORDER BY id ASC');
+  const result = await pool.query(`
+    SELECT v.id, v.description, v.is_open, v.logo_url, p.name
+    FROM vendors v
+    JOIN profiles p ON v.profile_id = p.id
+    ORDER BY v.id ASC
+`);
     res.json(result.rows);
   } catch (err) {
     const error = err as Error;
@@ -28,7 +33,12 @@ router.get('/', async (_req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
-    const result = await pool.query('SELECT * FROM vendors WHERE id = $1', [id]);
+  const result = await pool.query(`
+    SELECT v.id, v.description, v.is_open, v.logo_url, p.name
+    FROM vendors v
+    JOIN profiles p ON v.profile_id = p.id
+    WHERE v.id = $1
+  `, [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Vendor not found' });
     }

@@ -41,7 +41,7 @@ function OrderCard({ order, onUpdateStatus }) {
         {order.items.map((item, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span style={{ fontSize: '0.82rem', color: '#444' }}>{item.name}</span>
-            <span style={{ fontSize: '0.82rem', color: '#444' }}>R {item.price}.00</span>
+            <span style={{ fontSize: '0.82rem', color: '#444' }}>R {parseFloat(item.price).toFixed(2)}</span>
           </div>
         ))}
         {order.note && <p style={{ fontSize: '0.78rem', color: BRAND, marginTop: '8px', fontStyle: 'italic' }}>Customer Notes: {order.note}</p>}
@@ -143,27 +143,32 @@ function MenuManager() {
   const handleImageFile = async (file) => {
   if (!file || !file.type.startsWith('image/')) return;
 
-  const reader = new FileReader();
-  reader.onload = async (ev) => {
-    const base64 = ev.target.result;
-    try {
-      const res = await fetch('http://localhost:3000/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base64, mimeType: file.type }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        setForm(p => ({ ...p, image_url: data.url }));
-      }
-    } catch (err) {
-      console.error('Image upload failed:', err);
-      alert('Failed to upload image. Please try again.');
-    }
-  };
-  reader.readAsDataURL(file);
-};
+  try {
+    // 1. Get signature from your backend
+    const signRes = await fetch('http://localhost:3000/api/upload/sign');
+    const { timestamp, signature, apiKey, cloudName } = await signRes.json();
 
+    // 2. Upload directly to Cloudinary — no base64, no server hop
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('timestamp', timestamp);
+    formData.append('signature', signature);
+    formData.append('api_key', apiKey);
+    formData.append('folder', 'orderup/menu-items');
+
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      { method: 'POST', body: formData }
+    );
+    const data = await uploadRes.json();
+    if (data.secure_url) {
+      setForm(p => ({ ...p, image_url: data.secure_url }));
+    }
+  } catch (err) {
+    console.error('Image upload failed:', err);
+    alert('Failed to upload image. Please try again.');
+  }
+};
   // ── Save — sends image_url as base64 string to backend ───────────────────
   const handleSave = async () => {
     if (!form.name || !form.price || !vendorId) return;
@@ -205,8 +210,36 @@ function MenuManager() {
     setItems(prev => prev.filter(i => i.id !== id));
   };
 
-  const toggleAvailable = (id) => setItems(prev => prev.map(i => i.id === id ? { ...i, available: !i.available } : i));
+  const toggleAvailable = async (id) => {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
 
+  const updated = { ...item, available: !item.available };
+
+  // 1. Optimistic update (instant UI change)
+  setItems(prev =>
+    prev.map(i => (i.id === id ? updated : i))
+  );
+
+  try {
+    // 2. Save to backend
+    await fetch(`http://localhost:3000/api/vendors/${vendorId}/menu/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...updated,
+        price: Number(updated.price), // important if price is string
+      }),
+    });
+  } catch (err) {
+    console.error('Failed to update availability:', err);
+
+    // 3. Rollback if it fails
+    setItems(prev =>
+      prev.map(i => (i.id === id ? item : i))
+    );
+  }
+};
   const handleAddCategory = () => {
     if (newCat.trim() && !categories.includes(newCat.trim())) setCategories(prev => [...prev, newCat.trim()]);
     setNewCat(''); setShowCatInput(false);
@@ -357,7 +390,7 @@ function MenuManager() {
                   <span key={tag} style={{ backgroundColor: tagColors[tag]?.bg || '#F0F0F0', color: tagColors[tag]?.color || '#666', fontSize: '0.62rem', fontWeight: 600, padding: '2px 8px', borderRadius: '20px' }}>{tag}</span>
                 ))}
               </div>
-              <p style={{ fontSize: '0.88rem', fontWeight: 700, color: BRAND, margin: '0 0 10px' }}>R {item.price}.00</p>
+              <p style={{ fontSize: '0.88rem', fontWeight: 700, color: BRAND, margin: '0 0 10px' }}>R {parseFloat(item.price).toFixed(2)}</p>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                   <div onClick={() => toggleAvailable(item.id)}
