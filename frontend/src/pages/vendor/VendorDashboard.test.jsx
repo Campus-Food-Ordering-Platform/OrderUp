@@ -18,11 +18,19 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn().mockReturnValue(null),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+};
+Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
+
 describe('VendorDashboard', () => {
-  it('renders Jimmy\'s Dashboard', () => {
+  it('renders the vendor dashboard header', () => {
     render(<MemoryRouter><VendorDashboard /></MemoryRouter>);
-    expect(screen.getByText(/Jimmy's Dashboard/i)).toBeInTheDocument();
-    expect(screen.getByText(/Dashboard/i);
+    expect(screen.getByText('OrderUp')).toBeInTheDocument();
   });
 
   it('switches to the Menu tab', () => {
