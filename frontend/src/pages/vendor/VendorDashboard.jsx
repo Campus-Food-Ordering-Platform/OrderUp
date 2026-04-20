@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-import { 
+import {
   ShoppingCart, UserRound, UtensilsCrossed, BarChart2, Trash2,
   TrendingUp, Users, ShoppingBag, DollarSign, CheckCircle2,
   Search, Star, Clock, MessageSquare, ThumbsUp
@@ -53,9 +52,7 @@ function OrderCard({ order, onUpdateStatus }) {
         </div>
       </div>
 
-      <p style={{ fontSize: '0.78rem', color: '#888', marginBottom: '12px' }}>
-        {order.customer}
-      </p>
+      <p style={{ fontSize: '0.78rem', color: '#888', marginBottom: '12px' }}>{order.customer}</p>
 
       <div style={{ borderTop: '1px solid #F5F5F5', paddingTop: '12px', marginBottom: '10px' }}>
         <p style={{ fontSize: '0.72rem', color: '#aaa', marginBottom: '6px' }}>Items:</p>
@@ -70,15 +67,7 @@ function OrderCard({ order, onUpdateStatus }) {
             Customer Notes: {order.note}
           </p>
         )}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginTop: '10px',
-            paddingTop: '8px',
-            borderTop: '1px solid #F5F5F5',
-          }}
-        >
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #F5F5F5' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: BRAND }}>TOTAL</span>
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: BRAND }}>R {order.total}.00</span>
         </div>
@@ -125,44 +114,39 @@ function MenuManager() {
   const [newCat, setNewCat] = useState('');
   const [form, setForm] = useState(makeEmptyForm(CATEGORIES_DEFAULT));
 
- useEffect(() => {
-   //new — handles both old and new localStorage structure
-  const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
-  const user = raw?.user ?? raw;
-  if (!user?.id) { setLoading(false); return; }
+  const emptyForm = makeEmptyForm(categories);
 
-  const init = async () => {
-    try {
-      // Step 1 — register or retrieve the vendor record for this profile
-      const regRes = await fetch('http://localhost:3000/api/vendors/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile_id: user.id }),
-      });
-      const vendor = await regRes.json();
+  useEffect(() => {
+    const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
+    const user = raw?.user ?? raw;
+    if (!user?.id) { setLoading(false); return; }
 
-      console.log('register response:', vendor);       // ← add this
-      console.log('profile_id sent:', user.id);  
-      // 409 means vendor already exists — both cases return { id, ... }
-      if (!vendor?.id) throw new Error('Could not resolve vendor');
-      setVendorId(vendor.id);
+    const init = async () => {
+      try {
+        const regRes = await fetch('http://localhost:3000/api/vendors/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profile_id: user.id }),
+        });
+        const vendor = await regRes.json();
 
-      // Step 2 — now fetch the menu using the real vendor UUID
-      const menuRes = await fetch(`http://localhost:3000/api/vendors/${vendor.id}/menu`);
-      if (!menuRes.ok) throw new Error(`Server error: ${menuRes.status}`);
-      const data = await menuRes.json();
-      setItems(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Failed to initialise menu manager:', err);
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-    
-  };
+        if (!vendor?.id) throw new Error('Could not resolve vendor');
+        setVendorId(vendor.id);
 
-  init();
-}, []);
+        const menuRes = await fetch(`http://localhost:3000/api/vendors/${vendor.id}/menu`);
+        if (!menuRes.ok) throw new Error(`Server error: ${menuRes.status}`);
+        const data = await menuRes.json();
+        setItems(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to initialise menu manager:', err);
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+  }, []);
 
   if (loading) return <p style={{ textAlign: 'center', color: '#aaa', padding: '3rem' }}>Loading menu...</p>;
 
@@ -175,46 +159,38 @@ function MenuManager() {
     }));
   };
 
-  // ── Convert uploaded file to base64 and store in form.image_url ──────────
   const handleImageFile = async (file) => {
-  if (!file || !file.type.startsWith('image/')) return;
-
-  try {
-    // 1. Get signature from your backend
-    const signRes = await fetch('http://localhost:3000/api/upload/sign');
-    const { timestamp, signature, apiKey, cloudName } = await signRes.json();
-
-    // 2. Upload directly to Cloudinary — no base64, no server hop
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('timestamp', timestamp);
-    formData.append('signature', signature);
-    formData.append('api_key', apiKey);
-    formData.append('folder', 'orderup/menu-items');
-
-    const uploadRes = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-      { method: 'POST', body: formData }
-    );
-    const data = await uploadRes.json();
-    if (data.secure_url) {
-      setForm(p => ({ ...p, image_url: data.secure_url }));
+    if (!file || !file.type.startsWith('image/')) return;
+    try {
+      const signRes = await fetch('http://localhost:3000/api/upload/sign');
+      const { timestamp, signature, apiKey, cloudName } = await signRes.json();
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('timestamp', timestamp);
+      formData.append('signature', signature);
+      formData.append('api_key', apiKey);
+      formData.append('folder', 'orderup/menu-items');
+      const uploadRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: 'POST', body: formData }
+      );
+      const data = await uploadRes.json();
+      if (data.secure_url) {
+        setForm(p => ({ ...p, image_url: data.secure_url }));
+      }
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      alert('Failed to upload image. Please try again.');
     }
-  } catch (err) {
-    console.error('Image upload failed:', err);
-    alert('Failed to upload image. Please try again.');
-  }
-};
-  // ── Save — sends image_url as base64 string to backend ───────────────────
+  };
+
   const handleSave = async () => {
     if (!form.name || !form.price || !vendorId) return;
     const payload = { ...form, price: Number(form.price) };
-
     if (payload.image_url && payload.image_url.length > 1_400_000) {
       alert('Image is too large. Please use an image under 1MB.');
       return;
-  }
-
+    }
     const method = editingItem ? 'PUT' : 'POST';
     const url = editingItem
       ? `http://localhost:3000/api/vendors/${vendorId}/menu/${editingItem}`
@@ -247,35 +223,22 @@ function MenuManager() {
   };
 
   const toggleAvailable = async (id) => {
-  const item = items.find(i => i.id === id);
-  if (!item) return;
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    const updated = { ...item, available: !item.available };
+    setItems(prev => prev.map(i => (i.id === id ? updated : i)));
+    try {
+      await fetch(`http://localhost:3000/api/vendors/${vendorId}/menu/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...updated, price: Number(updated.price) }),
+      });
+    } catch (err) {
+      console.error('Failed to update availability:', err);
+      setItems(prev => prev.map(i => (i.id === id ? item : i)));
+    }
+  };
 
-  const updated = { ...item, available: !item.available };
-
-  // 1. Optimistic update (instant UI change)
-  setItems(prev =>
-    prev.map(i => (i.id === id ? updated : i))
-  );
-
-  try {
-    // 2. Save to backend
-    await fetch(`http://localhost:3000/api/vendors/${vendorId}/menu/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...updated,
-        price: Number(updated.price), // important if price is string
-      }),
-    });
-  } catch (err) {
-    console.error('Failed to update availability:', err);
-
-    // 3. Rollback if it fails
-    setItems(prev =>
-      prev.map(i => (i.id === id ? item : i))
-    );
-  }
-};
   const handleAddCategory = () => {
     if (newCat.trim() && !categories.includes(newCat.trim())) setCategories(prev => [...prev, newCat.trim()]);
     setNewCat(''); setShowCatInput(false);
@@ -324,15 +287,12 @@ function MenuManager() {
         </div>
       </div>
 
-      {/* ── Add / Edit Form ── */}
       {showForm && (
         <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', marginBottom: '16px', border: `1.5px solid ${BRAND}` }}>
           <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1a1a2e', margin: '0 0 14px' }}>
             {editingItem ? 'Edit Item' : 'New Menu Item'}
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-
-            {/* ── Image upload ── */}
             <div
               onDragOver={e => e.preventDefault()}
               onDrop={e => { e.preventDefault(); handleImageFile(e.dataTransfer.files[0]); }}
@@ -402,15 +362,12 @@ function MenuManager() {
         {filteredItems.map(item => (
           <article key={item.id}
             style={{ backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.06)', border: item.available ? '1.5px solid transparent' : '1.5px solid #E0E0E0', opacity: item.available ? 1 : 0.6 }}>
-
-            {/* ── Food photo banner ── */}
             <div style={{ height: '100px', overflow: 'hidden', backgroundColor: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {item.image_url
                 ? <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : <UtensilsCrossed size={28} color="#ddd" />
               }
             </div>
-
             <div style={{ padding: '10px 12px' }}>
               <h3 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1a1a2e', margin: '0 0 2px' }}>{item.name}</h3>
               <p style={{ fontSize: '0.72rem', color: '#888', margin: '0 0 6px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.description}</p>
@@ -439,14 +396,17 @@ function MenuManager() {
           </article>
         ))}
       </div>
-      {filteredItems.length === 0 && (<div style={{ textAlign: 'center', padding: '3rem', color: '#aaa', fontSize: '0.9rem' }}><UtensilsCrossed size={40} color="#ddd" style={{ marginBottom: '12px' }} /><p>No items in this category yet.</p></div>)}
+      {filteredItems.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '3rem', color: '#aaa', fontSize: '0.9rem' }}>
+          <UtensilsCrossed size={40} color="#ddd" style={{ marginBottom: '12px' }} />
+          <p>No items in this category yet.</p>
+        </div>
+      )}
     </div>
   );
 }
 
 // ============ ANALYTICS COMPONENTS ============
-
-// Simple Bar Chart Component
 function SimpleBarChart({ data, labels, color, height = 120 }) {
   const maxValue = Math.max(...data);
   return (
@@ -461,7 +421,6 @@ function SimpleBarChart({ data, labels, color, height = 120 }) {
   );
 }
 
-// Profit Calculator Component
 function ProfitCalculator() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
@@ -483,7 +442,7 @@ function ProfitCalculator() {
     setSearchTerm(item.name);
   };
 
-  const estimatedProfit = selectedItem 
+  const estimatedProfit = selectedItem
     ? (duration === 'week' ? selectedItem.weeklyProfit : selectedItem.monthlyProfit) * (applyDiscount ? 0.9 : 1)
     : null;
 
@@ -491,22 +450,25 @@ function ProfitCalculator() {
     <div style={{ background: 'white', borderRadius: '14px', padding: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
       <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px' }}>💰 Profit Calculator</h3>
       <p style={{ fontSize: '0.7rem', color: '#888', marginBottom: '12px' }}>Calculate estimated profit for any menu item</p>
-
       <div style={{ position: 'relative', marginBottom: '12px' }}>
         <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
         <input type="text" placeholder="Search menu item..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); if (!e.target.value) setSelectedItem(null); }} style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }} />
         {searchTerm && filteredItems.length > 0 && !selectedItem && (
           <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #EBEBEB', borderRadius: '10px', maxHeight: '150px', overflowY: 'auto', zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-            {filteredItems.map(item => (<div key={item.id} onClick={() => handleSelectItem(item)} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.8rem', borderBottom: '1px solid #F0F0F0' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F5F5'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}>{item.name} - R{item.basePrice}</div>))}
+            {filteredItems.map(item => (
+              <div key={item.id} onClick={() => handleSelectItem(item)} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.8rem', borderBottom: '1px solid #F0F0F0' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F5F5'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                {item.name} - R{item.basePrice}
+              </div>
+            ))}
           </div>
         )}
       </div>
-
       <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
         <button onClick={() => setDuration('week')} style={{ flex: 1, padding: '6px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: duration === 'week' ? BRAND : '#F0F0F0', color: duration === 'week' ? 'white' : '#666' }}>Next Week</button>
         <button onClick={() => setDuration('month')} style={{ flex: 1, padding: '6px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: duration === 'month' ? BRAND : '#F0F0F0', color: duration === 'month' ? 'white' : '#666' }}>Next Month</button>
       </div>
-
       {estimatedProfit && (
         <div>
           <p style={{ fontSize: '0.7rem', color: '#888' }}>Estimated profit for "{selectedItem?.name}" {duration === 'week' ? 'next week' : 'next month'}:</p>
@@ -522,14 +484,6 @@ function ProfitCalculator() {
   );
 }
 
-import {
-  TrendingUp,
-  Users,
-  ShoppingBag,
-  DollarSign,
-  CheckCircle2,
-} from 'lucide-react';
-
 // ============ MAIN VENDOR DASHBOARD ============
 export default function VendorDashboard() {
   const [activeTab, setActiveTab] = useState('orders');
@@ -543,79 +497,6 @@ export default function VendorDashboard() {
   const filteredOrders = activeFilter === 'All orders'
     ? orders.filter(o => o.status !== 'Collected')
     : orders.filter(o => o.status === activeFilter);
-
-  const totalOrders = orders.length;
-
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
-
-  const completedOrders = orders.filter(o => o.status === 'Collected').length;
-
-  const avgOrderValue = totalOrders ? (totalRevenue / totalOrders).toFixed(2) : 0;
-
-  const totalCustomers = new Set(
-  orders.map(order => order.customer)
-).size;
-
-  const itemSalesMap = {};
-
-orders.forEach(order => {
-  order.items.forEach(item => {
-    const name = item.name;
-
-    if (!itemSalesMap[name]) {
-      itemSalesMap[name] = {
-        name,
-        quantity: 0,
-        revenue: 0,
-      };
-    }
-
-    itemSalesMap[name].quantity += 1;
-    itemSalesMap[name].revenue += item.price;
-  });
-});
-
-const topSellingItems = Object.values(itemSalesMap)
-  .sort((a, b) => b.quantity - a.quantity);
-
-  const cardStyle = {
-  background: 'white',
-  padding: '16px',
-  borderRadius: '14px',
-  boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
-};
-
-const labelStyle = {
-  fontSize: '0.75rem',
-  color: '#888',
-  margin: 0,
-};
-
-const valueStyle = {
-  fontSize: '1.2rem',
-  fontWeight: 700,
-  margin: '6px 0 0',
-  color: '#C0474A',
-};
-
-const trends = {
-  orders: '+12%',
-  revenue: '+8%',
-  customers: '+5%',
-  avg: '+3%',
-};
-const cardHeader = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '6px',
-};
-
-const trendStyle = {
-  fontSize: '0.7rem',
-  fontWeight: 700,
-  color: '#2A7D2A',
-};
 
   const totalOrders = orders.length;
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
@@ -636,7 +517,6 @@ const trendStyle = {
   });
   const topSellingItems = Object.values(itemSalesMap).sort((a, b) => b.quantity - a.quantity);
 
-  // Analytics data
   const weeklyRevenue = [18500, 22100, 19800, 24300, 26700, 28900, 31200];
   const weeklyOrders = [42, 48, 45, 52, 58, 62, 68];
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -656,7 +536,7 @@ const trendStyle = {
 
   const recentReviews = [
     { name: 'Tanvi Yadav', rating: 5, comment: 'Amazing food! The Classic Kota is absolutely delicious. Will order again soon!', source: 'Google', date: '2 days ago' },
-    { name: 'Karel D\'Costa', rating: 4, comment: 'Good quality and fast delivery. Chicken burger was tasty but could be bigger.', source: 'Zomato', date: '5 days ago' },
+    { name: "Karel D'Costa", rating: 4, comment: 'Good quality and fast delivery. Chicken burger was tasty but could be bigger.', source: 'Zomato', date: '5 days ago' },
     { name: 'Vishwajeet Gokar', rating: 5, comment: 'Best kota in town! The portion size is great and prices are reasonable.', source: 'Zomato', date: '1 week ago' },
   ];
 
@@ -728,7 +608,6 @@ const trendStyle = {
       {/* Analytics Tab */}
       {activeTab === 'analytics' && (
         <section style={{ padding: '16px' }}>
-          {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Analytics Dashboard</h2>
             <select style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #E0E0E0', fontSize: '0.7rem' }}>
@@ -741,7 +620,7 @@ const trendStyle = {
           {/* KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
             <div style={cardStyle}>
-              <div style={cardHeader}><DollarSign size={16} color={BRAND} /><span style={{ fontSize: '0.65rem', color: '#2A7D2A' }}>+8%</span></div>
+              <div style={cardHeader}><DollarSign size={16} color={BRAND} /><span style={trendStyle}>+8%</span></div>
               <p style={labelStyle}>Total Revenue</p>
               <h3 style={valueStyle}>R {totalRevenue}</h3>
             </div>
@@ -770,8 +649,8 @@ const trendStyle = {
             </div>
             <SimpleBarChart data={weeklyRevenue} labels={days} color={BRAND} height={140} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-              <span style={{ fontSize: '0.65rem', color: '#888' }}>Total: R {weeklyRevenue.reduce((a,b) => a+b, 0).toLocaleString()}</span>
-              <span style={{ fontSize: '0.65rem', color: '#888' }}>Avg: R {(weeklyRevenue.reduce((a,b) => a+b, 0) / 7).toFixed(0)}</span>
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>Total: R {weeklyRevenue.reduce((a, b) => a + b, 0).toLocaleString()}</span>
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>Avg: R {(weeklyRevenue.reduce((a, b) => a + b, 0) / 7).toFixed(0)}</span>
             </div>
           </div>
 
@@ -783,14 +662,13 @@ const trendStyle = {
             </div>
             <SimpleBarChart data={weeklyOrders} labels={days} color="#7B4FBF" height={120} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-              <span style={{ fontSize: '0.65rem', color: '#888' }}>Total: {weeklyOrders.reduce((a,b) => a+b, 0)} orders</span>
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>Total: {weeklyOrders.reduce((a, b) => a + b, 0)} orders</span>
               <span style={{ fontSize: '0.65rem', color: '#888' }}>Peak: {Math.max(...weeklyOrders)} orders (Fri)</span>
             </div>
           </div>
 
           {/* Liked Dishes & Popular Times */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-            {/* Liked Dishes */}
             <div style={cardStyle}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                 <ThumbsUp size={16} color={BRAND} />
@@ -810,7 +688,6 @@ const trendStyle = {
               ))}
             </div>
 
-            {/* Popular Times */}
             <div style={cardStyle}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                 <Clock size={16} color={BRAND} />
@@ -880,14 +757,6 @@ const trendStyle = {
           </div>
         </section>
       )}
-    </div>
-
-  </section>
-)}
-
-      
-
-
     </div>
   );
 }
