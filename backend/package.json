@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon",
-    "build":  "tsc --project tsconfig.build.json",
+    "build": "tsc --project tsconfig.build.json",
     "start": "node dist/app.js",
     "test": "jest",
     "test:coverage": "jest --coverage"
