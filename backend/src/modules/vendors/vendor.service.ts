@@ -1,5 +1,12 @@
 import * as vendorRepo from '././vendor.repository';
 
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ValidationError';
+  } 
+}// this is a custom error class for validation errors
+
 // ───────────── Vendors ─────────────
 
 export const getAllVendors = () => {
