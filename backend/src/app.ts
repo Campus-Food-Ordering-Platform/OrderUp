@@ -43,7 +43,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/cart', cartRoutes);
-app.use('/api/vendors', vendorRoutes); // ✅ moved above export
+app.use('/api/vendors', vendorRoutes); //  moved above export
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', err.message);
