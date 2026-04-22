@@ -25,7 +25,7 @@ export default function VendorMenuPage() {
 
   useEffect(() => {
     if (!vendor?.id) return;
-    fetch(`http://localhost:3000/api/vendors/${vendor.id}/menu`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/vendors/${vendor.id}/menu`)
       .then(res => res.json())
       .then(data => setItems(data))
       .catch(err => console.error('Failed to fetch menu:', err));

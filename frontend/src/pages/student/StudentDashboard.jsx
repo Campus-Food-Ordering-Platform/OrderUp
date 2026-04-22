@@ -93,7 +93,7 @@ export default function StudentDashboard() {
   const name = location.state?.name || user?.name || 'there';
 
   useEffect(() => {
-    fetch('http://localhost:3000/api/vendors')
+    fetch(`${import.meta.env.VITE_API_URL}/api/vendors`)
       .then((res) => {
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         return res.json();

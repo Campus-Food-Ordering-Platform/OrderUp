@@ -15,12 +15,14 @@ import uploadRoutes from './modules/uploads/uploads.routes';
 
 const app = express();
 
-app.use(cors({
-  origin: 'http://localhost:5173',
+app.use(cors({origin: [
+    'http://localhost:5173',
+    'https://order-up-rho.vercel.app'
+  ],
   credentials: true
 }));
 
-// ✅ Body limits must come BEFORE routes
+//  Body limits must come BEFORE routes
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -41,7 +43,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/cart', cartRoutes);
-app.use('/api/vendors', vendorRoutes); // ✅ moved above export
+app.use('/api/vendors', vendorRoutes); //  moved above export
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', err.message);

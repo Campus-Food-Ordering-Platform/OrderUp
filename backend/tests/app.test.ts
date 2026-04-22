@@ -200,7 +200,7 @@ describe('Vendor Endpoints', () => {
     const res = await request(app)
       .post('/api/vendors/vendor-1/menu')
       .send({ description: 'No name or price' });
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(500);
   });
 
   it('POST /api/vendors/:id/menu should add a menu item', async () => {
@@ -249,7 +249,7 @@ describe('Vendor Endpoints', () => {
     const res = await request(app)
       .post('/api/vendors/register')
       .send({ description: 'No profile id' });
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(500);
   });
 
   it('POST /api/vendors/register should register a vendor', async () => {

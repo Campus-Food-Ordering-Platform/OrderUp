@@ -29,12 +29,15 @@ jobs:
     # 3. Install the dependencies
     - name: Install Dependencies
       run: npm install
+    # 4.build file 
+    - name: Build 
+      run: npm run build
 
-    # 4. Run the frontend tests and generate the lcov data
+    # 5. Run the frontend tests and generate the lcov data
     - name: Run Unit Tests and Generate Coverage
       run: npm run test
 
-    # 5. Automatically upload the generated coverage file to Codecov
+    # 6. Automatically upload the generated coverage file to Codecov
     - name: Upload Frontend Coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
