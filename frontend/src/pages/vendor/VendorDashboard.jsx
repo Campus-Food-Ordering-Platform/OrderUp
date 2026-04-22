@@ -123,7 +123,7 @@ function MenuManager() {
 
     const init = async () => {
       try {
-        const regRes = await fetch('http://localhost:3000/api/vendors/register', {
+        const regRes = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ profile_id: user.id }),
@@ -133,7 +133,7 @@ function MenuManager() {
         if (!vendor?.id) throw new Error('Could not resolve vendor');
         setVendorId(vendor.id);
 
-        const menuRes = await fetch(`http://localhost:3000/api/vendors/${vendor.id}/menu`);
+        const menuRes = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/${vendor.id}/menu`);
         if (!menuRes.ok) throw new Error(`Server error: ${menuRes.status}`);
         const data = await menuRes.json();
         setItems(Array.isArray(data) ? data : []);
@@ -162,7 +162,7 @@ function MenuManager() {
   const handleImageFile = async (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     try {
-      const signRes = await fetch('http://localhost:3000/api/upload/sign');
+      const signRes = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/sign`);
       const { timestamp, signature, apiKey, cloudName } = await signRes.json();
       const formData = new FormData();
       formData.append('file', file);
@@ -193,8 +193,8 @@ function MenuManager() {
     }
     const method = editingItem ? 'PUT' : 'POST';
     const url = editingItem
-      ? `http://localhost:3000/api/vendors/${vendorId}/menu/${editingItem}`
-      : `http://localhost:3000/api/vendors/${vendorId}/menu`;
+      ? `${import.meta.env.VITE_API_URL}/api/vendors/${vendorId}/menu/${editingItem}`
+      : `${import.meta.env.VITE_API_URL}/api/vendors/${vendorId}/menu`;
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -218,7 +218,7 @@ function MenuManager() {
   };
 
   const handleDelete = async (id) => {
-    await fetch(`http://localhost:3000/api/vendors/${vendorId}/menu/${id}`, { method: 'DELETE' });
+    await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/${vendorId}/menu/${id}`, { method: 'DELETE' });
     setItems(prev => prev.filter(i => i.id !== id));
   };
 
@@ -228,7 +228,7 @@ function MenuManager() {
     const updated = { ...item, available: !item.available };
     setItems(prev => prev.map(i => (i.id === id ? updated : i)));
     try {
-      await fetch(`http://localhost:3000/api/vendors/${vendorId}/menu/${id}`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/${vendorId}/menu/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...updated, price: Number(updated.price) }),
@@ -525,7 +525,7 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
     }
     setSubmitting(true);
     try {
-      const res = await fetch(`http://localhost:3000/api/vendors/${vendorId}/apply`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/${vendorId}/apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -757,7 +757,7 @@ export default function VendorDashboard() {
     }
     const checkStatus = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/vendors/register', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ profile_id: user.id }),
