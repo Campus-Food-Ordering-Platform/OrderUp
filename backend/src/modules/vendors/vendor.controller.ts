@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as vendorService from './vendor.service';
+import { ValidationError } from './vendor.service';
 
 // ───────────── Vendors ─────────────
 
@@ -42,7 +43,11 @@ export const createMenuItem = async (req: Request<{ id: string }>, res: Response
     res.status(201).json(data);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to add menu item' });
+    if (err instanceof ValidationError) {
+      res.status(400).json({ error: err.message });
+    } else {
+      res.status(500).json({ error: 'Failed to add menu item' });
+    }
   }
 };
 
@@ -79,6 +84,10 @@ export const registerVendor = async (req: Request, res: Response) => {
     res.status(200).json(data);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to register vendor' });
+    if (err instanceof ValidationError) {
+      res.status(400).json({ error: err.message });
+    } else {
+      res.status(500).json({ error: 'Failed to register vendor' });
+    }
   }
 };
