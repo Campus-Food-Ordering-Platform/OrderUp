@@ -29,8 +29,8 @@ jobs:
     # 3. Install the dependencies
     - name: Install Dependencies
       run: npm install
-
-    - name: Build <-- the build file is missing, so I added it here
+    # build file 
+    - name: Build 
       run: npm run build
 
     # 4. Run the frontend tests and generate the lcov data
