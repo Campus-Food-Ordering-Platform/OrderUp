@@ -12,10 +12,14 @@ import OrderConfirmedPage from './pages/student/OrderConfirmedPage.jsx';
 import StudentHistoryPage from './pages/student/StudentHistoryPage.jsx';
 import AuthCallback from './components/auth/AuthCallback';
 
+
+
 function App() {
   return (
     <Router>
       <Routes>
+
+
         <Route path="/" element={<WelcomePage />} />
 
         {/* Auth0 handles the callback after Google login */}

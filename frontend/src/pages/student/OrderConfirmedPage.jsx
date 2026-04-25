@@ -10,6 +10,8 @@ const steps = [
   { id: 'ready', label: 'Ready for Pickup', icon: '🛎️', description: 'Your order is ready to collect!' },
 ];
 
+
+
 export default function OrderConfirmedPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -21,12 +23,25 @@ export default function OrderConfirmedPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [orderNumber] = useState(() => Math.floor(Math.random() * 900) + 100);
 
-  // Simulate order progressing for demo purposes
-  useEffect(() => {
-    const t1 = setTimeout(() => setCurrentStep(1), 4000);
-    const t2 = setTimeout(() => setCurrentStep(2), 9000);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
+  //add this useEffect func below for paystack...
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const reference = params.get('reference');
+  
+  if (reference) {
+    // Came from Paystack redirect - verify payment
+    fetch(`${import.meta.env.VITE_API_URL}/api/payments/verify/${reference}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) {
+          // Payment failed - go back to checkout
+          navigate('/checkout');
+        }
+        // Payment successful - stay on this page and show order confirmed
+      })
+      .catch(err => console.error('Verification error:', err));
+  }
+}, []);
 
   const estimatedTime = vendor?.wait || 15;
 

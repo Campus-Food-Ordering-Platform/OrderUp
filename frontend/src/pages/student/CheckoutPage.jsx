@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Home, Package, History, UserRound, Plus, Minus, Trash2, MapPin, CreditCard } from 'lucide-react';
+import { useAuth0 } from '@auth0/auth0-react';
 
 const BRAND = '#C0474A';
 
@@ -25,6 +26,32 @@ export default function CheckoutPage() {
       if (qty <= 0) { const next = { ...prev }; delete next[itemId]; return next; }
       return { ...prev, [itemId]: qty };
     });
+
+    //adding handlepayment func for paystack
+    const { user } = useAuth0();
+
+const handlePayment = async () => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/initialize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user?.email,
+        amount: total,
+        orderId: `${vendor?.name}_${Date.now()}`
+      })
+    });
+
+    const data = await response.json();
+    window.location.href = data.paymentUrl;
+
+  } catch (error) {
+    console.error('Payment error:', error);
+    alert('Payment failed. Please try again.');
+  }
+};
+
+
 
   const deleteFromCart = (itemId) =>
     setCart((prev) => { const next = { ...prev }; delete next[itemId]; return next; });
@@ -344,7 +371,7 @@ export default function CheckoutPage() {
         }}
       >
         <button
-          onClick={() => navigate('/order-confirmed', { state: { vendor, total, note } })}
+          onClick={handlePayment} //changed this line for paystack
           style={{
             width: '100%',
             padding: '1rem',

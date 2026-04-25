@@ -11,7 +11,7 @@ import authRoutes from './modules/auth/auth.routes';
 import cartRoutes from './modules/cart/cart.routes';
 import vendorRoutes from './modules/vendors/vendors.routes';
 import uploadRoutes from './modules/uploads/uploads.routes';
-
+import paymentRoutes from './modules/payments/payment.routes';
 
 const app = express();
 
@@ -45,11 +45,12 @@ app.use('/api/menu', menuRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/vendors', vendorRoutes); //  moved above export
 
+
+app.use('/api/payments', paymentRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', err.message);
   res.status(500).json({ error: 'Something went wrong' });
 });
-
-app.use('/api/upload', uploadRoutes);
 
 export default app;
