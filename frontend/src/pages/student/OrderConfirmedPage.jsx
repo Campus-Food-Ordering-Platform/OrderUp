@@ -35,26 +35,77 @@ const [currentStep, setCurrentStep] = useState(0);
     collected: 2,
 };
 
-  useEffect(() => {
-    if (!orderData?.orderId) return; // no real order, skip polling
+ useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const reference = params.get('reference');
 
-    const poll = setInterval(async () => {
+  if (reference) {
+    const verify = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderData.orderId}/status`);
+        // 1. Verify payment first
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/payments/verify/${reference}`
+        );
         const data = await res.json();
-        const step = STATUS_TO_STEP[data.status] ?? 0;
-        setCurrentStep(step);
-        if (data.status === 'Ready' || data.status === 'Collected') {
-          clearInterval(poll); // stop polling once order is ready
-          sessionStorage.removeItem('pendingOrder'); // clear pending order from session
-        }
-      } catch (err) {
-        console.error('Polling error:', err);
-      }
-    }, 5000); // poll every 5 seconds
 
-    return () => clearInterval(poll);
-  }, [orderData?.orderId]);
+        if (!data.success) {
+          navigate('/checkout');
+          return;
+        }
+
+        // 2. Payment succeeded - NOW create the order
+        const pendingOrder = JSON.parse(sessionStorage.getItem('pendingOrder') || '{}');
+
+        if (pendingOrder.vendor_id) {
+          const orderRes = await fetch(`${import.meta.env.VITE_API_URL}/api/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              vendor_id: pendingOrder.vendor_id,
+              customer_id: pendingOrder.customer_id,
+              customer_name: pendingOrder.customer_name,
+              items: pendingOrder.items,
+              total_amount: pendingOrder.total,
+              note: pendingOrder.note || null,
+            }),
+          });
+
+          const order = await orderRes.json();
+          setOrderData(order); // this triggers the polling useEffect below
+          sessionStorage.removeItem('pendingOrder');
+        }
+
+      } catch (err) {
+        console.error('Verification error:', err);
+        navigate('/checkout');
+      }
+    };
+
+    verify();
+  }
+}, []);
+
+
+useEffect(() => {
+  if (!orderData?.orderId) return;
+
+  const poll = setInterval(async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderData.orderId}/status`);
+      const data = await res.json();
+      const step = STATUS_TO_STEP[data.status] ?? 0;
+      setCurrentStep(step);
+      if (data.status === 'Ready' || data.status === 'Collected') {
+        clearInterval(poll);
+        sessionStorage.removeItem('pendingOrder');
+      }
+    } catch (err) {
+      console.error('Polling error:', err);
+    }
+  }, 5000);
+
+  return () => clearInterval(poll);
+}, [orderData?.orderId]);
 
   const estimatedTime = vendor?.wait || 15;
 

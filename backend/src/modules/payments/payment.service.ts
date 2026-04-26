@@ -11,6 +11,7 @@ export const paymentService = {
     amount: number; // in kobo/cents (multiply by 100)
     orderId: string;
     callbackUrl: string;
+      cancelUrl: string;
   }) {
     const response = await axios.post(
       `${PAYSTACK_BASE_URL}/transaction/initialize`,
@@ -19,6 +20,7 @@ export const paymentService = {
         amount: data.amount * 100, // Paystack uses kobo (cents)
         reference: `order_${data.orderId}_${Date.now()}`,
         callback_url: data.callbackUrl,
+         cancel_action: data.cancelUrl,
         metadata: {
           orderId: data.orderId
         }

@@ -31,59 +31,41 @@ export default function CheckoutPage() {
     const { user } = useAuth0();
 
   const handlePayment = async () => {
-    try {
-      // 1. Create the order in the backend first
-      const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
-      const localUser = raw?.user ?? raw;
+  try {
+    // Save order details to sessionStorage BEFORE leaving the site
+    sessionStorage.setItem('pendingOrder', JSON.stringify({
+      vendor,
+      total,
+      note,
+      items: cartItems.map(item => ({
+        name: item.name,
+        price: item.price,
+        quantity: cart[item.id],
+      })),
+      vendor_id: vendor.id,
+      customer_id: user?.sub,
+      customer_name: user?.name || 'Student',
+    }));
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vendor_id: vendor.id,
-          customer_id: localUser?.id || user?.sub,
-          customer_name: localUser?.name || user?.name || 'Student',
-          items: cartItems.map(item => ({
-            name: item.name,
-            price: item.price,
-            quantity: cart[item.id],
-          })),
-          total_amount: total,
-          note: note || null,
-        }),
-      });
+    // Go to Paystack
+    const payRes = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/initialize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: user?.email,
+        amount: total,
+        orderId: `pending_${Date.now()}`,
+      }),
+    });
 
-      if (!res.ok) throw new Error('Failed to place order');
-      const order = await res.json();
+    const payData = await payRes.json();
+    window.location.href = payData.paymentUrl;
 
-      // 2. Save order details to sessionStorage BEFORE leaving the site
-      sessionStorage.setItem('pendingOrder', JSON.stringify({
-        orderId: order.id,
-        orderNumber: order.order_number,
-        vendor,
-        total,
-        note,
-      }));
-
-      // 3. Now go to Paystack
-      const payRes = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/initialize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: user?.email,
-          amount: total,
-          orderId: order.id, // use the real order id
-        }),
-      });
-
-      const payData = await payRes.json();
-      window.location.href = payData.paymentUrl;
-
-    } catch (error) {
-      console.error('Payment error:', error);
-      alert('Payment failed. Please try again.');
-    }
-  };// fix this file to handle payment with paystack, create order first, then redirect to paystack with order details
+  } catch (error) {
+    console.error('Payment error:', error);
+    alert('Payment failed. Please try again.');
+  }
+};
 
 
   const deleteFromCart = (itemId) =>

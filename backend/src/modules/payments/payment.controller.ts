@@ -19,7 +19,8 @@ export const paymentController = {
         email,
         amount,
         orderId,
-        callbackUrl
+        callbackUrl,
+        cancelUrl: `${process.env.FRONTEND_URL}/checkout`
       });
 
       return res.status(200).json({
@@ -32,6 +33,7 @@ export const paymentController = {
       return res.status(500).json({ message: 'Error initializing payment' });
     }
   },
+  
 
   // GET /api/payments/verify/:reference
   async verifyPayment(req: Request, res: Response) {
