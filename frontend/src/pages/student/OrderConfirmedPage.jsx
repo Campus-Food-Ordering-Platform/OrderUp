@@ -13,37 +13,86 @@ const steps = [
 
 
 export default function OrderConfirmedPage() {
-  const { state } = useLocation();
-  const navigate = useNavigate();
+const { state } = useLocation();
+const navigate = useNavigate();
 
-  const vendor = state?.vendor;
-  const total = state?.total;
-  const note = state?.note;
+const orderData = state ?? JSON.parse(sessionStorage.getItem('pendingOrder') || 'null');
 
-  const [currentStep, setCurrentStep] = useState(0);
-  const [orderNumber] = useState(() => Math.floor(Math.random() * 900) + 100);
+const [activeOrder, setActiveOrder] = useState(orderData);  // ← use state for order data
 
-  //add this useEffect func below for paystack...
-useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  const reference = params.get('reference');
+const vendor = orderData?.vendor;
+const total = orderData?.total;
+const note = orderData?.note;
+const orderNumber = orderData?.orderNumber;
+
+const [currentStep, setCurrentStep] = useState(0);
   
-  if (reference) {
-    // Came from Paystack redirect - verify payment
-    fetch(`${import.meta.env.VITE_API_URL}/api/payments/verify/${reference}`)
-      .then(res => res.json())
-      .then(data => {
-        if (!data.success) {
-          // Payment failed - go back to checkout
-          navigate('/checkout');
+  // Map backend order statuses to step indices
+  const STATUS_TO_STEP = {
+    received:  0,
+    preparing: 1,
+    ready:     2,
+    collected: 2,
+};
+
+  useEffect(() => {
+    if (!orderData?.orderId) return; // no real order, skip polling
+
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderData.orderId}/status`);
+        const data = await res.json();
+        const step = STATUS_TO_STEP[data.status] ?? 0;
+        setCurrentStep(step);
+        if (data.status === 'Ready' || data.status === 'Collected') {
+          clearInterval(poll); // stop polling once order is ready
+          sessionStorage.removeItem('pendingOrder'); // clear pending order from session
         }
-        // Payment successful - stay on this page and show order confirmed
-      })
-      .catch(err => console.error('Verification error:', err));
-  }
-}, []);
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    }, 5000); // poll every 5 seconds
+
+    return () => clearInterval(poll);
+  }, [orderData?.orderId]);
 
   const estimatedTime = vendor?.wait || 15;
+
+  // when there are no orders active.
+
+  if (!orderData?.orderId) {
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
+      <header style={{ background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
+          </div>
+          <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
+        </div>
+        <div onClick={() => navigate('/student-dashboard')} style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <Home size={16} color="white" strokeWidth={2} />
+        </div>
+      </header>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 62px)', gap: '16px', padding: '32px' }}>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#F5F5F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Package size={36} color="#ddd" />
+        </div>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1a1a2e', margin: 0 }}>No Active Order</h2>
+        <p style={{ fontSize: '0.85rem', color: '#888', textAlign: 'center', margin: 0 }}>
+          You don't have any active orders right now. Browse vendors to place an order.
+        </p>
+        <button
+          onClick={() => navigate('/student-dashboard')}
+          style={{ backgroundColor: BRAND, color: 'white', border: 'none', borderRadius: '2rem', padding: '12px 28px', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}
+        >
+          Browse Vendors
+        </button>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2', paddingBottom: '32px' }}>

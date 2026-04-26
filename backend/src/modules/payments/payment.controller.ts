@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { paymentService } from './payment.service';
+import pool from '../../config/db';
 
 export const paymentController = {
 
@@ -38,13 +39,18 @@ export const paymentController = {
       const reference = req.params['reference'] as string;
       const payment = await paymentService.verifyPayment(reference);
 
-      if (payment.status === 'success') {
-        // Payment successful — update order status here
-        return res.status(200).json({
-          success: true,
-          orderId: payment.metadata.orderId,
-          message: 'Payment successful'
-        });
+     if (payment.status === 'success') {
+  // Update the order status to received
+     await pool.query(
+        'UPDATE orders SET status = $1 WHERE id = $2',
+      ['received', payment.metadata.orderId]
+    );
+
+    return res.status(200).json({
+        success: true,
+        orderId: payment.metadata.orderId,
+        message: 'Payment successful'
+      });
       } else {
         return res.status(400).json({
           success: false,

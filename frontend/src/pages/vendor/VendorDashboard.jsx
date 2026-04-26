@@ -14,25 +14,19 @@ const tabs = [
   { id: 'analytics', label: 'Analytics', icon: BarChart2 },
 ];
 
-const orderFilters = ['All orders', 'Confirmed', 'Preparing', 'Ready'];
+const orderFilters = ['All orders', 'received', 'preparing', 'ready'];// Map order status to display config(this was a pain to figure out)
 
-// ============ MOCK ORDERS DATA ============
-const mockOrders = [
-  { id: 45, customer: 'Samele Hlatswayo', status: 'Preparing', time: '12:30', items: [{ name: '2x Classic Kota', price: 50 }, { name: '1x Mini Chips', price: 25 }], note: 'Add tomato sauce to chips please', total: 75 },
-  { id: 54, customer: 'Jakarman', status: 'Confirmed', time: '12:30', items: [{ name: '5x Kota', price: 125 }], note: null, total: 125 },
-  { id: 87, customer: 'Siyangoba Kunene', status: 'Ready', time: '12:30', items: [{ name: '1x Russian', price: 10 }], note: 'add extra flavour :)', total: 10 },
-];
 
 const statusConfig = {
-  Confirmed: { bg: '#E8F4FD', color: '#2A6DB5', action: 'Start Preparing', next: 'Preparing', btnBg: 'linear-gradient(135deg, #7B4FBF 0%, #9B6FDF 100%)', btnColor: 'white' },
-  Preparing: { bg: '#F0E8FF', color: '#7B4FBF', action: 'Mark Ready', next: 'Ready', btnBg: 'linear-gradient(135deg, #2A7D2A 0%, #4CAF50 100%)', btnColor: 'white' },
-  Ready: { bg: '#E8F8E8', color: '#2A7D2A', action: 'Mark as Collected', next: 'Collected', btnBg: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)', btnColor: 'white' },
-  Collected: { bg: '#F0F0F0', color: '#888', action: null, next: null, btnBg: null, btnColor: null },
+  received:  { bg: '#E8F4FD', color: '#2A6DB5', action: 'Start Preparing', btnBg: 'linear-gradient(135deg, #7B4FBF 0%, #9B6FDF 100%)', btnColor: 'white' },
+  preparing: { bg: '#F0E8FF', color: '#7B4FBF', action: 'Mark Ready',       btnBg: 'linear-gradient(135deg, #2A7D2A 0%, #4CAF50 100%)', btnColor: 'white' },
+  ready:     { bg: '#E8F8E8', color: '#2A7D2A', action: 'Mark as Collected', btnBg: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)', btnColor: 'white' },
+  collected: { bg: '#F0F0F0', color: '#888',    action: null,                btnBg: null, btnColor: null },
 };
 
 // ============ ORDER CARD COMPONENT ============
 function OrderCard({ order, onUpdateStatus }) {
-  const config = statusConfig[order.status];
+  const config = statusConfig[order.status] || statusConfig['received'];
   return (
     <article
       style={{
@@ -45,14 +39,14 @@ function OrderCard({ order, onUpdateStatus }) {
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a1a2e' }}>ORDER NUMBER: {order.id}</h3>
+        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a1a2e' }}>ORDER NUMBER: {order.order_number}</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ backgroundColor: config.bg, color: config.color, fontSize: '0.72rem', fontWeight: 600, padding: '3px 12px', borderRadius: '20px' }}>{order.status}</span>
           <span style={{ fontSize: '0.72rem', color: '#aaa' }}>{order.time}</span>
         </div>
       </div>
 
-      <p style={{ fontSize: '0.78rem', color: '#888', marginBottom: '12px' }}>{order.customer}</p>
+      <p style={{ fontSize: '0.78rem', color: '#888', marginBottom: '12px' }}>{order.customer_name}</p>
 
       <div style={{ borderTop: '1px solid #F5F5F5', paddingTop: '12px', marginBottom: '10px' }}>
         <p style={{ fontSize: '0.72rem', color: '#aaa', marginBottom: '6px' }}>Items:</p>
@@ -69,12 +63,12 @@ function OrderCard({ order, onUpdateStatus }) {
         )}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #F5F5F5' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: BRAND }}>TOTAL</span>
-          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: BRAND }}>R {order.total}.00</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: BRAND }}>R {order.total_amount}.00</span>
         </div>
       </div>
 
       {config.action && (
-        <button onClick={() => onUpdateStatus(order.id, config.next)}
+        <button onClick={() => onUpdateStatus(order.id)}// onUpdateStatus should handle moving to the next status in the flow
           style={{ width: '100%', padding: '0.75rem', background: config.btnBg, color: config.btnColor, fontSize: '0.88rem', fontWeight: 700, border: 'none', borderRadius: '2rem', cursor: 'pointer' }}>
           {config.action}
         </button>
@@ -743,12 +737,15 @@ function VendorPendingScreen({ vendorName }) {
 export default function VendorDashboard() {
   const [activeTab, setActiveTab] = useState('orders');
   const [activeFilter, setActiveFilter] = useState('All orders');
-  const [orders, setOrders] = useState(mockOrders);
+  const [orders, setOrders] = useState([]);
   const [vendorStatus, setVendorStatus] = useState('loading');
   const [vendorId, setVendorId] = useState(null);
   const [vendorDisplayName, setVendorDisplayName] = useState('');
 
   useEffect(() => {
+    setVendorId('52a38ed7-bb34-4b34-813e-026eb1e9f616');
+    setVendorStatus('approved');
+    return; // default to approved for development/testing
     const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
     const user = raw?.user ?? raw;
     if (!user?.id) {
@@ -781,6 +778,22 @@ export default function VendorDashboard() {
     checkStatus();
   }, []);
 
+   useEffect(() => {
+    if (!vendorId) return;
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/vendor/${vendorId}`);
+        if (!res.ok) throw new Error('Failed to fetch orders');
+        const data = await res.json();
+        setOrders(data);
+      } catch (err) {
+        console.error('Failed to load orders:', err);
+      }
+    };
+    fetchOrders();
+  }, [vendorId]);// this would fetch the orders for the vendor when the dashboard loads
+
+
   if (vendorStatus === 'loading') {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -797,18 +810,29 @@ export default function VendorDashboard() {
     return <VendorPendingScreen vendorName={vendorDisplayName} />;
   }
 
-  const handleUpdateStatus = (orderId, newStatus) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-  };
+  const handleUpdateStatus = async (orderId) => {
+  try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}/status`, {
+      method: 'PATCH',
+    });
+    if (!res.ok) throw new Error('Failed to update status');
+      const updated = await res.json();
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: updated.status } : o));
+    } catch (err) {
+      console.error('Status update failed:', err);
+      alert('Could not update order status. Please try again.');
+    }
+  };// this would be called when vendor clicks "Mark as Collected" or similar action in the orders tab
 
+ 
   const filteredOrders = activeFilter === 'All orders'
-    ? orders.filter(o => o.status !== 'Collected')
+    ? orders.filter(o => o.status !== 'collected')
     : orders.filter(o => o.status === activeFilter);
 
   const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
 
-  const totalCustomers = new Set(orders.map(order => order.customer)).size;
+  const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total_amount), 0);
+  const totalCustomers = new Set(orders.map(order => order.customer_name)).size; //change to customer_id if available
 
   const itemSalesMap = {};
   orders.forEach(order => {
@@ -869,8 +893,8 @@ export default function VendorDashboard() {
 
       {/* Hero Banner */}
       <section style={{ margin: '16px', background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, borderRadius: '18px', padding: '20px 24px' }}>
-        <h1 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, marginBottom: '4px' }}>Jimmy's Dashboard</h1>
-        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem' }}>{orders.filter(o => o.status !== 'Collected').length} active orders today</p>
+        <h1 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, marginBottom: '4px' }}> Dashboard</h1>
+        <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem' }}>{orders.filter(o => o.status !== 'collected').length} active orders today</p>
       </section>
 
       {/* Tabs */}

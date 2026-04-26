@@ -11,18 +11,20 @@ import authRoutes from './modules/auth/auth.routes';
 import cartRoutes from './modules/cart/cart.routes';
 import vendorRoutes from './modules/vendors/vendors.routes';
 import uploadRoutes from './modules/uploads/uploads.routes';
+import orderRoutes from '././modules/orders/order.routes';
 import paymentRoutes from './modules/payments/payment.routes';
 
 const app = express();
 
-app.use(cors({origin: [
+app.use(cors({
+  origin: [
     'http://localhost:5173',
     'https://order-up-rho.vercel.app'
   ],
   credentials: true
 }));
 
-//  Body limits must come BEFORE routes
+// Body limits must come BEFORE routes
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -43,8 +45,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/cart', cartRoutes);
-app.use('/api/vendors', vendorRoutes); //  moved above export
-
+app.use('/api/vendors', vendorRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/upload', uploadRoutes);
 
 app.use('/api/payments', paymentRoutes);
 app.use('/api/upload', uploadRoutes);

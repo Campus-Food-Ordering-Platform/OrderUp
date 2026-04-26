@@ -2,6 +2,7 @@ import pool from '../../config/db';
 
 // ───────────── Vendors ─────────────
 
+// Fetch all vendors with their profile name (used on student dashboard)
 export const getAllVendors = async () => {
   const result = await pool.query(`
     SELECT v.id, v.description, v.is_open, v.logo_url, p.name
@@ -12,6 +13,7 @@ export const getAllVendors = async () => {
   return result.rows;
 };
 
+// Fetch a single vendor by their ID
 export const getVendorById = async (id: string) => {
   const result = await pool.query(`
     SELECT v.id, v.description, v.is_open, v.logo_url, p.name
@@ -19,12 +21,13 @@ export const getVendorById = async (id: string) => {
     JOIN profiles p ON v.profile_id = p.id
     WHERE v.id = $1
   `, [id]);
-
   return result.rows[0];
 };
 
 // ───────────── Menu ─────────────
 
+// Fetch all menu items for a vendor — returns available AND unavailable
+// items so the student menu page can show "Out of stock" for unavailable ones
 export const getVendorMenu = async (vendorId: string) => {
   const result = await pool.query(
     `SELECT * FROM menu_items WHERE vendor_id = $1 ORDER BY category, name ASC`,
@@ -33,10 +36,12 @@ export const getVendorMenu = async (vendorId: string) => {
   return result.rows;
 };
 
+// Create a new menu item — includes tags and available from the start
+// so the vendor dashboard toggle works immediately after creation
 export const createMenuItem = async (vendorId: string, body: any) => {
   const result = await pool.query(
-    `INSERT INTO menu_items (vendor_id, name, description, price, category, image_url)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO menu_items (vendor_id, name, description, price, category, image_url, tags, available)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
     [
       vendorId,
@@ -44,13 +49,16 @@ export const createMenuItem = async (vendorId: string, body: any) => {
       body.description,
       body.price,
       body.category,
-      body.image_url
+      body.image_url,
+      body.tags ?? [],    // raw array — pg driver serializes text[] natively
+      body.available ?? true,
     ]
   );
-
   return result.rows[0];
 };
 
+// Update a menu item — includes tags and available so the availability
+// toggle persists after refresh and tags are not wiped on edit
 export const updateMenuItem = async (
   vendorId: string,
   itemId: string,
@@ -58,8 +66,8 @@ export const updateMenuItem = async (
 ) => {
   const result = await pool.query(
     `UPDATE menu_items
-     SET name=$1, description=$2, price=$3, category=$4, image_url=$5
-     WHERE id=$6 AND vendor_id=$7
+     SET name=$1, description=$2, price=$3, category=$4, image_url=$5, tags=$6, available=$7
+     WHERE id=$8 AND vendor_id=$9
      RETURNING *`,
     [
       body.name,
@@ -67,14 +75,16 @@ export const updateMenuItem = async (
       body.price,
       body.category,
       body.image_url,
+      body.tags ?? [],    // raw array — pg driver serializes text[] natively
+      body.available ?? true,
       itemId,
-      vendorId
+      vendorId,
     ]
   );
-
-  return result.rows[0];
+  return result.rows[0]; // returns undefined if not found — controller handles 404
 };
 
+// Delete a menu item — vendor_id check prevents deleting another vendor's items
 export const deleteMenuItem = async (vendorId: string, itemId: string) => {
   await pool.query(
     `DELETE FROM menu_items WHERE id=$1 AND vendor_id=$2`,
@@ -84,6 +94,9 @@ export const deleteMenuItem = async (vendorId: string, itemId: string) => {
 
 // ───────────── Register ─────────────
 
+// Register a vendor profile — uses ON CONFLICT so calling this multiple times
+// for the same profile_id is safe (idempotent). Used on every vendor login
+// to resolve their vendor ID from their profile ID.
 export const registerVendor = async (body: any) => {
   const result = await pool.query(
     `INSERT INTO vendors (id, profile_id, description, is_open, logo_url)
@@ -93,6 +106,5 @@ export const registerVendor = async (body: any) => {
      RETURNING *`,
     [body.profile_id, body.description ?? null, body.logo_url ?? null]
   );
-
   return result.rows[0];
 };

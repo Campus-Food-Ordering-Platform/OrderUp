@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Home, Package, History, UserRound, Plus, Minus, Trash2, MapPin, CreditCard } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
@@ -30,27 +30,60 @@ export default function CheckoutPage() {
     //adding handlepayment func for paystack
     const { user } = useAuth0();
 
-const handlePayment = async () => {
-  try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/initialize`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: user?.email,
-        amount: total,
-        orderId: `${vendor?.name}_${Date.now()}`
-      })
-    });
+  const handlePayment = async () => {
+    try {
+      // 1. Create the order in the backend first
+      const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
+      const localUser = raw?.user ?? raw;
 
-    const data = await response.json();
-    window.location.href = data.paymentUrl;
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_id: vendor.id,
+          customer_id: localUser?.id || user?.sub,
+          customer_name: localUser?.name || user?.name || 'Student',
+          items: cartItems.map(item => ({
+            name: item.name,
+            price: item.price,
+            quantity: cart[item.id],
+          })),
+          total_amount: total,
+          note: note || null,
+        }),
+      });
 
-  } catch (error) {
-    console.error('Payment error:', error);
-    alert('Payment failed. Please try again.');
-  }
-};
+      if (!res.ok) throw new Error('Failed to place order');
+      const order = await res.json();
 
+      // 2. Save order details to sessionStorage BEFORE leaving the site
+      sessionStorage.setItem('pendingOrder', JSON.stringify({
+        orderId: order.id,
+        orderNumber: order.order_number,
+        vendor,
+        total,
+        note,
+      }));
+
+      // 3. Now go to Paystack
+      const payRes = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/initialize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user?.email,
+          amount: total,
+          orderId: order.id, // use the real order id
+        }),
+      });
+
+      const payData = await payRes.json();
+      window.location.href = payData.paymentUrl;
+
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Payment failed. Please try again.');
+    }
+  };// fix this file to handle payment with paystack, create order first, then redirect to paystack with order details
 
 
   const deleteFromCart = (itemId) =>
@@ -389,7 +422,7 @@ const handlePayment = async () => {
           }}
         >
           <CreditCard size={18} color="white" />
-          Place Order · R {total}.00
+          Place Order · R {total}
         </button>
       </div>
     </div>

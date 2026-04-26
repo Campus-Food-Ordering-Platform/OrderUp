@@ -83,6 +83,7 @@ export default function StudentDashboard() {
   const [error, setError] = useState(null);
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeOrder, setActiveOrder] = useState(null);//this will hold the active order details, if any
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -108,6 +109,22 @@ export default function StudentDashboard() {
         setLoading(false);
       });
   }, []);
+
+    useEffect(() => {
+    if (!user?.id) return;
+      const fetchActiveOrder = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/student/${user.id}/active`);
+        if (!res.ok) return;
+          const data = await res.json();
+          setActiveOrder(data);
+        } catch (err) {
+        console.error('Failed to fetch active order:', err);
+        }
+    };
+    fetchActiveOrder();
+  }, [user?.id]);
+
 
   // ── Null-safe filter ───────────────────────────────────────────────────────
   const filteredVendors = vendors.filter((vendor) => {
@@ -164,13 +181,25 @@ export default function StudentDashboard() {
       </section>
 
       {/* ── Active Order Status ── */}
-      <section style={{ margin: '0 16px 16px', backgroundColor: 'white', borderRadius: '14px', padding: '14px 16px', borderLeft: `4px solid ${BRAND}`, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: '2px' }}>Active order · Jimmy's</p>
-          <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1a1a2e' }}>Chips & Chicken Burger</p>
-        </div>
-        <span style={{ backgroundColor: '#FFF0F0', color: BRAND, fontSize: '0.75rem', fontWeight: 600, padding: '4px 14px', borderRadius: '20px' }}>Preparing</span>
-      </section>
+      {activeOrder && (
+        <section
+          onClick={() => navigate('/order-confirmed', {
+            state: { orderId: activeOrder.id, vendor: { name: activeOrder.vendor_name }, total: activeOrder.total_amount }
+          })}
+          style={{ margin: '0 16px 16px', backgroundColor: 'white', borderRadius: '14px', padding: '14px 16px', borderLeft: `4px solid ${BRAND}`, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+        >
+          <div>
+            <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: '2px' }}>Active order · {activeOrder.vendor_name || 'Vendor'}</p>
+            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1a1a2e' }}>
+              {activeOrder.items?.map(i => i.name).join(', ')}
+            </p>
+          </div>
+          <span style={{ backgroundColor: '#FFF0F0', color: BRAND, fontSize: '0.75rem', fontWeight: 600, padding: '4px 14px', borderRadius: '20px' }}>
+            {activeOrder.status}
+          </span>
+        </section>
+      )}
+      
 
       {/* ── Search ── */}
       <section style={{ margin: '0 16px 16px', position: 'relative' }}>

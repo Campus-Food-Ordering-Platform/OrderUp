@@ -311,7 +311,16 @@ export default function VendorMenuPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
                     <span style={{ fontSize: '0.9rem', fontWeight: 700, color: BRAND }}>R {item.price}</span>
 
-                    {qty === 0 ? (
+                    {!item.available ? (
+                      <span style={{
+                        fontSize: '0.62rem', fontWeight: 700,
+                        backgroundColor: '#F0F0F0', color: '#aaa',
+                        padding: '5px 10px', borderRadius: '20px',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        out of stock
+                      </span>
+                    ) : qty === 0 ? (
                       <button
                         onClick={() => addToCart(item.id)}
                         style={{
