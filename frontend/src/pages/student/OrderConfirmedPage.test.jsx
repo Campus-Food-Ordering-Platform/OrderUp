@@ -9,6 +9,7 @@ vi.mock('react-router-dom', async () => {
     ...actual,
     useLocation: () => ({
       state: {
+        orderId: 'test-order-123',// added orderId for testing
         vendor: { name: 'Test Vendor', wait: 15 },
         total: 85,
         note: 'No onions please'
