@@ -175,7 +175,7 @@ export default function StudentDashboard() {
       {/* ── Hero Banner ── */}
       <section style={{ margin: '16px', background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, borderRadius: '18px', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, marginBottom: '4px' }}>{name}'s Dashboard</h1>
+          <h1 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, marginBottom: '4px' }}>Hey there {name}!</h1>
           <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem' }}>What are you craving today?</p>
         </div>
       </section>

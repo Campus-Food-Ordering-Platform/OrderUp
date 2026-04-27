@@ -1,15 +1,34 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Lock } from 'lucide-react';
 
 export default function AdminSetupPage() {
   const { user, getAccessTokenSilently, isAuthenticated, loginWithRedirect, isLoading } = useAuth0();
   const navigate = useNavigate();
   const [status, setStatus] = useState('Initializing admin setup...');
+  
+  // New states for the password gate
+  const [gatePassed, setGatePassed] = useState(
+    sessionStorage.getItem('admin_gate_passed') === 'true'
+  );
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    if (password === 'SoftwareSlayers4Life') {
+      sessionStorage.setItem('admin_gate_passed', 'true');
+      setGatePassed(true);
+      setError('');
+    } else {
+      setError('Incorrect password. Access denied.');
+    }
+  };
 
   useEffect(() => {
-    if (isLoading || !isAuthenticated) return;
+    // Crucial: We must be authenticated, done loading, AND have passed the gate
+    if (isLoading || !isAuthenticated || !gatePassed) return;
 
     let mounted = true;
 
@@ -49,7 +68,7 @@ export default function AdminSetupPage() {
     return () => {
       mounted = false;
     };
-  }, [isLoading, isAuthenticated, user, getAccessTokenSilently, navigate]);
+  }, [isLoading, isAuthenticated, user, getAccessTokenSilently, navigate, gatePassed]);
 
   return (
     <div style={{ 
@@ -69,32 +88,89 @@ export default function AdminSetupPage() {
         maxWidth: '400px',
         width: '100%' 
       }}>
-        <ShieldAlert size={48} color="#C0474A" style={{ marginBottom: '1.5rem', display: 'inline-block' }} />
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1a1a2e', marginBottom: '0.75rem' }}>
-          Secret Admin Setup
-        </h1>
-        <p style={{ color: '#666', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
-          {status}
-        </p>
-        
-        {!isAuthenticated && !isLoading && (
-          <button 
-            onClick={() => loginWithRedirect({ appState: { returnTo: '/admin/setup' } })}
-            style={{ 
-              padding: '12px 24px', 
-              background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '2rem', 
-              fontWeight: 700, 
-              cursor: 'pointer',
-              width: '100%',
-              fontSize: '1rem',
-              boxShadow: '0 4px 12px rgba(192,71,74,0.2)'
-            }}
-          >
-            Log In via Google to Continue
-          </button>
+        {!gatePassed ? (
+          // --- PASSWORD GATE UI ---
+          <form onSubmit={handlePasswordSubmit}>
+            <Lock size={48} color="#C0474A" style={{ marginBottom: '1.5rem', display: 'inline-block' }} />
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1a1a2e', marginBottom: '0.75rem' }}>
+              Restricted Access
+            </h1>
+            <p style={{ color: '#666', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+              Please enter the admin password to continue.
+            </p>
+            
+            <input 
+              type="password"
+              placeholder="Enter password..."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '10px',
+                border: '1.5px solid #EBEBEB',
+                fontSize: '1rem',
+                outline: 'none',
+                marginBottom: '1rem',
+                boxSizing: 'border-box'
+              }}
+            />
+            
+            {error && (
+              <p style={{ color: '#C0474A', fontSize: '0.85rem', marginBottom: '1rem', fontWeight: 600 }}>
+                {error}
+              </p>
+            )}
+
+            <button 
+              type="submit"
+              style={{ 
+                padding: '12px 24px', 
+                background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '2rem', 
+                fontWeight: 700, 
+                cursor: 'pointer',
+                width: '100%',
+                fontSize: '1rem',
+                boxShadow: '0 4px 12px rgba(192,71,74,0.2)'
+              }}
+            >
+              Unlock Setup
+            </button>
+          </form>
+        ) : (
+          // --- AUTH0 LOGIN & SETUP UI ---
+          <>
+            <ShieldAlert size={48} color="#C0474A" style={{ marginBottom: '1.5rem', display: 'inline-block' }} />
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1a1a2e', marginBottom: '0.75rem' }}>
+              Secret Admin Setup
+            </h1>
+            <p style={{ color: '#666', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+              {status}
+            </p>
+            
+            {!isAuthenticated && !isLoading && (
+              <button 
+                onClick={() => loginWithRedirect({ appState: { returnTo: '/admin/setup' } })}
+                style={{ 
+                  padding: '12px 24px', 
+                  background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '2rem', 
+                  fontWeight: 700, 
+                  cursor: 'pointer',
+                  width: '100%',
+                  fontSize: '1rem',
+                  boxShadow: '0 4px 12px rgba(192,71,74,0.2)'
+                }}
+              >
+                Log In via Google to Continue
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
