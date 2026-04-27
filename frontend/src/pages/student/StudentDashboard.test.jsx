@@ -41,7 +41,7 @@ describe('StudentDashboard', () => {
     render(<MemoryRouter><StudentDashboard /></MemoryRouter>);
     expect(screen.getByText('OrderUp')).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByText(/TestStudent's Dashboard/i)).toBeInTheDocument();
+      expect(screen.getByText(/Hey there TestStudent!/i)).toBeInTheDocument();
     });
   });
 

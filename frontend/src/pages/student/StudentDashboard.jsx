@@ -5,16 +5,6 @@ import { ShoppingCart, Home, Package, History, UserRound, Star, Clock, Search } 
 const BRAND = '#C0474A';
 const filters = ['All', 'Asian', 'Fast Food', 'Cafe', 'Healthy', 'Pizza'];
 
-const iconBtn = {
-  width: '34px',
-  height: '34px',
-  borderRadius: '50%',
-  backgroundColor: 'rgba(255,255,255,0.2)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-};
 
 function VendorCard({ vendor, onPress }) {
   return (
