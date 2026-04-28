@@ -36,33 +36,28 @@ export const paymentController = {
   
 
   // GET /api/payments/verify/:reference
-  async verifyPayment(req: Request, res: Response) {
-    try {
-      const reference = req.params['reference'] as string;
-      const payment = await paymentService.verifyPayment(reference);
+ async verifyPayment(req: Request, res: Response) {
+  try {
+    const reference = req.params['reference'] as string;
+    const payment = await paymentService.verifyPayment(reference);
 
-     if (payment.status === 'success') {
-  // Update the order status to received
-     await pool.query(
-        'UPDATE orders SET status = $1 WHERE id = $2',
-      ['received', payment.metadata.orderId]
-    );
-
-    return res.status(200).json({
+    if (payment.status === 'success') {
+      // Don't update any order here — the frontend will create
+      // the order AFTER this verify call succeeds.
+      // Just confirm payment was successful.
+      return res.status(200).json({
         success: true,
-        orderId: payment.metadata.orderId,
         message: 'Payment successful'
       });
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: 'Payment failed or pending'
-        });
-      }
-
-    } catch (error) {
-      console.error('Payment verification error:', error);
-      return res.status(500).json({ message: 'Error verifying payment' });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment failed or pending'
+      });
     }
+
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    return res.status(500).json({ message: 'Error verifying payment' });
   }
-};
+}};

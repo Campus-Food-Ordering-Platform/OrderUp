@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Home, Package, History, UserRound, CheckCircle, Clock, MapPin } from 'lucide-react';
+import {useAuth0} from '@auth0/auth0-react';
 
 const BRAND = '#C0474A';
 
@@ -10,140 +11,160 @@ const steps = [
   { id: 'ready', label: 'Ready for Pickup', icon: '🛎️', description: 'Your order is ready to collect!' },
 ];
 
-
-
 export default function OrderConfirmedPage() {
-const { state } = useLocation();
-const navigate = useNavigate();
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth0();
 
-const orderData = state ?? JSON.parse(sessionStorage.getItem('pendingOrder') || 'null');
+  const [orderData, setOrderData] = useState(
+    state ?? JSON.parse(sessionStorage.getItem('pendingOrder') || 'null')
+  );
 
-const [activeOrder, setActiveOrder] = useState(orderData);  // ← use state for order data
+  const vendor = orderData?.vendor;
+  const total = orderData?.total_amount ?? orderData?.total;
+  const note = orderData?.note;
+  const orderNumber = orderData?.order_number ?? orderData?.orderNumber;
 
-const vendor = orderData?.vendor;
-const total = orderData?.total;
-const note = orderData?.note;
-const orderNumber = orderData?.orderNumber;
+  const [currentStep, setCurrentStep] = useState(0);
 
-const [currentStep, setCurrentStep] = useState(0);
-  
-  // Map backend order statuses to step indices
   const STATUS_TO_STEP = {
-    received:  0,
+    received: 0,
     preparing: 1,
-    ready:     2,
+    ready: 2,
     collected: 2,
-};
+  };
 
- useEffect(() => {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get('reference');
+
+    if (reference) {
+      const verify = async () => {
+        try {
+          const res = await fetch(
+            `${import.meta.env.VITE_API_URL}/api/payments/verify/${reference}`
+          );
+          const data = await res.json();
+
+          if (!data.success) {
+            navigate('/checkout');
+            return;
+          }
+
+          const pendingOrder = JSON.parse(sessionStorage.getItem('pendingOrder') || '{}');
+
+          if (pendingOrder.vendor_id) {
+            const orderRes = await fetch(`${import.meta.env.VITE_API_URL}/api/orders`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                vendor_id: pendingOrder.vendor_id,
+                customer_id: pendingOrder.customer_id,
+                customer_name: pendingOrder.customer_name,
+                items: pendingOrder.items,
+                total_amount: pendingOrder.total,
+                note: pendingOrder.note || null,
+              }),
+            });
+
+            const order = await orderRes.json();
+          const pending = JSON.parse(sessionStorage.getItem('pendingOrder') || '{}');
+          setOrderData({
+            ...pending,
+            ...order,
+            id: order.id,
+          });
+          sessionStorage.removeItem('pendingOrder');
+          }
+
+        } catch (err) {
+          console.error('Verification error:', err);
+          navigate('/checkout');
+        }
+      };
+
+      verify();
+    }
+  }, []);
+
+  useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   const reference = params.get('reference');
 
-  if (reference) {
-    const verify = async () => {
+  if (!reference && !orderData?.id && user?.sub) {
+    const fetchActiveOrder = async () => {
       try {
-        // 1. Verify payment first
         const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/payments/verify/${reference}`
+          `${import.meta.env.VITE_API_URL}/api/orders/student/${user.sub}/active`
         );
-        const data = await res.json();
-
-        if (!data.success) {
-          navigate('/checkout');
-          return;
+        if (res.ok) {
+          const order = await res.json();
+          setOrderData(order);
         }
-
-        // 2. Payment succeeded - NOW create the order
-        const pendingOrder = JSON.parse(sessionStorage.getItem('pendingOrder') || '{}');
-
-        if (pendingOrder.vendor_id) {
-          const orderRes = await fetch(`${import.meta.env.VITE_API_URL}/api/orders`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              vendor_id: pendingOrder.vendor_id,
-              customer_id: pendingOrder.customer_id,
-              customer_name: pendingOrder.customer_name,
-              items: pendingOrder.items,
-              total_amount: pendingOrder.total,
-              note: pendingOrder.note || null,
-            }),
-          });
-
-          const order = await orderRes.json();
-          setOrderData(order); // this triggers the polling useEffect below
-          sessionStorage.removeItem('pendingOrder');
-        }
-
       } catch (err) {
-        console.error('Verification error:', err);
-        navigate('/checkout');
+        console.error('Failed to fetch active order:', err);
       }
     };
-
-    verify();
+    fetchActiveOrder();
   }
-}, []);
+}, [user?.sub]);
 
+  useEffect(() => {
+    if (!orderData?.id) return;
 
-useEffect(() => {
-  if (!orderData?.orderId) return;
-
-  const poll = setInterval(async () => {
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderData.orderId}/status`);
-      const data = await res.json();
-      const step = STATUS_TO_STEP[data.status] ?? 0;
-      setCurrentStep(step);
-      if (data.status === 'Ready' || data.status === 'Collected') {
-        clearInterval(poll);
-        sessionStorage.removeItem('pendingOrder');
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderData.id}/status`);
+        const data = await res.json();
+        const step = STATUS_TO_STEP[data.status] ?? 0;
+        setCurrentStep(step);
+        if (data.status === 'ready' || data.status === 'collected') {
+          clearInterval(poll);
+          sessionStorage.removeItem('pendingOrder');
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
       }
-    } catch (err) {
-      console.error('Polling error:', err);
-    }
-  }, 5000);
+    }, 5000);
 
-  return () => clearInterval(poll);
-}, [orderData?.orderId]);
+    return () => clearInterval(poll);
+  }, [orderData?.id]);
 
   const estimatedTime = vendor?.wait || 15;
 
-  // when there are no orders active.
-
-  if (!orderData?.orderId) {
-  return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
-      <header style={{ background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
+  if (!orderData?.id) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
+        <header style={{ background: 'linear-gradient(135deg, #C0474A 0%, #E8726A 100%)', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
+            </div>
+            <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
           </div>
-          <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
-        </div>
-        <div onClick={() => navigate('/student-dashboard')} style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <Home size={16} color="white" strokeWidth={2} />
-        </div>
-      </header>
+          <div onClick={() => navigate('/student-dashboard')} style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Home size={16} color="white" strokeWidth={2} />
+          </div>
+        </header>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 62px)', gap: '16px', padding: '32px' }}>
-        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#F5F5F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Package size={36} color="#ddd" />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 62px)', gap: '16px', padding: '32px' }}>
+          <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#F5F5F5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Package size={36} color="#ddd" />
+          </div>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1a1a2e', margin: 0 }}>No Active Order</h2>
+          <p style={{ fontSize: '0.85rem', color: '#888', textAlign: 'center', margin: 0 }}>
+            You don't have any active orders right now. Browse vendors to place an order.
+          </p>
+          <button
+            onClick={() => navigate('/student-dashboard')}
+            style={{ backgroundColor: BRAND, color: 'white', border: 'none', borderRadius: '2rem', padding: '12px 28px', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}
+          >
+            Browse Vendors
+          </button>
         </div>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1a1a2e', margin: 0 }}>No Active Order</h2>
-        <p style={{ fontSize: '0.85rem', color: '#888', textAlign: 'center', margin: 0 }}>
-          You don't have any active orders right now. Browse vendors to place an order.
-        </p>
-        <button
-          onClick={() => navigate('/student-dashboard')}
-          style={{ backgroundColor: BRAND, color: 'white', border: 'none', borderRadius: '2rem', padding: '12px 28px', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}
-        >
-          Browse Vendors
-        </button>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2', paddingBottom: '32px' }}>
@@ -166,17 +187,17 @@ useEffect(() => {
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <div
-          onClick={() => navigate('/student-dashboard')}
-          style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-        >
-          <Home size={16} color="white" strokeWidth={2} />
-        </div>
-        <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <History size={16} color="white" strokeWidth={2} />
-        </div>
-        <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <Package size={16} color="white" strokeWidth={2} />
-        </div>
+            onClick={() => navigate('/student-dashboard')}
+            style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
+            <Home size={16} color="white" strokeWidth={2} />
+          </div>
+          <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <History size={16} color="white" strokeWidth={2} />
+          </div>
+          <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Package size={16} color="white" strokeWidth={2} />
+          </div>
           <div
             onClick={() => navigate('/checkout')}
             style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
@@ -194,18 +215,18 @@ useEffect(() => {
         {/* ── Success Banner ── */}
         <div
           style={{
-          background: 'rgba(220, 245, 220, 0.5)',
-          backdropFilter: 'blur(8px)',
-          borderRadius: '20px',
-          padding: '28px 24px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          gap: '12px',
-          border: '1.5px solid #4CAF50',
-          boxShadow: '0 8px 40px rgba(76, 175, 80, 0.25), 0 0 0 6px rgba(76, 175, 80, 0.08)',
-        }}
+            background: 'rgba(220, 245, 220, 0.5)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: '20px',
+            padding: '28px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: '12px',
+            border: '1.5px solid #4CAF50',
+            boxShadow: '0 8px 40px rgba(76, 175, 80, 0.25), 0 0 0 6px rgba(76, 175, 80, 0.08)',
+          }}
         >
           <div
             style={{
@@ -217,7 +238,7 @@ useEffect(() => {
           >
             <CheckCircle size={40} color="#2A7D2A" strokeWidth={2} />
           </div>
-          <h1 style={{ color: '#2A7D2A', fontSize: '1.4rem', fontWeight: 800, margin: 0}}>
+          <h1 style={{ color: '#2A7D2A', fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>
             Order Placed! 🎉
           </h1>
           <p style={{ color: '#4CAF50', fontSize: '0.88rem', margin: 0 }}>
@@ -234,7 +255,7 @@ useEffect(() => {
           >
             <div style={{ textAlign: 'center' }}>
               <p style={{ color: '#4CAF50', fontSize: '0.72rem', margin: '0 0 2px' }}>Order No.</p>
-             <p style={{ color: '#2A7D2A', fontSize: '1rem', fontWeight: 800, margin: 0 }}>#{orderNumber}</p>
+              <p style={{ color: '#2A7D2A', fontSize: '1rem', fontWeight: 800, margin: 0 }}>#{orderData?.order_number}</p>
             </div>
             <div style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.3)' }} />
             <div style={{ textAlign: 'center' }}>
@@ -263,7 +284,6 @@ useEffect(() => {
 
               return (
                 <div key={step.id} style={{ display: 'flex', gap: '14px' }}>
-                  {/* Timeline line + dot */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
                     <div
                       style={{
@@ -295,7 +315,6 @@ useEffect(() => {
                     )}
                   </div>
 
-                  {/* Step text */}
                   <div style={{ paddingBottom: idx < steps.length - 1 ? '24px' : '0', paddingTop: '6px' }}>
                     <p
                       style={{

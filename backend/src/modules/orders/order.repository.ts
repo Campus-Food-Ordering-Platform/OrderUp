@@ -4,11 +4,20 @@ import { Order, CreateOrderDTO } from './order.model';
 
 // Create a new order in the database and return the created order
 export async function createOrder(data: CreateOrderDTO): Promise<Order> {
+  // Look up the internal UUID from the Auth0 ID
+  const profileResult = await pool.query(
+    `SELECT id FROM profiles WHERE auth0_id = $1`,
+    [data.customer_id]
+  );
+
+  const internalUserId = profileResult.rows[0]?.id;
+  if (!internalUserId) throw new Error('Customer profile not found');
+
   const result = await pool.query(
     `INSERT INTO orders (vendor_id, customer_id, customer_name, items, total_amount, note, status)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [data.vendor_id, data.customer_id, data.customer_name, JSON.stringify(data.items), data.total_amount, data.note ?? null, OrderStatus.Confirmed]
+    [data.vendor_id, internalUserId, data.customer_name, JSON.stringify(data.items), data.total_amount, data.note ?? null, OrderStatus.Confirmed]
   );
   return result.rows[0];
 }
@@ -41,13 +50,21 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
 }
 
 export async function getActiveOrderByStudent(studentId: string): Promise<Order | null> {
+  // Resolve Auth0 ID to internal UUID first
+  const profileResult = await pool.query(
+    `SELECT id FROM profiles WHERE auth0_id = $1`,
+    [studentId]
+  );
+  const internalUserId = profileResult.rows[0]?.id;
+  if (!internalUserId) return null;
+
   const result = await pool.query(
     `SELECT * FROM orders 
      WHERE customer_id = $1 
      AND status NOT IN ('collected')
      ORDER BY created_at DESC 
      LIMIT 1`,
-    [studentId]
+    [internalUserId]
   );
   return result.rows[0] ?? null;
 }//this function retrieves the most recent active order for a student, excluding any orders that have already been collected. This is useful for the student dashboard to show the current order status without displaying past completed orders.

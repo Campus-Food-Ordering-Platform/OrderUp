@@ -35,16 +35,17 @@ export default function CheckoutPage() {
     // Save order details to sessionStorage BEFORE leaving the site
     sessionStorage.setItem('pendingOrder', JSON.stringify({
       vendor,
+      vendor_id: vendor.id,
+      customer_id: user?.sub,
+      customer_name: user?.name || 'Student',
       total,
       note,
+      orderNumber: Date.now(),
       items: cartItems.map(item => ({
         name: item.name,
         price: item.price,
         quantity: cart[item.id],
       })),
-      vendor_id: vendor.id,
-      customer_id: user?.sub,
-      customer_name: user?.name || 'Student',
     }));
 
     // Go to Paystack
