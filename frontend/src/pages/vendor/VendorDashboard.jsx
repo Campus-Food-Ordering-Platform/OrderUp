@@ -50,7 +50,7 @@ function OrderCard({ order, onUpdateStatus }) {
 
       <div style={{ borderTop: '1px solid #F5F5F5', paddingTop: '12px', marginBottom: '10px' }}>
         <p style={{ fontSize: '0.72rem', color: '#aaa', marginBottom: '6px' }}>Items:</p>
-        {order.items.map((item, i) => (
+        {(order.items ?? []).map((item, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span style={{ fontSize: '0.82rem', color: '#444' }}>{item.name}</span>
             <span style={{ fontSize: '0.82rem', color: '#444' }}>R {parseFloat(item.price).toFixed(2)}</span>
@@ -835,16 +835,28 @@ export default function VendorDashboard() {
   const totalCustomers = new Set(orders.map(order => order.customer_name)).size; //change to customer_id if available
 
   const itemSalesMap = {};
+  // orders.forEach(order => {
+  //   order.items.forEach(item => {
+  //     const name = item.name;
+  //     if (!itemSalesMap[name]) {
+  //       itemSalesMap[name] = { name, quantity: 0, revenue: 0 };
+  //     }
+  //     itemSalesMap[name].quantity += 1;
+  //     itemSalesMap[name].revenue += item.price;
+  //   });
+  // });
   orders.forEach(order => {
-    order.items.forEach(item => {
-      const name = item.name;
-      if (!itemSalesMap[name]) {
-        itemSalesMap[name] = { name, quantity: 0, revenue: 0 };
-      }
-      itemSalesMap[name].quantity += 1;
-      itemSalesMap[name].revenue += item.price;
-    });
+  (order.items || []).forEach(item => {
+    const name = item.name;
+
+    if (!itemSalesMap[name]) {
+      itemSalesMap[name] = { name, quantity: 0, revenue: 0 };
+    }
+
+    itemSalesMap[name].quantity += 1;
+    itemSalesMap[name].revenue += item.price;
   });
+});
   const topSellingItems = Object.values(itemSalesMap).sort((a, b) => b.quantity - a.quantity);
 
   const weeklyRevenue = [18500, 22100, 19800, 24300, 26700, 28900, 31200];

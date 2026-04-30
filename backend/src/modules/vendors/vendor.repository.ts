@@ -5,7 +5,7 @@ import pool from '../../config/db';
 // Fetch all vendors with their profile name (used on student dashboard)
 export const getAllVendors = async () => {
   const result = await pool.query(`
-    SELECT v.id, v.description, v.is_open, v.logo_url, p.name
+    SELECT v.id, v.description, v.is_active, v.logo_url, p.name
     FROM vendors v
     JOIN profiles p ON v.profile_id = p.id
     ORDER BY v.id ASC
@@ -16,7 +16,7 @@ export const getAllVendors = async () => {
 // Fetch a single vendor by their ID
 export const getVendorById = async (id: string) => {
   const result = await pool.query(`
-    SELECT v.id, v.description, v.is_open, v.logo_url, p.name
+    SELECT v.id, v.description, v.is_active, v.logo_url, p.name
     FROM vendors v
     JOIN profiles p ON v.profile_id = p.id
     WHERE v.id = $1

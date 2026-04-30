@@ -6,9 +6,11 @@ import { ValidationError } from './vendor.service';
 
 export const getAllVendors = async (_req: Request, res: Response) => {
   try {
+    console.log("HIT VENDORS ROUTE");
     const data = await vendorService.getAllVendors();
     res.json(data);
   } catch (err) {
+    console.log("VENDORS CRASH:", err);
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch vendors' });
   }

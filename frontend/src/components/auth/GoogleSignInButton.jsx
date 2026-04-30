@@ -15,13 +15,14 @@ export default function GoogleSignInButton({ color = '#C0474A', textColor = 'whi
         border: 'none',
         cursor: 'pointer',
       }}
-      onClick={() =>
+      onClick={() =>{
         loginWithRedirect({
-    authorizationParams: { 
-      connection: 'google-oauth2',
-      redirect_uri: `${window.location.origin}/auth/callback`
-    },
-  })
+          authorizationParams: { 
+            connection: 'google-oauth2',
+            redirect_uri: `${window.location.origin}/auth/callback`
+          },
+        })
+      }
       }
     >
       <UserRound size={20} color={textColor} strokeWidth={2} />

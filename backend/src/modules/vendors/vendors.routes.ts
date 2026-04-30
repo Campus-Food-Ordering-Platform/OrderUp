@@ -1,9 +1,11 @@
+console.log("VENDORS ROUTE FILE LOADED");
 import { Router } from 'express';
 import * as vendorController from '././vendor.controller';
 
 const router = Router();
 
 // Vendors
+
 router.get('/', vendorController.getAllVendors);
 router.get('/:id', vendorController.getVendorById);
 router.post('/register', vendorController.registerVendor);
