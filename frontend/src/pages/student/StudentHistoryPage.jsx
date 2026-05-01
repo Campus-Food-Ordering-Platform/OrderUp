@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Home, History, UserRound, Search, HelpCircle, Package, Calendar, MessageSquare, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Home, History, UserRound, Search, HelpCircle, Package, Calendar, MessageSquare, ChevronRight, Star } from 'lucide-react';
 
 const BRAND = '#C0474A';
 
@@ -83,6 +83,36 @@ export default function StudentHistoryPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('All');
+
+  const [ratedVendors, setRatedVendors] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('rated_vendors')) || []; } 
+    catch { return []; }
+  });
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [ratingValue, setRatingValue] = useState(0);
+  const [hoverValue, setHoverValue] = useState(0);
+
+  const handleOpenRating = (order) => {
+    setSelectedOrder(order);
+    setRatingValue(0);
+    setHoverValue(0);
+    setRatingModalOpen(true);
+  };
+
+  const handleCloseRating = () => {
+    setRatingModalOpen(false);
+    setTimeout(() => setSelectedOrder(null), 300);
+  };
+
+  const handleSubmitRating = () => {
+    if (ratingValue === 0 || !selectedOrder) return;
+    const vendorId = selectedOrder.payload.vendor.id;
+    const newRated = [...ratedVendors, vendorId];
+    setRatedVendors(newRated);
+    localStorage.setItem('rated_vendors', JSON.stringify(newRated));
+    handleCloseRating();
+  };
 
   const filteredOrders = mockPastOrders.filter(order => {
     const matchesSearch = order.vendor.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -244,6 +274,19 @@ export default function StudentHistoryPage() {
               }}>
                 <MessageSquare size={14} /> Reorder
               </button>
+              
+              {order.status === 'Completed' && !ratedVendors.includes(order.payload.vendor.id) && (
+                <button 
+                  onClick={() => handleOpenRating(order)}
+                  style={{ 
+                  flex: 1, padding: '10px', backgroundColor: '#FFFDF0', color: '#F59E0B', 
+                  border: '1.5px solid #FDE68A', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                }}>
+                  <Star size={14} fill="#F59E0B" /> Rate
+                </button>
+              )}
+
               <button 
                 onClick={() => alert(`Opening support chat for ${order.id}. Real-time support is a future feature!`)}
                 style={{ 
@@ -257,6 +300,80 @@ export default function StudentHistoryPage() {
           </div>
         ))}
       </section>
+
+      {/* ── Rating Modal ── */}
+      {ratingModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)', padding: '20px'
+        }} onClick={handleCloseRating}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '24px', padding: '32px 24px',
+            width: '100%', maxWidth: '360px', textAlign: 'center',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+          }} onClick={e => e.stopPropagation()}>
+            
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '20px', margin: '0 auto 16px',
+              background: `linear-gradient(135deg, ${selectedOrder?.bgFrom || '#FFE5D0'}, ${selectedOrder?.bgTo || '#FFBFA0'})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem'
+            }}>
+              {selectedOrder?.emoji || '🍽️'}
+            </div>
+            
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1a1a2e', margin: '0 0 8px' }}>
+              How was your food?
+            </h2>
+            <p style={{ fontSize: '0.9rem', color: '#666', margin: '0 0 24px' }}>
+              Rate your experience with {selectedOrder?.vendor}
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', margin: '0 0 32px' }}>
+              {[1, 2, 3, 4, 5].map(star => (
+                <div 
+                  key={star}
+                  onMouseEnter={() => setHoverValue(star)}
+                  onMouseLeave={() => setHoverValue(0)}
+                  onClick={() => setRatingValue(star)}
+                  style={{ cursor: 'pointer', transition: 'transform 0.1s' }}
+                >
+                  <Star 
+                    size={40} 
+                    fill={(hoverValue || ratingValue) >= star ? "#F59E0B" : "transparent"} 
+                    color={(hoverValue || ratingValue) >= star ? "#F59E0B" : "#DDD"}
+                    strokeWidth={1.5}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <button 
+              onClick={handleSubmitRating}
+              disabled={ratingValue === 0}
+              style={{ 
+                width: '100%', padding: '14px', borderRadius: '16px', border: 'none',
+                backgroundColor: ratingValue > 0 ? BRAND : '#E0E0E0',
+                color: 'white', fontSize: '1rem', fontWeight: 700, cursor: ratingValue > 0 ? 'pointer' : 'not-allowed',
+                transition: 'background-color 0.2s'
+              }}
+            >
+              Submit Review
+            </button>
+            <button 
+              onClick={handleCloseRating}
+              style={{ 
+                width: '100%', padding: '12px', borderRadius: '16px', border: 'none',
+                backgroundColor: 'transparent', color: '#888', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
+                marginTop: '8px'
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
