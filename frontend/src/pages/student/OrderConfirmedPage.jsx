@@ -11,6 +11,13 @@ const steps = [
   { id: 'ready', label: 'Ready for Pickup', icon: '🛎️', description: 'Your order is ready to collect!' },
 ];
 
+const STATUS_TO_STEP = {
+  received: 0,
+  preparing: 1,
+  ready: 2,
+  collected: 2,
+};
+
 export default function OrderConfirmedPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -23,16 +30,8 @@ export default function OrderConfirmedPage() {
   const vendor = orderData?.vendor;
   const total = orderData?.total_amount ?? orderData?.total;
   const note = orderData?.note;
-  const orderNumber = orderData?.order_number ?? orderData?.orderNumber;
 
   const [currentStep, setCurrentStep] = useState(0);
-
-  const STATUS_TO_STEP = {
-    received: 0,
-    preparing: 1,
-    ready: 2,
-    collected: 2,
-  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -85,7 +84,7 @@ export default function OrderConfirmedPage() {
 
       verify();
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
   const params = new URLSearchParams(window.location.search);
@@ -107,7 +106,7 @@ export default function OrderConfirmedPage() {
     };
     fetchActiveOrder();
   }
-}, [user?.sub]);
+}, [user?.sub, orderData?.id]);
 
   useEffect(() => {
     if (!orderData?.id) return;
