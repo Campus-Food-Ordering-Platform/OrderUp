@@ -98,9 +98,11 @@ export const deleteMenuItem = async (vendorId: string, itemId: string) => {
 // for the same profile_id is safe (idempotent). Used on every vendor login
 // to resolve their vendor ID from their profile ID.
 export const registerVendor = async (body: any) => {
+
+  
   const result = await pool.query(
-    `INSERT INTO vendors (id, profile_id, description, is_open, logo_url)
-     VALUES (gen_random_uuid(), $1, $2, 'Yes'::open_status, $3)
+    `INSERT INTO vendors (id, profile_id, description, is_active, logo_url)
+     VALUES (gen_random_uuid(), $1, $2, 'Yes'::active_status, $3)
      ON CONFLICT (profile_id)
      DO UPDATE SET profile_id = EXCLUDED.profile_id
      RETURNING *`,

@@ -122,9 +122,20 @@ function MenuManager() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ profile_id: user.id }),
         });
+        
+        // better regRes  and vendor response handling to more easily debug
+        if (!regRes.ok) {
+          const err = await regRes.text();
+          throw new Error(`Vendor register failed: ${regRes.status} - ${err}`);
+        }
+
         const vendor = await regRes.json();
 
-        if (!vendor?.id) throw new Error('Could not resolve vendor');
+        if (!vendor?.id) {
+          console.log('BAD VENDOR RESPONSE:', vendor);
+          throw new Error('Could not resolve vendor');
+        }
+        // now set vendor id
         setVendorId(vendor.id);
 
         const menuRes = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/${vendor.id}/menu`);
