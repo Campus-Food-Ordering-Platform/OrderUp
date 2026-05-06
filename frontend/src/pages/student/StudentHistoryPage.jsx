@@ -1,97 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Home, History, UserRound, Search, HelpCircle, Package, Calendar, MessageSquare, ChevronRight, Star } from 'lucide-react';
+import { ShoppingCart, Home, History, UserRound, Search, HelpCircle, MessageSquare, Calendar, ChevronRight, Star } from 'lucide-react';
 
 const BRAND = '#C0474A';
 
-const mockPastOrders = [
-  {
-    id: 'ORD-1049',
-    vendor: 'Chinese Lantern',
-    date: '2026-04-12 13:45',
-    total: 85,
-    status: 'Completed',
-    emoji: '🍜',
-    bgFrom: '#FFE5D0',
-    bgTo: '#FFBFA0',
-    payload: {
-      vendor: { id: 1, name: 'Chinese Lantern', emoji: '🍜', bgFrom: '#FFE5D0', bgTo: '#FFBFA0' },
-      items: [
-        { id: 'c1', name: 'Sweet & Sour Pork', price: 55, emoji: '🍲' },
-        { id: 'c2', name: 'Veg Spring Rolls', price: 15, emoji: '🌯' }
-      ],
-      cart: { 'c1': 1, 'c2': 2 }
-    }
-  },
-  {
-    id: 'ORD-0982',
-    vendor: "Jimmy's",
-    date: '2026-04-10 11:20',
-    total: 125,
-    status: 'Completed',
-    emoji: '🍔',
-    bgFrom: '#FFF3CD',
-    bgTo: '#FFE08A',
-    payload: {
-      vendor: { id: 2, name: "Jimmy's", emoji: '🍔', bgFrom: '#FFF3CD', bgTo: '#FFE08A' },
-      items: [
-        { id: 'j1', name: 'Double Cheeseburger Combo', price: 105, emoji: '🍔' },
-        { id: 'j2', name: 'Extra Chips', price: 20, emoji: '🍟' }
-      ],
-      cart: { 'j1': 1, 'j2': 1 }
-    }
-  },
-  {
-    id: 'ORD-0871',
-    vendor: 'Pizza Palace',
-    date: '2026-04-05 18:30',
-    total: 140,
-    status: 'Refunded',
-    emoji: '🍕',
-    bgFrom: '#FFE8E8',
-    bgTo: '#FFB3B3',
-    payload: {
-      vendor: { id: 4, name: "Pizza Palace", emoji: '🍕', bgFrom: '#FFE8E8', bgTo: '#FFB3B3' },
-      items: [
-        { id: 'p1', name: 'Large Margherita', price: 110, emoji: '🍕' },
-        { id: 'p2', name: 'Garlic Bread', price: 30, emoji: '🥖' }
-      ],
-      cart: { 'p1': 1, 'p2': 1 }
-    }
-  },
-  {
-    id: 'ORD-0744',
-    vendor: 'Green Bowl',
-    date: '2026-04-01 09:15',
-    total: 65,
-    status: 'Completed',
-    emoji: '🥗',
-    bgFrom: '#E8F8E8',
-    bgTo: '#B3EBB3',
-    payload: {
-      vendor: { id: 5, name: "Green Bowl", emoji: '🥗', bgFrom: '#E8F8E8', bgTo: '#B3EBB3' },
-      items: [
-        { id: 'g1', name: 'Berry Bliss Smoothie', price: 25, emoji: '🥤' },
-        { id: 'g2', name: 'Chicken Caesar Wrap', price: 40, emoji: '🌯' }
-      ],
-      cart: { 'g1': 1, 'g2': 1 }
-    }
-  }
-];
+// Map DB status values to display labels
+const STATUS_LABELS = {
+  confirmed: 'Confirmed',
+  preparing: 'Preparing',
+  ready: 'Ready',
+  collected: 'Completed',
+};
 
 export default function StudentHistoryPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('All');
+  const [pastOrders, setPastOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [ratedVendors, setRatedVendors] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('rated_vendors')) || []; } 
+    try { return JSON.parse(localStorage.getItem('rated_vendors')) || []; }
     catch { return []; }
   });
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [ratingValue, setRatingValue] = useState(0);
   const [hoverValue, setHoverValue] = useState(0);
+
+  useEffect(() => {
+    const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
+    const user = raw?.user ?? raw;
+    if (!user?.id) { setLoading(false); return; }
+
+    fetch(`${import.meta.env.VITE_API_URL}/api/orders/student-history/${user.id}`)
+      .then(res => res.json())
+      .then(data => {
+        setPastOrders(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to fetch history:', err);
+        setLoading(false);
+      });
+  }, []);
 
   const handleOpenRating = (order) => {
     setSelectedOrder(order);
@@ -107,23 +59,35 @@ export default function StudentHistoryPage() {
 
   const handleSubmitRating = () => {
     if (ratingValue === 0 || !selectedOrder) return;
-    const vendorId = selectedOrder.payload.vendor.id;
+    const vendorId = selectedOrder.vendor_id;
     const newRated = [...ratedVendors, vendorId];
     setRatedVendors(newRated);
     localStorage.setItem('rated_vendors', JSON.stringify(newRated));
     handleCloseRating();
   };
 
-  const filteredOrders = mockPastOrders.filter(order => {
-    const matchesSearch = order.vendor.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          order.payload.items.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesTab = activeTab === 'All' || order.status === activeTab;
+  const filteredOrders = pastOrders.filter(order => {
+    const displayStatus = STATUS_LABELS[order.status] || order.status;
+    const matchesSearch =
+      order.vendor_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (Array.isArray(order.items) && order.items.some(item =>
+        item.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      ));
+    const matchesTab = activeTab === 'All' || displayStatus === activeTab;
     return matchesSearch && matchesTab;
   });
 
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.toLocaleString('en-ZA', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    });
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2', paddingBottom: '32px' }}>
-      
+
       {/* ── Header ── */}
       <header
         style={{
@@ -139,12 +103,7 @@ export default function StudentHistoryPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => navigate('/student-dashboard')}>
-          <div
-            style={{
-              width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}
-          >
+          <div style={{ width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
           </div>
           <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
@@ -189,9 +148,9 @@ export default function StudentHistoryPage() {
             }}
           />
         </div>
-        
+
         <div style={{ display: 'flex', gap: '8px' }}>
-          {['All', 'Completed', 'Refunded'].map((tab) => (
+          {['All', 'Completed', 'Confirmed', 'Preparing', 'Ready'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -211,94 +170,132 @@ export default function StudentHistoryPage() {
 
       {/* ── Order List ── */}
       <section style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {filteredOrders.length === 0 ? (
+        {loading ? (
+          <p style={{ textAlign: 'center', color: '#aaa', padding: '3rem' }}>Loading orders...</p>
+        ) : filteredOrders.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#aaa', backgroundColor: 'white', borderRadius: '16px', border: '1.5px dashed #ccc' }}>
             <History size={40} color="#e0e0e0" style={{ marginBottom: '10px' }} />
             <p style={{ margin: 0, fontSize: '0.95rem' }}>No orders found.</p>
           </div>
-        ) : filteredOrders.map((order) => (
-          <div key={order.id} style={{ 
-            backgroundColor: 'white', borderRadius: '20px', padding: '16px', 
-            boxShadow: '0 4px 14px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.02)'
-          }}>
-            {/* Top row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <div style={{
-                  width: '48px', height: '48px', borderRadius: '14px',
-                  background: `linear-gradient(135deg, ${order.bgFrom}, ${order.bgTo})`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0
-                }}>
-                  {order.emoji}
-                </div>
-                <div>
-                  <h3 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 800, color: '#1a1a2e' }}>{order.vendor}</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#888', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Calendar size={12} /> {order.date}
-                    </span>
-                    <span style={{ color: '#ddd' }}>|</span>
-                    <span style={{ fontSize: '0.75rem', color: '#888', fontWeight: 600 }}>{order.id}</span>
+        ) : filteredOrders.map((order) => {
+          const displayStatus = STATUS_LABELS[order.status] || order.status;
+          const isCompleted = displayStatus === 'Completed';
+          const items = Array.isArray(order.items) ? order.items : [];
+
+          return (
+            <div key={order.id} style={{
+              backgroundColor: 'white', borderRadius: '20px', padding: '16px',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.02)'
+            }}>
+              {/* Top row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '14px',
+                    background: 'linear-gradient(135deg, #FFE5D0, #FFBFA0)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0
+                  }}>
+                    🍽️
+                  </div>
+                  <div>
+                    <h3 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 800, color: '#1a1a2e' }}>
+                      {order.vendor_name || 'Vendor'}
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#888', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Calendar size={12} /> {formatDate(order.created_at)}
+                      </span>
+                      <span style={{ color: '#ddd' }}>|</span>
+                      <span style={{ fontSize: '0.75rem', color: '#888', fontWeight: 600 }}>
+                        #{order.order_number}
+                      </span>
+                    </div>
                   </div>
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 800, color: BRAND }}>R {order.total_amount}</span>
+                  <span style={{
+                    fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', padding: '4px 10px', borderRadius: '20px',
+                    backgroundColor: isCompleted ? '#E8F8E8' : '#FFF8E1',
+                    color: isCompleted ? '#2A7D2A' : '#C26A1A'
+                  }}>
+                    {displayStatus}
+                  </span>
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: BRAND }}>R {order.total}</span>
-                <span style={{ 
-                  fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', padding: '4px 10px', borderRadius: '20px',
-                  backgroundColor: order.status === 'Completed' ? '#E8F8E8' : '#FFF0F0',
-                  color: order.status === 'Completed' ? '#2A7D2A' : '#C0474A'
-                }}>
-                  {order.status}
-                </span>
+
+              {/* Items */}
+              <div style={{ backgroundColor: '#F9F9F9', borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
+                <ul style={{ margin: 0, paddingLeft: '16px', color: '#555', fontSize: '0.85rem', lineHeight: 1.6 }}>
+                  {items.map((item, idx) => (
+                    <li key={idx}>
+                      <strong>{item.quantity}x</strong> {item.name} — R {item.price}
+                    </li>
+                  ))}
+                </ul>
+                {order.note && (
+                  <p style={{ fontSize: '0.78rem', color: BRAND, fontStyle: 'italic', margin: '8px 0 0', paddingTop: '8px', borderTop: '1px solid #EBEBEB' }}>
+                    Note: "{order.note}"
+                  </p>
+                )}
               </div>
-            </div>
 
-            {/* Items */}
-            <div style={{ backgroundColor: '#F9F9F9', borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
-              <ul style={{ margin: 0, paddingLeft: '16px', color: '#555', fontSize: '0.85rem', lineHeight: 1.6 }}>
-                {order.payload.items.map((item) => (
-                  <li key={item.id}><strong>{order.payload.cart[item.id]}x</strong> {item.name}</li>
-                ))}
-              </ul>
-            </div>
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+  onClick={() => navigate('/checkout', {//reorder button
+    state: {
+      vendor: { 
+        id: order.vendor_id, 
+        name: order.vendor_name,
+        emoji: '🍽️',
+        bgFrom: '#FFE5D0',
+        bgTo: '#FFBFA0'
+      },
+      items: order.items.map(item => ({
+        id: item.name, 
+        name: item.name,
+        price: item.price,
+        emoji: '🍽️'
+      })),
+      cart: order.items.reduce((acc, item) => ({
+        ...acc,
+        [item.name]: item.quantity
+      }), {})
+    }
+  })}
+  style={{
+    flex: 1, padding: '10px', backgroundColor: 'white', color: '#333',
+    border: '1.5px solid #EBEBEB', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+  }}>
+  <MessageSquare size={14} /> Reorder
+</button>
+                {isCompleted && !ratedVendors.includes(order.vendor_id) && (
+                  <button
+                    onClick={() => handleOpenRating(order)}
+                    style={{
+                      flex: 1, padding: '10px', backgroundColor: '#FFFDF0', color: '#F59E0B',
+                      border: '1.5px solid #FDE68A', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                    }}>
+                    <Star size={14} fill="#F59E0B" /> Rate
+                  </button>
+                )}
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                onClick={() => navigate('/checkout', { state: order.payload })}
-                style={{ 
-                flex: 1, padding: '10px', backgroundColor: 'white', color: '#333', 
-                border: '1.5px solid #EBEBEB', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-              }}>
-                <MessageSquare size={14} /> Reorder
-              </button>
-              
-              {order.status === 'Completed' && !ratedVendors.includes(order.payload.vendor.id) && (
-                <button 
-                  onClick={() => handleOpenRating(order)}
-                  style={{ 
-                  flex: 1, padding: '10px', backgroundColor: '#FFFDF0', color: '#F59E0B', 
-                  border: '1.5px solid #FDE68A', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-                }}>
-                  <Star size={14} fill="#F59E0B" /> Rate
+                <button
+                  onClick={() => alert(`Opening support chat for order #${order.order_number}. Real-time support is a future feature!`)}
+                  style={{
+                    flex: 1, padding: '10px', backgroundColor: '#FFF0F0', color: BRAND,
+                    border: 'none', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                  }}>
+                  <HelpCircle size={14} /> Contact Support
                 </button>
-              )}
-
-              <button 
-                onClick={() => alert(`Opening support chat for ${order.id}. Real-time support is a future feature!`)}
-                style={{ 
-                flex: 1, padding: '10px', backgroundColor: '#FFF0F0', color: BRAND, 
-                border: 'none', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-              }}>
-                <HelpCircle size={14} /> Contact Support
-              </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </section>
 
       {/* ── Rating Modal ── */}
@@ -314,34 +311,34 @@ export default function StudentHistoryPage() {
             width: '100%', maxWidth: '360px', textAlign: 'center',
             boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
           }} onClick={e => e.stopPropagation()}>
-            
+
             <div style={{
               width: '64px', height: '64px', borderRadius: '20px', margin: '0 auto 16px',
-              background: `linear-gradient(135deg, ${selectedOrder?.bgFrom || '#FFE5D0'}, ${selectedOrder?.bgTo || '#FFBFA0'})`,
+              background: 'linear-gradient(135deg, #FFE5D0, #FFBFA0)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem'
             }}>
-              {selectedOrder?.emoji || '🍽️'}
+              🍽️
             </div>
-            
+
             <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1a1a2e', margin: '0 0 8px' }}>
               How was your food?
             </h2>
             <p style={{ fontSize: '0.9rem', color: '#666', margin: '0 0 24px' }}>
-              Rate your experience with {selectedOrder?.vendor}
+              Rate your experience with {selectedOrder?.vendor_name}
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', margin: '0 0 32px' }}>
               {[1, 2, 3, 4, 5].map(star => (
-                <div 
+                <div
                   key={star}
                   onMouseEnter={() => setHoverValue(star)}
                   onMouseLeave={() => setHoverValue(0)}
                   onClick={() => setRatingValue(star)}
                   style={{ cursor: 'pointer', transition: 'transform 0.1s' }}
                 >
-                  <Star 
-                    size={40} 
-                    fill={(hoverValue || ratingValue) >= star ? "#F59E0B" : "transparent"} 
+                  <Star
+                    size={40}
+                    fill={(hoverValue || ratingValue) >= star ? "#F59E0B" : "transparent"}
                     color={(hoverValue || ratingValue) >= star ? "#F59E0B" : "#DDD"}
                     strokeWidth={1.5}
                   />
@@ -349,10 +346,10 @@ export default function StudentHistoryPage() {
               ))}
             </div>
 
-            <button 
+            <button
               onClick={handleSubmitRating}
               disabled={ratingValue === 0}
-              style={{ 
+              style={{
                 width: '100%', padding: '14px', borderRadius: '16px', border: 'none',
                 backgroundColor: ratingValue > 0 ? BRAND : '#E0E0E0',
                 color: 'white', fontSize: '1rem', fontWeight: 700, cursor: ratingValue > 0 ? 'pointer' : 'not-allowed',
@@ -361,9 +358,9 @@ export default function StudentHistoryPage() {
             >
               Submit Review
             </button>
-            <button 
+            <button
               onClick={handleCloseRating}
-              style={{ 
+              style={{
                 width: '100%', padding: '12px', borderRadius: '16px', border: 'none',
                 backgroundColor: 'transparent', color: '#888', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
                 marginTop: '8px'

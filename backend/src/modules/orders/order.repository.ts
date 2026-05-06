@@ -68,3 +68,16 @@ export async function getActiveOrderByStudent(studentId: string): Promise<Order 
   );
   return result.rows[0] ?? null;
 }//this function retrieves the most recent active order for a student, excluding any orders that have already been collected. This is useful for the student dashboard to show the current order status without displaying past completed orders.
+
+export async function getOrdersByStudent(studentId: string): Promise<Order[]> {//this is for the order history page
+  const result = await pool.query(
+    `SELECT o.*, p.name as vendor_name 
+     FROM orders o
+     JOIN vendors v ON o.vendor_id = v.id
+     JOIN profiles p ON v.profile_id = p.id
+     WHERE o.customer_id = $1 
+     ORDER BY o.created_at DESC`,
+    [studentId]
+  );
+  return result.rows;
+}
