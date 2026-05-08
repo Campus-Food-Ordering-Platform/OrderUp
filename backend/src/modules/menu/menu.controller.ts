@@ -19,7 +19,11 @@ export const createMenuItem = async (req: Request, res: Response) => {
 export const getMenuItems = async (req: Request, res: Response) => {
     try {
         const { vendorId } = req.params;
-        const items = await getMenuItemsByVendor(Number(vendorId));
+        if (!vendorId) {
+            res.status(400).json({ error: 'Vendor ID is required' });
+            return;
+        }
+        const items = await getMenuItemsByVendor(vendorId.toString());
         res.json(items);
     } catch (err: any) {
         res.status(500).json({ error: err.message });

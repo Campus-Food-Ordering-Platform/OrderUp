@@ -21,7 +21,7 @@ export const addMenuItem = async (
     return await insertMenuItem(vendorId, name, description, price);
 };
 
-export const getMenuItemsByVendor = async (vendorId: number): Promise<MenuItem[]> => {
+export const getMenuItemsByVendor = async (vendorId: string): Promise<MenuItem[]> => {
     return await findMenuItemsByVendor(vendorId);
 };
 
