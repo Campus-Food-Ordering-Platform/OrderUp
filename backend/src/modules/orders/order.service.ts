@@ -1,10 +1,28 @@
 import { createOrder, getOrdersByVendor, getOrderById, updateOrderStatus, getActiveOrderByStudent,getOrdersByStudent } from './order.repository';
 import { CreateOrderDTO } from './order.model';
 import { OrderStatus, STATUS_TRANSITIONS } from './order.status';
+import pool from '../../config/db';
+import { sendPushNotification } from '../notifications/notification.service';
 
 export async function placeOrder(data: CreateOrderDTO) {
   return await createOrder(data);
 }
+
+// ── Push messages for each status the student cares about ───────────────────
+const PUSH_MESSAGES: Record<string, { title: string; body: string }> = {
+  [OrderStatus.Preparing]: {
+    title: '👨‍🍳 Being prepared!',
+    body: 'Your order is now being prepared.',
+  },
+  [OrderStatus.Ready]: {
+    title: '✅ Ready for pickup!',
+    body: 'Your order is ready — come collect it at The Matrix Food Court!',
+  },
+  [OrderStatus.Collected]: {
+    title: '🎉 Enjoy your meal!',
+    body: 'Your order has been collected. Enjoy!',
+  },
+};
 
 export async function getVendorOrders(vendorId: string) {
   return await getOrdersByVendor(vendorId);
@@ -26,7 +44,28 @@ export async function advanceOrderStatus(orderId: string) {
   const nextStatus = STATUS_TRANSITIONS[order.status as OrderStatus];
   if (!nextStatus) throw new Error('Order is already at final status');
 
-  return await updateOrderStatus(orderId, nextStatus);
+  const updated = await updateOrderStatus(orderId, nextStatus);
+
+  // Send push notification when order is ready
+  if (nextStatus === OrderStatus.Ready) {
+    try {
+      const subResult = await pool.query(
+        `SELECT subscription FROM push_subscriptions WHERE customer_id = $1`,
+        [order.customer_id]
+      );
+
+      for (const row of subResult.rows) {
+        await sendPushNotification(row.subscription, {
+          title: '🛎️ Order Ready!',
+          body: 'Your order is ready to collect at The Matrix Food Court!',
+        });
+      }
+    } catch (err) {
+      console.error('Failed to send push notification:', err);
+    }
+  }
+
+  return updated;
 }
 
 export async function getStudentActiveOrder(studentId: string) {

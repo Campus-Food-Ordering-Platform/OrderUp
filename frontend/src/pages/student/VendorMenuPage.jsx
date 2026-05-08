@@ -421,7 +421,7 @@ export default function VendorMenuPage() {
             </span>
           </div>
           <span style={{ color: 'white', fontSize: '0.95rem', fontWeight: 800 }}>
-            View Cart · R {totalPrice}.00
+            View Cart · R {totalPrice}
           </span>
         </div>
       )}

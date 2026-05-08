@@ -50,7 +50,6 @@ export const createMenuItem = async (vendorId: string, body: any) => {
       body.price,
       body.category,
       body.image_url,
-      body.tags ?? [],    // raw array — pg driver serializes text[] natively
       body.available ?? true,
     ]
   );
@@ -66,8 +65,8 @@ export const updateMenuItem = async (
 ) => {
   const result = await pool.query(
     `UPDATE menu_items
-     SET name=$1, description=$2, price=$3, category=$4, image_url=$5, tags=$6, available=$7
-     WHERE id=$8 AND vendor_id=$9
+     SET name=$1, description=$2, price=$3, category=$4, image_url=$5, available=$6
+     WHERE id=$7 AND vendor_id=$8
      RETURNING *`,
     [
       body.name,
@@ -75,7 +74,6 @@ export const updateMenuItem = async (
       body.price,
       body.category,
       body.image_url,
-      body.tags ?? [],    // raw array — pg driver serializes text[] natively
       body.available ?? true,
       itemId,
       vendorId,
