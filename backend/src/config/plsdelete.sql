@@ -1,1 +1,1 @@
-select * from menu_items;
+select * from push_subscriptions;

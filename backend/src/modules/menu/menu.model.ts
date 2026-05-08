@@ -5,5 +5,6 @@ export interface MenuItem {
     description: string;
     price: number;
     available: boolean;
-    created_at: Date;
+    image_url: string;
+    category: string;
 }

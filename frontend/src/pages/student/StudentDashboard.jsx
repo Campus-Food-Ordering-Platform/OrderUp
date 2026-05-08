@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Home, Package, History, UserRound, Star, Clock, Search } from 'lucide-react';
+import { subscribeToPush } from '../../utils/subscribeToPush';
 
 const BRAND = '#C0474A';
 const filters = ['All', 'Asian', 'Fast Food', 'Cafe', 'Healthy', 'Pizza'];
@@ -99,9 +100,21 @@ export default function StudentDashboard() {
         setLoading(false);
       });
   }, []);
-
+    const [pushEnabled, setPushEnabled] = useState(false); // to track if push notifications are enabled for this user
     useEffect(() => {
+
+    console.log('raw localStorage:', raw);// to debug
+    console.log('user object:', user);// to debug
+    console.log('user.id:', user?.id);// to debug
     if (!user?.id) return;
+
+    // Check if already subscribed so we don't show the button unnecessarily
+    navigator.serviceWorker?.ready.then(reg =>
+      reg.pushManager.getSubscription()
+    ).then(sub => {
+      if (sub) setPushEnabled(true);
+    });
+
       const fetchActiveOrder = async () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/student/${user.id}/active`);
@@ -114,6 +127,13 @@ export default function StudentDashboard() {
     };
     fetchActiveOrder();
   }, [user?.id]);
+
+   // ── Called when student taps "Enable order notifications" ─────────────────
+  const handleEnableNotifications = async () => {
+    if (!user?.id) return;
+    await subscribeToPush(user.id);
+    setPushEnabled(true);
+  };// After fetching vendors, we apply both the category filter and the search query. The filter checks if the vendor's category matches the active filter (or if "All" is selected), while the search checks if the query is included in either the vendor's name or description. We also ensure that if name or description is missing, it doesn't break the search by defaulting to an empty string.
 
 
   // ── Null-safe filter ───────────────────────────────────────────────────────
@@ -167,6 +187,26 @@ export default function StudentDashboard() {
         <div>
           <h1 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, marginBottom: '4px' }}>Hey there {name}!</h1>
           <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem' }}>What are you craving today?</p>
+
+           {/* Show button only if not yet subscribed */}
+    {!pushEnabled && (
+      <button
+        onClick={handleEnableNotifications}
+        style={{
+          marginTop: '10px',
+          backgroundColor: 'white',
+          color: BRAND,
+          border: 'none',
+          borderRadius: '20px',
+          padding: '6px 16px',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          cursor: 'pointer',
+        }}
+      >
+        🔔 Enable order notifications
+      </button>
+    )}{/* If already enabled, show a subtle message */}
         </div>
       </section>
 
