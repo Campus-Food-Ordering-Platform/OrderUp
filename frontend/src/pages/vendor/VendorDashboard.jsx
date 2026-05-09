@@ -432,13 +432,39 @@ function ProfitCalculator() {
   const [duration, setDuration] = useState('week');
   const [applyDiscount, setApplyDiscount] = useState(false);
 
-  const menuItemsForProfit = [
-    { id: 1, name: 'Classic Kota', basePrice: 25, weeklyProfit: 12500, monthlyProfit: 50000 },
-    { id: 2, name: 'Chicken Burger', basePrice: 45, weeklyProfit: 18900, monthlyProfit: 75600 },
-    { id: 3, name: 'Mini Chips', basePrice: 15, weeklyProfit: 5250, monthlyProfit: 21000 },
-  ];
+  // const menuItemsForProfit = [
+  //   { id: 1, name: 'Classic Kota', basePrice: 25, weeklyProfit: 12500, monthlyProfit: 50000 },
+  //   { id: 2, name: 'Chicken Burger', basePrice: 45, weeklyProfit: 18900, monthlyProfit: 75600 },
+  //   { id: 3, name: 'Mini Chips', basePrice: 15, weeklyProfit: 5250, monthlyProfit: 21000 },
+  // ];
+  const [items, setItems] = useState([]); 
 
-  const filteredItems = menuItemsForProfit.filter(item =>
+
+  useEffect(() => {
+    const fetchItemAnalytics = async () => {
+      let JASON = undefined;
+      try {
+        const res = await fetch(
+          // `${import.meta.env.VITE_API_URL}/api/analytics/items/${vendor_id}?range=month`
+
+          `${import.meta.env.VITE_API_URL}/api/analytics/items/52a38ed7-bb34-4b34-813e-026eb1e9f616?range=month`//using siya's vendor for development purposes
+        );
+
+        const json = await res.json();
+        JASON = json;
+        // expects backend to return:
+        // [{ name, weeklyRevenue, monthlyRevenue, weeklyOrders, monthlyOrders }]
+        setItems(json.data);
+      } catch (err) {
+        console.error("Failed to load item analytics:", err);
+      }
+    };
+
+    fetchItemAnalytics();
+  }, []);
+
+
+  const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -447,9 +473,12 @@ function ProfitCalculator() {
     setSearchTerm(item.name);
   };
 
-  const estimatedProfit = selectedItem
-    ? (duration === 'week' ? selectedItem.weeklyProfit : selectedItem.monthlyProfit) * (applyDiscount ? 0.9 : 1)
-    : null;
+
+const estimatedRevenue = selectedItem
+  ? (duration === 'week'
+      ? selectedItem.weeklyRevenue
+      : selectedItem.monthlyRevenue)
+  : null;
 
   return (
     <div style={{ background: 'white', borderRadius: '14px', padding: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
@@ -474,15 +503,15 @@ function ProfitCalculator() {
         <button onClick={() => setDuration('week')} style={{ flex: 1, padding: '6px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: duration === 'week' ? BRAND : '#F0F0F0', color: duration === 'week' ? 'white' : '#666' }}>Next Week</button>
         <button onClick={() => setDuration('month')} style={{ flex: 1, padding: '6px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: duration === 'month' ? BRAND : '#F0F0F0', color: duration === 'month' ? 'white' : '#666' }}>Next Month</button>
       </div>
-      {estimatedProfit && (
+      {estimatedRevenue && (
         <div>
-          <p style={{ fontSize: '0.7rem', color: '#888' }}>Estimated profit for "{selectedItem?.name}" {duration === 'week' ? 'next week' : 'next month'}:</p>
-          <p style={{ fontSize: '1.2rem', fontWeight: 700, color: BRAND, margin: '4px 0 8px' }}>R {estimatedProfit.toLocaleString()}</p>
+          <p style={{ fontSize: '0.7rem', color: '#888' }}>Revenue contribution for "{selectedItem?.name}" {duration === 'week' ? 'next week' : 'next month'}:</p>
+          <p style={{ fontSize: '1.2rem', fontWeight: 700, color: BRAND, margin: '4px 0 8px' }}>R {estimatedRevenuet.toLocaleString()}</p>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.7rem' }}>
             <input type="checkbox" checked={applyDiscount} onChange={(e) => setApplyDiscount(e.target.checked)} />
             Apply 10% discount
           </label>
-          {applyDiscount && (<p style={{ fontSize: '0.7rem', color: '#2A7D2A', marginTop: '4px' }}>After discount: R {(estimatedProfit * 0.9).toLocaleString()}</p>)}
+          {applyDiscount && (<p style={{ fontSize: '0.7rem', color: '#2A7D2A', marginTop: '4px' }}>After discount: R {(estimatedRevenue * 0.9).toLocaleString()}</p>)}
         </div>
       )}
     </div>
