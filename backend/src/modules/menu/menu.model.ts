@@ -9,6 +9,6 @@ export interface MenuItem {
     image_url: string;
     category: MenuCategory;
     available: boolean;
-    allergens: string[];
-    tags: string[];
+    allergens?: string[];
+    tags?: string[];
 }

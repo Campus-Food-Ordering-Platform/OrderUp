@@ -7,6 +7,9 @@ import {
     deleteMenuItem,
     updateMenuItem
 } from './menu.service';
+
+import { MenuCategory } from '../../types/enums';
+
 // Import service functions that handle the business logic and database interaction
 
 
@@ -14,11 +17,19 @@ import {
 export const createMenuItem = async (req: Request, res: Response) => {
     try {
         // Extract data sent from the frontend (request body)
-        const { vendorId, name, description, price, image_url } = req.body;
-
+        const { vendorId, name, description, price, image_url, category, available, allergens, tags } = req.body;
         // Call service function to insert item into database
-        const item = await addMenuItem(vendorId, name, description, price, image_url);
-
+        const item = await addMenuItem(
+            vendorId,
+            name,
+            description,
+            price,
+            image_url,
+            category as MenuCategory,
+            available,
+            allergens ?? [],
+            tags ?? []
+        );
         // Send back created item with HTTP 201 (Created)
         res.status(201).json(item);
     } catch (err: any) {
@@ -64,19 +75,23 @@ export const removeMenuItem = async (req: Request, res: Response) => {
 // Update an existing menu item
 export const modifyMenuItem = async (req: Request, res: Response) => {
     try {
-        // Extract itemId from URL parameters
-        const itemId  = req.params.itemId as string;
+        const itemId = req.params.itemId as string;
+        const { name, description, price, image_url, category, available, allergens, tags } = req.body;
 
-        // Extract updated fields from request body
-        const { name, description, price, image_url } = req.body;
+        const item = await updateMenuItem(
+            itemId,
+            name,
+            description,
+            price,
+            image_url,
+            category as MenuCategory,
+            available,
+            allergens ?? [],
+            tags ?? []
+        );
 
-        // Call service to update the item in the database
-        const item = await updateMenuItem(itemId, name, description, price, image_url);
-
-        // Return the updated item
         res.json(item);
     } catch (err: any) {
-        // Handle errors
         res.status(500).json({ error: err.message });
     }
 };

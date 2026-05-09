@@ -1,19 +1,57 @@
 import pool from '../../config/db';
 import { MenuItem } from './menu.model';
+import { MenuCategory } from '../../types/enums';
 
 export const insertMenuItem = async (
     vendorId: string,
     name: string,
     description: string,
     price: number,
-    image_url: string
+    image_url: string,
+    category: MenuCategory,
+    available: boolean,
+    allergens: string[],
+    tags: string[]
 ): Promise<MenuItem> => {
-    const result = await pool.query(
-        'INSERT INTO menu_items (vendor_id, name, description, price, image_url) VALUES ($1, $2, $3, $4,$5) RETURNING *',
-        [vendorId, name, description, price, image_url]
-    );
-    return result.rows[0];
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Insert the menu item
+        const result = await client.query(
+            `INSERT INTO menu_items (vendor_id, name, description, price, image_url, category, available) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7) 
+             RETURNING *`,
+            [vendorId, name, description, price, image_url, category, available]
+        );
+        const menuItem = result.rows[0];
+
+        // Insert allergens into junction table
+        for (const allergen of allergens) {
+            await client.query(
+                `INSERT INTO menu_item_allergens (menu_item_id, allergen) VALUES ($1, $2)`,
+                [menuItem.id, allergen]
+            );
+        }
+
+        // Insert dietary tags into junction table
+        for (const tag of tags) {
+            await client.query(
+                `INSERT INTO menu_item_dietary_tags (menu_item_id, tag) VALUES ($1, $2)`,
+                [menuItem.id, tag]
+            );
+        }
+
+        await client.query('COMMIT');
+        return menuItem;
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
 };
+
 /* Query refactor: previously Siya was having issues with the junction tables, linkind menu_items and their respective allergens and tags
 The solutiokn is Joins, we join the menu_items table (left) to the menu_item_allergens and menu_item_dietary_tags (individually)
 */
@@ -40,28 +78,73 @@ export const findMenuItemsByVendor = async (vendorId: string): Promise<MenuItem[
     return result.rows;
 };
 
-export const removeMenuByVendorId = async (vendor_id: string): Promise<void> => {
+export const removeMenuItemByitemId = async (itemId: string): Promise<void> => {
     await pool.query(
         'DELETE FROM menu_items WHERE id = $1',
-        [vendor_id]
+        [itemId]
     );
 };
 // update the menu 
 export const updateMenuItemById = async (
-    itemId: string,// keep in mind i just remembered now to change the Item id to string as we using UUID
+    itemId: string,
     name: string,
     description: string,
     price: number,
     image_url: string,
+    category: MenuCategory,
+    available: boolean,
+    allergens: string[],
+    tags: string[]
 ): Promise<MenuItem> => {
-    const result = await pool.query(
-        `UPDATE menu_items
-         SET name = COALESCE($1, name),
-             description = COALESCE($2, description),
-             price = COALESCE($3, price),
-             image_url = COALESCE($4, image_url)
-         WHERE id = $5 RETURNING *`,
-        [name, description, price,image_url, itemId]
-    );
-    return result.rows[0];
-};//coalesce just means return the first non null element. not sure how it works but it allows us to return the old value if there is no new value.
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const result = await client.query(
+            `UPDATE menu_items
+             SET name = COALESCE($1, name),
+                 description = COALESCE($2, description),
+                 price = COALESCE($3, price),
+                 image_url = COALESCE($4, image_url),
+                 category = COALESCE($5, category),
+                 available = COALESCE($6, available)
+             WHERE id = $7 
+             RETURNING *`,
+            [name, description, price, image_url, category, available, itemId]
+        );
+        const menuItem = result.rows[0];
+
+        // Replace allergens
+        await client.query(
+            'DELETE FROM menu_item_allergens WHERE menu_item_id = $1',
+            [itemId]
+        );
+        for (const allergen of allergens) {
+            await client.query(
+                'INSERT INTO menu_item_allergens (menu_item_id, allergen) VALUES ($1, $2)',
+                [itemId, allergen]
+            );
+        }
+
+        // Replace dietary tags
+        await client.query(
+            'DELETE FROM menu_item_dietary_tags WHERE menu_item_id = $1',
+            [itemId]
+        );
+        for (const tag of tags) {
+            await client.query(
+                'INSERT INTO menu_item_dietary_tags (menu_item_id, tag) VALUES ($1, $2)',
+                [itemId, tag]
+            );
+        }
+
+        await client.query('COMMIT');
+        return menuItem;
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+};
+//coalesce just means return the first non null element. not sure how it works but it allows us to return the old value if there is no new value.
