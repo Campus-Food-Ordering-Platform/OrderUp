@@ -4,7 +4,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { ShieldAlert, Lock } from 'lucide-react';
 
 export default function AdminSetupPage() {
-  const { user, getAccessTokenSilently, isAuthenticated, loginWithRedirect, isLoading } = useAuth0();
+  const { user, isAuthenticated, loginWithRedirect, isLoading } = useAuth0();
   const navigate = useNavigate();
   const [status, setStatus] = useState('Initializing admin setup...');
   
@@ -33,42 +33,41 @@ export default function AdminSetupPage() {
     let mounted = true;
 
     const setupAdmin = async () => {
-      try {
-        if (mounted) setStatus('Preparing admin credentials...');
-        const token = await getAccessTokenSilently();
-        
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/signup`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            auth0Id: user?.sub,   
-            name: user?.name || user?.given_name || 'System Admin',
-            role: 'admin'
-          })
-        });
+  try {
+    if (mounted) setStatus('Preparing admin credentials...');
+    
+    // Remove getAccessTokenSilently entirely
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/signup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        auth0Id: user?.sub,
+        name: user?.name || user?.given_name || 'System Admin',
+        role: 'admin'
+      })
+    });
 
-        if (response.ok) {
-          if (mounted) setStatus('Admin account successfully set up! Redirecting to dashboard...');
-          setTimeout(() => navigate('/admin-dashboard'), 1500);
-        } else {
-          if (mounted) setStatus('Failed to register setup. You might already be assigned a role.');
-          setTimeout(() => navigate('/'), 2500);
-        }
-      } catch (error) {
-        console.error('Admin setup error:', error);
-        if (mounted) setStatus('An error occurred during setup. Check console.');
-      }
-    };
+    if (response.ok) {
+      if (mounted) setStatus('Admin account successfully set up! Redirecting to dashboard...');
+      setTimeout(() => navigate('/admin-dashboard'), 1500);
+    } else {
+      if (mounted) setStatus('Failed to register setup. You might already be assigned a role.');
+      setTimeout(() => navigate('/'), 2500);
+    }
+  } catch (error) {
+    console.error('Admin setup error:', error);
+    if (mounted) setStatus('An error occurred during setup. Check console.');
+  }
+};
 
     setupAdmin();
 
     return () => {
       mounted = false;
     };
-  }, [isLoading, isAuthenticated, user, getAccessTokenSilently, navigate, gatePassed]);
+  }, [isLoading, isAuthenticated, user, navigate, gatePassed]);
 
   return (
     <div style={{ 

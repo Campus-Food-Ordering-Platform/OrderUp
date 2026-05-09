@@ -110,3 +110,116 @@ export const registerVendor = async (body: any) => {
   );
   return result.rows[0];
 };
+// ───────────── admin ─────────────
+export const updateVendorStatus = async (vendorId: string, status: 'active' | 'suspended') => {//for admin to change a vendor's status
+  const result = await pool.query(
+    `UPDATE vendors SET status = $1 WHERE id = $2 RETURNING *`,
+    [status, vendorId]
+  );
+  return result.rows[0];
+};
+
+export const getAllVendorsAdmin = async () => {
+  const result = await pool.query(`
+    SELECT
+      v.id,
+      v.vendor_name,
+      v.description,
+      v.category,
+      v.location,
+      v.operating_hours,
+      v.status                  AS vendor_status,
+      v.is_active,
+      v.application_id,
+      p.name                    AS owner_name,
+      p.created_at              AS join_date,
+      va.id                     AS application_id,
+      va.status                 AS application_status,
+      va.health_certificate_url,
+      va.sample_items,
+      va.submitted_at,
+      va.rejection_reason,
+      va.description            AS app_description,
+      va.location               AS app_location,
+      va.operating_hours        AS app_operating_hours,
+      COALESCE(SUM(o.total_amount), 0) AS revenue,
+      COUNT(o.id)               AS orders
+    FROM vendors v
+    JOIN profiles p ON v.profile_id = p.id
+    LEFT JOIN vendor_applications va ON va.id = v.application_id
+    LEFT JOIN orders o ON o.vendor_id = v.id
+    GROUP BY
+      v.id, v.vendor_name, v.description, v.category, v.location,
+      v.operating_hours, v.status, v.is_active, v.application_id,
+      p.name, p.created_at,
+      va.id, va.status, va.health_certificate_url, va.sample_items,
+      va.submitted_at, va.rejection_reason, va.description,
+      va.location, va.operating_hours
+    ORDER BY
+      CASE v.status
+        WHEN 'active'    THEN 1
+        WHEN 'suspended' THEN 2
+      END,
+      v.vendor_name ASC
+  `);
+  return result.rows;
+};
+
+export const approveApplication = async (applicationId: string) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Mark application as approved
+    await client.query(
+      `UPDATE vendor_applications SET status = 'approved', reviewed_at = NOW() WHERE id = $1`,
+      [applicationId]
+    );
+
+    // 2. Get application data to create vendor
+    const appResult = await client.query(
+      `SELECT * FROM vendor_applications WHERE id = $1`,
+      [applicationId]
+    );
+    const app = appResult.rows[0];
+    if (!app) throw new Error('Application not found');
+
+    // 3. Create vendor row
+    const vendorResult = await client.query(
+      `INSERT INTO vendors 
+        (id, profile_id, application_id, vendor_name, description, category, 
+         location, operating_hours, status, is_active)
+       VALUES 
+        (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, 'active', true)
+       RETURNING *`,
+      [
+        app.profile_id,
+        app.id,
+        app.name,
+        app.description,
+        app.category,
+        app.location,
+        app.operating_hours,
+      ]
+    );
+
+    await client.query('COMMIT');
+    return vendorResult.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
+export const rejectApplication = async (applicationId: string, rejectionReason?: string) => {
+  const result = await pool.query(
+    `UPDATE vendor_applications 
+     SET status = 'rejected', reviewed_at = NOW(), rejection_reason = $2 
+     WHERE id = $1 
+     RETURNING *`,
+    [applicationId, rejectionReason ?? null]
+  );
+  return result.rows[0];
+};

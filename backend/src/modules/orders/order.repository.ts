@@ -81,3 +81,14 @@ export async function getOrdersByStudent(studentId: string): Promise<Order[]> {/
   );
   return result.rows;
 }
+export async function getAllOrdersAdmin(): Promise<Order[]> {
+  const result = await pool.query(
+    `SELECT o.*, p.name as vendor_name, cp.name as customer_name_resolved
+     FROM orders o
+     JOIN vendors v ON o.vendor_id = v.id
+     JOIN profiles p ON v.profile_id = p.id
+     JOIN profiles cp ON o.customer_id = cp.id
+     ORDER BY o.created_at DESC`
+  );
+  return result.rows;
+}

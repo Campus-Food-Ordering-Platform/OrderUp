@@ -46,3 +46,24 @@ export const registerVendor = (body: any) => {
   }
   return vendorRepo.registerVendor(body);
 };
+// ───────────── admin ─────────────
+
+export const updateVendorStatus = (vendorId: string, status: 'active' | 'suspended') => {
+  if (!['active', 'suspended'].includes(status)) {
+    throw new ValidationError('Invalid status value');
+  }
+  return vendorRepo.updateVendorStatus(vendorId, status);
+};
+
+export const getAllVendorsAdmin = () => {
+  return vendorRepo.getAllVendorsAdmin();
+};
+
+export const approveApplication = (applicationId: string) => {
+  return vendorRepo.approveApplication(applicationId);
+};
+
+export const rejectApplication = (applicationId: string, rejectionReason?: string) => {
+  if (!applicationId) throw new ValidationError('Application ID is required');
+  return vendorRepo.rejectApplication(applicationId, rejectionReason);
+};
