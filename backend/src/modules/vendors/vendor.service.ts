@@ -25,7 +25,7 @@ export const getVendorMenu = (vendorId: string) => {
 
 export const createMenuItem = (vendorId: string, body: any) => {
   if (!body.name || !body.price) {
-    throw new Error('Name and price required');
+    throw new ValidationError('Name and price required');
   }
   return vendorRepo.createMenuItem(vendorId, body);
 };
@@ -42,7 +42,7 @@ export const deleteMenuItem = (vendorId: string, itemId: string) => {
 
 export const registerVendor = (body: any) => {
   if (!body.profile_id) {
-    throw new Error('profile_id is required');
+    throw new  ValidationError('profile_id is required');
   }
   return vendorRepo.registerVendor(body);
 };
