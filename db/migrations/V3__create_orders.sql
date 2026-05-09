@@ -11,3 +11,4 @@ CREATE TABLE orders (
     CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES profiles(id),
     CONSTRAINT fk_vendor FOREIGN KEY (vendor_id) REFERENCES vendors(id)
 );
+

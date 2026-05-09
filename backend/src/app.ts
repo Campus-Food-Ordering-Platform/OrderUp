@@ -49,13 +49,13 @@ app.use('/api/menu', menuRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/upload', uploadRoutes);
+app.use('/api/upload', uploadRoutes);                //is this intentional (The duplicate)
 
 app.use('/api/payments', paymentRoutes);
-app.use('/api/upload', uploadRoutes);
 
 app.use('/api/analytics', analyticsRoutes);
- 
+app.use('/api/upload', uploadRoutes);                 //is this intentional
+
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', err.message);
   res.status(500).json({ error: 'Something went wrong' });

@@ -226,7 +226,7 @@ function MenuManager() {
     await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/${vendorId}/menu/${id}`, { method: 'DELETE' });
     setItems(prev => prev.filter(i => i.id !== id));
   };
-
+  // this files checks if our thing is available 
   const toggleAvailable = async (id) => {
     const item = items.find(i => i.id === id);
     if (!item) return;
@@ -781,7 +781,7 @@ export default function VendorDashboard() {
   const [vendorStatus, setVendorStatus] = useState('loading');
   const [vendorId, setVendorId] = useState(null);
   const [vendorDisplayName, setVendorDisplayName] = useState('');
-
+  // so here we passing the vendor menu 
   useEffect(() => {
     setVendorId('52a38ed7-bb34-4b34-813e-026eb1e9f616');
     setVendorStatus('approved');
@@ -792,6 +792,7 @@ export default function VendorDashboard() {
       setVendorStatus('apply');
       return;
     }
+    // we then check the state of the user 
     const checkStatus = async () => {
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/register`, {

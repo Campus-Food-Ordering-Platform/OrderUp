@@ -50,21 +50,26 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
 }
 
 export async function getActiveOrderByStudent(studentId: string): Promise<Order | null> {
-  // Resolve Auth0 ID to internal UUID first
-  const profileResult = await pool.query(
-    `SELECT id FROM profiles WHERE auth0_id = $1`,
-    [studentId]
-  );
-  const internalUserId = profileResult.rows[0]?.id;
-  if (!internalUserId) return null;
-
   const result = await pool.query(
     `SELECT * FROM orders 
      WHERE customer_id = $1 
      AND status NOT IN ('collected')
      ORDER BY created_at DESC 
      LIMIT 1`,
-    [internalUserId]
+    [studentId]
   );
   return result.rows[0] ?? null;
-}//this function retrieves the most recent active order for a student, excluding any orders that have already been collected. This is useful for the student dashboard to show the current order status without displaying past completed orders.
+}
+
+export async function getOrdersByStudent(studentId: string): Promise<Order[]> {//this is for the order history page
+  const result = await pool.query(
+    `SELECT o.*, p.name as vendor_name 
+     FROM orders o
+     JOIN vendors v ON o.vendor_id = v.id
+     JOIN profiles p ON v.profile_id = p.id
+     WHERE o.customer_id = $1 
+     ORDER BY o.created_at DESC`,
+    [studentId]
+  );
+  return result.rows;
+}

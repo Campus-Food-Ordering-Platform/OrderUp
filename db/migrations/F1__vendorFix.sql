@@ -1,0 +1,2 @@
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS items JSONB;
+-- adding items to our orders table to store the details of the items in the order as a JSONB object. This allows us to keep track of what was ordered without needing to create a separate table for order items, simplifying our database schema while still providing flexibility for storing item details.

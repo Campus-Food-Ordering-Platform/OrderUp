@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { placeOrder, getVendorOrders, getOrderStatus, advanceOrderStatus, getStudentActiveOrder } from './order.service';
+import { placeOrder, getVendorOrders, getOrderStatus, advanceOrderStatus, getStudentActiveOrder,getStudentHistory } from './order.service';
 
 export async function createOrderHandler(req: Request, res: Response) {
   try {
@@ -61,5 +61,16 @@ export async function getStudentActiveOrderHandler(req: Request, res: Response) 
   } catch (err) {
     console.error('getStudentActiveOrder error:', err);
     res.status(500).json({ error: 'Failed to fetch active order' });
+  }
+}
+export async function getStudentHistoryHandler(req: Request, res: Response) {
+  try {
+    const studentId = req.params.studentId as string;
+    if (!studentId) return res.status(400).json({ error: 'Invalid student ID' });
+    const orders = await getStudentHistory(studentId);
+    res.json(orders);
+  } catch (err) {
+    console.error('getStudentHistory error:', err);
+    res.status(500).json({ error: 'Failed to fetch order history' });
   }
 }
