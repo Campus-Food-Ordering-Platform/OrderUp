@@ -12,17 +12,23 @@ import pool from '../../config/db';
 // getOrderAmount function below
 export const getOrderTotal = async (
     vendor_id : string,
-    interval : 'hour'|'day'|'week'|'month'|'year'
+    interval : 'hour'|'day'|'week'|'month'|'year',
+    window: string = 'total'
 ) => {
-    const result = await pool.query(`
+
+    const hasWindow = window !== 'total';
+
+    const query = `
         SELECT
-        DATE_TRUNC('${interval}', created_at) AS period,
-        COUNT(*) AS orders
+            DATE_TRUNC('${interval}', created_at) AS period,
+            COUNT(*) AS orders
         FROM orders
         WHERE vendor_id = $1
+        ${hasWindow ? `AND created_at >= NOW() - INTERVAL '${window}'` : ''}
         GROUP BY period
         ORDER BY period;
-        `, [vendor_id]);
+    ` ;
+    const result = await pool.query(query,[vendor_id])
     return result.rows
 
     
@@ -33,17 +39,24 @@ export const getOrderTotal = async (
 // a simple SUM fuunction to replace COUNT() is enough.
 export const getRevenueTotal = async (
     vendor_id : string,
-    interval : 'hour'|'day'|'week'|'month'|'year'
+    interval : 'hour'|'day'|'week'|'month'|'year',
+    window: string = 'total'
 ) => {
-    const result = await pool.query(`
+
+    const hasWindow = window !== 'total';
+
+    const query = `
         SELECT
-        DATE_TRUNC('${interval}', created_at) AS period,
-        SUM(total_amount) as revenue
+            DATE_TRUNC('${interval}', created_at) AS period,
+            SUM(total_amount) AS revenue
         FROM orders
         WHERE vendor_id = $1
+        ${hasWindow ? `AND created_at >= NOW() - INTERVAL '${window}'` : ''}
         GROUP BY period
         ORDER BY period;
-        `, [vendor_id]);
+    `;
+
+    const result = await pool.query(query, [vendor_id]);
     return result.rows
 
     
@@ -57,19 +70,42 @@ export const getRevenueTotal = async (
 // customer count:
 export const getCustomerTotal = async (
     vendor_id : string,
-    interval : 'hour'|'day'|'week'|'month'|'year'
+    interval : 'hour'|'day'|'week'|'month'|'year',
+    window: string = 'total'
 ) => {
-    const result = await pool.query(`
+
+    const hasWindow = window !== 'total';
+
+    const query = `
         SELECT
-        DATE_TRUNC('${interval}', created_at) AS period,
-        COUNT(DISTINCT customer_id) AS unique_customers
+            DATE_TRUNC('${interval}', created_at) AS period,
+            COUNT(DISTINCT customer_id) AS unique_customers
         FROM orders
         WHERE vendor_id = $1
+        ${hasWindow ? `AND created_at >= NOW() - INTERVAL '${window}'` : ''}
         GROUP BY period
         ORDER BY period;
-        `, [vendor_id]);
+    `;
+
+    const result = await pool.query(query, [vendor_id]);
+
     return result.rows
 
     
 }
 // thats it for now. db needs to be updated to call customer reveiws, and likes /dislikes for items
+export const getItems = async (
+    vendor_id : string
+) => {
+
+    const query = `
+        SELECT
+             (name) from menu_items where vendor_id = $1;
+    `;
+
+    const result = await pool.query(query, [vendor_id]);
+
+    return result.rows
+
+    
+}

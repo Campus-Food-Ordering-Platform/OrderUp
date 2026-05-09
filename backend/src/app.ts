@@ -51,7 +51,9 @@ app.use('/api/vendors', vendorRoutes);
 app.use('/api/orders', orderRoutes);  
 
 app.use('/api/payments', paymentRoutes);
+
 app.use('/api/analytics', analyticsRoutes);
+
 app.use('/api/upload', uploadRoutes);         
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', err.message);
