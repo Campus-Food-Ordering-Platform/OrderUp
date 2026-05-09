@@ -442,7 +442,7 @@ function ProfitCalculator() {
 
   useEffect(() => {
     const fetchItemAnalytics = async () => {
-      const JASON = undefined;
+      let JASON = undefined;
       try {
         const res = await fetch(
           // `${import.meta.env.VITE_API_URL}/api/analytics/items/${vendor_id}?range=month`
