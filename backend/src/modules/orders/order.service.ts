@@ -1,4 +1,4 @@
-import { createOrder, getOrdersByVendor, getOrderById, updateOrderStatus, getActiveOrderByStudent,getOrdersByStudent } from './order.repository';
+import { createOrder, getOrdersByVendor, getOrderById, updateOrderStatus, getActiveOrderByStudent,getOrdersByStudent, getAllOrdersAdmin } from './order.repository';
 import { CreateOrderDTO } from './order.model';
 import { OrderStatus, STATUS_TRANSITIONS } from './order.status';
 import pool from '../../config/db';
@@ -73,4 +73,8 @@ export async function getStudentActiveOrder(studentId: string) {
 }
 export async function getStudentHistory(studentId: string) { //this is for the order history page
   return getOrdersByStudent(studentId);
+}
+
+export async function getAllOrdersForAdmin() {
+  return await getAllOrdersAdmin();
 }
