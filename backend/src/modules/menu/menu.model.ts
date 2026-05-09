@@ -1,9 +1,14 @@
+import { MenuCategory } from '../../types/enums';
+
 export interface MenuItem {
-    id: number;
-    vendor_id: number;
+    id: string;
+    vendor_id: string;
     name: string;
     description: string;
     price: number;
+    image_url: string;
+    category: MenuCategory;
     available: boolean;
-    created_at: Date;
+    allergens: string[];
+    tags: string[];
 }
