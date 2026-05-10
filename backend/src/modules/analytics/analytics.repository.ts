@@ -99,8 +99,56 @@ export const getItems = async (
 ) => {
 
     const query = `
-        SELECT
-             (name) from menu_items where vendor_id = $1;
+         SELECT
+            mi.id,
+            mi.name,
+
+            COALESCE(SUM(
+                CASE
+                    WHEN o.created_at >= NOW() - INTERVAL '7 days'
+                    THEN oi.quantity
+                    ELSE 0
+                END
+            ), 0) AS "weeklyOrders",
+
+            COALESCE(SUM(
+                CASE
+                    WHEN o.created_at >= NOW() - INTERVAL '30 days'
+                    THEN oi.quantity
+                    ELSE 0
+                END
+            ), 0) AS "monthlyOrders",
+
+            COALESCE(SUM(
+                CASE
+                    WHEN o.created_at >= NOW() - INTERVAL '7 days'
+                    THEN oi.quantity * oi.price_paid
+                    ELSE 0
+                END
+            ), 0) AS "weeklyRevenue",
+
+            COALESCE(SUM(
+                CASE
+                    WHEN o.created_at >= NOW() - INTERVAL '30 days'
+                    THEN oi.quantity * oi.price_paid
+                    ELSE 0
+                END
+            ), 0) AS "monthlyRevenue"
+
+        FROM menu_items mi
+
+        LEFT JOIN order_items oi
+            ON mi.id = oi.menu_item_id
+
+        LEFT JOIN orders o
+            ON oi.order_id = o.id
+
+        WHERE mi.vendor_id = $1
+
+        GROUP BY mi.id, mi.name
+
+        ORDER BY "monthlyRevenue" DESC;
+
     `;
 
     const result = await pool.query(query, [vendor_id]);
