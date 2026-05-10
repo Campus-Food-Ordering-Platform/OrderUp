@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Home, History, UserRound, Search, HelpCircle, MessageSquare, Calendar, ChevronRight, Star } from 'lucide-react';
+import { ShoppingCart, Home, History, UserRound, Search, HelpCircle, MessageSquare, Calendar, ChevronRight, Star, Package } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 
 const BRAND = '#C0474A';
@@ -313,7 +313,7 @@ export default function StudentHistoryPage() {
                 )}
 
                 <button
-                  onClick={() => alert(`Opening support chat for order #${order.order_number}. Real-time support is a future feature!`)}
+                  onClick={() => window.location.href = `mailto:support@orderup.com?subject=Support Request for Order #${order.order_number}`}
                   style={{
                     flex: 1, padding: '10px', backgroundColor: '#FFF0F0', color: BRAND,
                     border: 'none', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
