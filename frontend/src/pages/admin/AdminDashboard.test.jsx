@@ -3,6 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import AdminDashboard from './AdminDashboard';
 
+// Ensure import.meta.env.VITE_API_URL is defined so fetch URLs resolve correctly
+vi.stubEnv('VITE_API_URL', 'http://localhost:3000');
+
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -125,10 +128,15 @@ const mockOrders = [
   },
 ];
 
-// Default fetch: vendors + orders
+// Default fetch: vendors + pending-applications + orders
+// The component calls 3 fetches on mount via Promise.all + a separate useEffect:
+//   1. /api/vendors/admin/all
+//   2. /api/vendors/applications/pending
+//   3. /api/orders/admin/all
 const defaultFetch = () =>
   vi.fn()
     .mockResolvedValueOnce({ ok: true, json: async () => [activeChinese, pendingXpresso, suspendedBurger] })
+    .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending applications
     .mockResolvedValueOnce({ ok: true, json: async () => mockOrders });
 
 beforeEach(() => {
@@ -140,6 +148,7 @@ beforeEach(() => {
 async function renderAndLoad(vendors = [activeChinese, pendingXpresso, suspendedBurger]) {
   global.fetch = vi.fn()
     .mockResolvedValueOnce({ ok: true, json: async () => vendors })
+    .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending applications
     .mockResolvedValueOnce({ ok: true, json: async () => mockOrders });
   render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
   await waitFor(() => expect(screen.getByText('Total Vendors')).toBeInTheDocument());
@@ -182,7 +191,8 @@ describe('AdminDashboard', () => {
 
   it('handles vendor fetch error gracefully', async () => {
     global.fetch = vi.fn()
-      .mockRejectedValueOnce(new Error('Network error'))
+      .mockRejectedValueOnce(new Error('Network error'))  // vendors (Promise.all rejects)
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })      // pending apps
       .mockResolvedValueOnce({ ok: true, json: async () => mockOrders });
     render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
     // No crash — just empty vendor list
@@ -192,6 +202,7 @@ describe('AdminDashboard', () => {
   it('handles orders fetch error gracefully', async () => {
     global.fetch = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [activeChinese] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })      // pending apps
       .mockRejectedValueOnce(new Error('Network error'));
     render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText('Total Vendors')).toBeInTheDocument());
@@ -200,6 +211,7 @@ describe('AdminDashboard', () => {
   it('handles non-array vendor response', async () => {
     global.fetch = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ error: 'bad' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })
       .mockResolvedValueOnce({ ok: true, json: async () => [] });
     render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText('Admin Dashboard')).toBeInTheDocument());
@@ -292,7 +304,8 @@ describe('AdminDashboard', () => {
   it('approve button calls PATCH and updates vendor to active', async () => {
     global.fetch = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [pendingXpresso] })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending apps
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // orders
       // PATCH approve
       .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'active' }) });
 
@@ -304,13 +317,14 @@ describe('AdminDashboard', () => {
 
     fireEvent.click(screen.getByText('Approve'));
 
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(4));
   });
 
   it('approve handles fetch error gracefully', async () => {
     global.fetch = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [pendingXpresso] })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending apps
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // orders
       .mockRejectedValueOnce(new Error('Network error'));
 
     render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
@@ -327,7 +341,8 @@ describe('AdminDashboard', () => {
   it('suspend button calls PATCH and marks vendor suspended', async () => {
     global.fetch = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [activeChinese] })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending apps
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // orders
       .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'suspended' }) });
 
     render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
@@ -337,13 +352,14 @@ describe('AdminDashboard', () => {
     await waitFor(() => expect(screen.getByText('Suspend')).toBeInTheDocument());
 
     fireEvent.click(screen.getByText('Suspend'));
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(4));
   });
 
   it('suspend handles fetch error gracefully', async () => {
     global.fetch = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [activeChinese] })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending apps
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // orders
       .mockRejectedValueOnce(new Error('Network error'));
 
     render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
@@ -384,7 +400,8 @@ it('modal shows "View Health Certificate" link when url is present', async () =>
   const pendingWithCert = { ...pendingXpresso, health_certificate_url: 'https://example.com/cert.pdf' };
   global.fetch = vi.fn()
     .mockResolvedValueOnce({ ok: true, json: async () => [pendingWithCert] })
-    .mockResolvedValueOnce({ ok: true, json: async () => [] });
+    .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending apps
+    .mockResolvedValueOnce({ ok: true, json: async () => [] });       // orders
   render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
   await waitFor(() => expect(screen.getByText('Total Vendors')).toBeInTheDocument());
 
@@ -410,7 +427,8 @@ it('modal shows "View Health Certificate" link when url is present', async () =>
     const pendingWithItems = { ...pendingXpresso, sample_items: ['Espresso', 'Croissant'] };
     global.fetch = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [pendingWithItems] })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] });
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending apps
+      .mockResolvedValueOnce({ ok: true, json: async () => [] });       // orders
     render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText('Total Vendors')).toBeInTheDocument());
 
@@ -437,7 +455,8 @@ it('modal handles object operating_hours via JSON.stringify', async () => {
   const pendingHealthy = { ...healthyVendor, vendor_status: null, application_status: 'pending' };
   global.fetch = vi.fn()
     .mockResolvedValueOnce({ ok: true, json: async () => [pendingHealthy] })
-    .mockResolvedValueOnce({ ok: true, json: async () => [] });
+    .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending apps
+    .mockResolvedValueOnce({ ok: true, json: async () => [] });       // orders
   render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
   await waitFor(() => expect(screen.getByText('Total Vendors')).toBeInTheDocument());
 
@@ -471,8 +490,9 @@ fireEvent.click(closeBtn);
   it('Approve Vendor in modal calls PATCH and closes modal', async () => {
     global.fetch = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [pendingXpresso] })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'active' }) });
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending apps
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // orders
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'active' }) }); // PATCH
 
     render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText('Total Vendors')).toBeInTheDocument());
@@ -491,8 +511,9 @@ fireEvent.click(closeBtn);
   it('Suspend in modal calls PATCH', async () => {
     global.fetch = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [pendingXpresso] })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'suspended' }) });
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending apps
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // orders
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'suspended' }) }); // PATCH
 
     render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
     await waitFor(() => expect(screen.getByText('Total Vendors')).toBeInTheDocument());
@@ -504,7 +525,7 @@ fireEvent.click(closeBtn);
     // The modal has a Suspend button too
     const suspendBtns = screen.getAllByText('Suspend');
     fireEvent.click(suspendBtns[suspendBtns.length - 1]); // modal's Suspend
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(4));
   });
 
   // ── Disputes / Orders tab ────────────────────────────────────────────────

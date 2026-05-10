@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   ShoppingCart, UserRound, UtensilsCrossed, BarChart2, Trash2,
   TrendingUp, Users, ShoppingBag, DollarSign, CheckCircle2,
-  Search, Star, Clock, MessageSquare, ThumbsUp, XCircle
+  Search, Star, Clock, MessageSquare, ThumbsUp, XCircle, Download
 } from 'lucide-react';
 
 const BRAND = '#C0474A';
@@ -1137,11 +1137,40 @@ if (vendorStatus === 'suspended') {
         <section style={{ padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Analytics Dashboard</h2>
-            <select style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #E0E0E0', fontSize: '0.7rem' }}>
-              <option>This Week</option>
-              <option>This Month</option>
-              <option>Last 3 Months</option>
-            </select>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <select style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #E0E0E0', fontSize: '0.7rem' }}>
+                <option>This Week</option>
+                <option>This Month</option>
+                <option>Last 3 Months</option>
+              </select>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/analytics/${vendorId}/revenue/export/csv`);
+                    if (!res.ok) throw new Error('Export failed');
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `revenue-report-${new Date().toISOString().slice(0, 10)}.csv`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                  } catch (err) {
+                    alert('Could not export CSV. Please try again.');
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '6px 14px', borderRadius: '8px',
+                  backgroundColor: BRAND, color: 'white',
+                  border: 'none', fontSize: '0.75rem', fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                <Download size={13} />
+                Export CSV
+              </button>
+            </div>
           </div>
 
           {/* KPI Cards */}

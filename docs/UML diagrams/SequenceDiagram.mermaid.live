@@ -8,8 +8,11 @@ sequenceDiagram
     participant API as Express Backend
     participant DB as PostgreSQL Database
     participant PS as PayStack
+    participant WP as Web Push / VAPID
     actor Vendor
+    actor Admin
 
+    %% ── Authentication ──────────────────────────────────────────
     Student->>React: login()
     activate React
     React->>API: authenticate(token)
@@ -19,6 +22,25 @@ sequenceDiagram
     React-->>Student: redirect to Student Dashboard
     deactivate React
 
+    %% ── Enable Push Notifications ───────────────────────────────
+    Student->>React: clickEnableNotifications()
+    activate React
+    React->>WP: requestPermission()
+    activate WP
+    WP-->>React: pushSubscription(endpoint, keys)
+    deactivate WP
+    React->>API: POST savePushSubscription(userId, subscription)
+    activate API
+    API->>DB: INSERT INTO push_subscriptions(user_id, endpoint, keys)
+    activate DB
+    DB-->>API: success
+    deactivate DB
+    API-->>React: subscribed
+    deactivate API
+    React-->>Student: show "Notifications Enabled" confirmation
+    deactivate React
+
+    %% ── Browse & Select Vendor ──────────────────────────────────
     Student->>React: selectVendor(vendorId)
     activate React
     React->>API: getMenu(vendorId)
@@ -32,6 +54,7 @@ sequenceDiagram
     React-->>Student: display VendorMenuPage
     deactivate React
 
+    %% ── Add to Cart ─────────────────────────────────────────────
     loop For each item Student wants to add
         Student->>React: addToCart(itemId, quantity)
         activate React
@@ -39,11 +62,13 @@ sequenceDiagram
         deactivate React
     end
 
+    %% ── Checkout ────────────────────────────────────────────────
     Student->>React: clickCheckout()
     activate React
     React-->>Student: display CheckoutPage(cart, vendor, total)
     deactivate React
 
+    %% ── Place Order & Payment ───────────────────────────────────
     Student->>React: placeOrder(cart, note, paymentMethod)
     activate React
     React->>API: POST createOrder(customerId, vendorId, cartItems, total)
@@ -70,11 +95,16 @@ sequenceDiagram
     API->>DB: UPDATE orders SET status=confirmed
     DB-->>API: success
     deactivate DB
+    API->>WP: sendPushNotification(userId, "Order Confirmed!")
+    activate WP
+    WP-->>Student: push notification: "Your order has been confirmed"
+    deactivate WP
     API-->>React: orderConfirmed(orderId)
     deactivate API
     deactivate PS
     React-->>Student: display OrderConfirmedPage
 
+    %% ── Vendor Updates Order Status ─────────────────────────────
     loop While order is being prepared
         Vendor->>React: updateOrderStatus(orderId, newStatus)
         activate React
@@ -84,8 +114,74 @@ sequenceDiagram
         activate DB
         DB-->>API: success
         deactivate DB
+        API->>WP: sendPushNotification(studentId, newStatus)
+        activate WP
+        WP-->>Student: push notification: "Your order is [newStatus]"
+        deactivate WP
         API-->>React: statusUpdated
         deactivate API
         React-->>Student: update live tracker display
         deactivate React
     end
+
+    %% ── New Vendor Application ──────────────────────────────────
+    Vendor->>React: submitVendorApplication(formData)
+    activate React
+    React->>API: POST /api/auth/signup(auth0Id, name, role)
+    activate API
+    API->>DB: INSERT INTO profiles(auth0_id, name, role)
+    activate DB
+    DB-->>API: profileId
+    deactivate DB
+    API-->>React: profile
+    deactivate API
+    React->>API: POST /api/vendors/register(profileId)
+    activate API
+    API->>DB: INSERT INTO vendors(profile_id)
+    activate DB
+    DB-->>API: vendorId
+    deactivate DB
+    API-->>React: vendorId
+    deactivate API
+    React->>API: PATCH /api/vendors/:id(applicationDetails)
+    activate API
+    API->>DB: UPDATE vendors SET stall_name, phone, description... status=pending
+    activate DB
+    DB-->>API: success
+    deactivate DB
+    API->>WP: sendPushNotification(adminId, "New vendor application")
+    activate WP
+    WP-->>Admin: push notification: "New vendor application received"
+    deactivate WP
+    API-->>React: applicationSubmitted
+    deactivate API
+    React-->>Vendor: display Pending Review screen
+    deactivate React
+
+    %% ── Admin Reviews & Approves Vendor ─────────────────────────
+    Admin->>React: clickApprove(vendorId)
+    activate React
+    React->>API: PATCH /api/vendors/:id/status(status=active)
+    activate API
+    API->>DB: UPDATE vendors SET vendor_status=active
+    activate DB
+    DB-->>API: success
+    deactivate DB
+    API->>WP: sendPushNotification(vendorId, "Application Approved!")
+    activate WP
+    WP-->>Vendor: push notification: "Your application has been approved"
+    deactivate WP
+    API-->>React: vendorApproved
+    deactivate API
+    React-->>Admin: update vendor status badge to Active
+    deactivate React
+
+    %% ── Sign Out ────────────────────────────────────────────────
+    Student->>React: hoverUserIcon() + clickSignOut()
+    activate React
+    React->>API: logout(token)
+    activate API
+    API-->>React: session cleared
+    deactivate API
+    React-->>Student: redirect to Login page
+    deactivate React
