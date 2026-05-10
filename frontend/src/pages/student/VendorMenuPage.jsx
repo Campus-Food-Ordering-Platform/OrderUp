@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, Plus, Minus, Leaf, Flame, Home, Package, History, UserRound } from 'lucide-react';
+import { useAuth0 } from '@auth0/auth0-react';
 
 const BRAND = '#C0474A';
 
@@ -15,10 +16,12 @@ const tagColors = {
 export default function VendorMenuPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth0();
   const vendor = state?.vendor;
 
   const [cart, setCart] = useState({});
   const [activeCategory, setActiveCategory] = useState('All');
+  const [showLogout, setShowLogout] = useState(false);
 
   // CHANGED: replaced menuData[vendor?.id] with state + useEffect fetch
   const [items, setItems] = useState([]);
@@ -109,23 +112,35 @@ export default function VendorMenuPage() {
 
         {/* Nav bar icons */}
 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-  {[Home, History, UserRound].map((Icon, i) => (
-  <div
-    key={i}
-    style={{
-      width: '34px',
-      height: '34px',
-      borderRadius: '50%',
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-    }}
+  <div 
+    onClick={() => navigate('/student-dashboard')}
+    style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
   >
-                <Icon size={16} color="white" strokeWidth={2} />
-            </div>
-            ))}
+    <Home size={16} color="white" strokeWidth={2} />
+  </div>
+  <div 
+    onClick={() => navigate('/student-history')}
+    style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+  >
+    <History size={16} color="white" strokeWidth={2} />
+  </div>
+  <div 
+    onMouseEnter={() => setShowLogout(true)}
+    onMouseLeave={() => setShowLogout(false)}
+    style={{ position: 'relative', width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+  >
+    <UserRound size={16} color="white" strokeWidth={2} />
+    {showLogout && (
+      <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '8px', zIndex: 100 }}>
+        <div 
+          onClick={(e) => { e.stopPropagation(); logout({ logoutParams: { returnTo: window.location.origin } }); }}
+          style={{ backgroundColor: 'white', color: '#C0474A', padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', whiteSpace: 'nowrap' }}
+        >
+          Sign Out
+        </div>
+      </div>
+    )}
+  </div>
             <div
             onClick={() => navigate('/order-confirmed')}
             style={{

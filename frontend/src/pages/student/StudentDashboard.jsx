@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Home, Package, History, UserRound, Star, Clock, Search } from 'lucide-react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { subscribeToPush } from '../../utils/subscribeToPush';
 
 const BRAND = '#C0474A';
@@ -76,13 +77,13 @@ export default function StudentDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeOrder, setActiveOrder] = useState(null);//this will hold the active order details, if any
 
-  const location = useLocation();
+
   const navigate = useNavigate();
+  const [showLogout, setShowLogout] = useState(false);
 
   // ── Get name from localStorage if not passed via navigation state ──────────
-  const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
-  const user = raw?.user ?? raw;
-  const name = location.state?.name || user?.name || 'there';
+  const { user, logout } = useAuth0();
+  const name = user?.given_name || user?.name?.split(' ')[0] || 'student';
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/vendors`)
@@ -103,10 +104,7 @@ export default function StudentDashboard() {
     const [pushEnabled, setPushEnabled] = useState(false); // to track if push notifications are enabled for this user
     useEffect(() => {
 
-    console.log('raw localStorage:', raw);// to debug
-    console.log('user object:', user);// to debug
-    console.log('user.id:', user?.id);// to debug
-    if (!user?.id) return;
+    if (!user?.sub) return;
 
     // Check if already subscribed so we don't show the button unnecessarily
     navigator.serviceWorker?.ready.then(reg =>
@@ -117,7 +115,7 @@ export default function StudentDashboard() {
 
       const fetchActiveOrder = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/student/${user.id}/active`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/student/${user.sub}/active`);
         if (!res.ok) return;
           const data = await res.json();
           setActiveOrder(data);
@@ -126,12 +124,12 @@ export default function StudentDashboard() {
         }
     };
     fetchActiveOrder();
-  }, [user?.id]);
+  }, [user?.sub]);
 
    // ── Called when student taps "Enable order notifications" ─────────────────
   const handleEnableNotifications = async () => {
-    if (!user?.id) return;
-    await subscribeToPush(user.id);
+    if (!user?.sub) return;
+    await subscribeToPush(user.sub);
     setPushEnabled(true);
   };// After fetching vendors, we apply both the category filter and the search query. The filter checks if the vendor's category matches the active filter (or if "All" is selected), while the search checks if the query is included in either the vendor's name or description. We also ensure that if name or description is missing, it doesn't break the search by defaulting to an empty string.
 
@@ -178,6 +176,29 @@ export default function StudentDashboard() {
           style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
         >
           <Package size={16} color="white" strokeWidth={2} />
+        </div>
+        <div
+          onClick={() => navigate('/checkout')}
+          style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        >
+          <ShoppingCart size={16} color="white" strokeWidth={2} />
+        </div>
+        <div
+          onMouseEnter={() => setShowLogout(true)}
+          onMouseLeave={() => setShowLogout(false)}
+          style={{ position: 'relative', width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        >
+          <UserRound size={16} color="white" strokeWidth={2} />
+            {showLogout && (
+              <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '8px', zIndex: 100 }}>
+                <div 
+                  onClick={(e) => { e.stopPropagation(); logout({ logoutParams: { returnTo: window.location.origin } }); }}
+                  style={{ backgroundColor: 'white', color: '#C0474A', padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', whiteSpace: 'nowrap' }}
+                >
+                  Sign Out
+                </div>
+              </div>
+            )}
         </div>
       </div>
       </header>
