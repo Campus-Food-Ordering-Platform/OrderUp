@@ -8,10 +8,8 @@ import CheckoutPage from './CheckoutPage';
 const mockNavigate = vi.fn();
 const mockLogout = vi.fn();
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return { ...actual, useNavigate: () => mockNavigate };
-});
+// Ensure import.meta.env.VITE_API_URL is defined so fetch URLs resolve correctly
+vi.stubEnv('VITE_API_URL', 'http://localhost:3000');
 
 vi.mock('@auth0/auth0-react', () => ({
   useAuth0: () => ({
@@ -44,6 +42,7 @@ Object.defineProperty(window, 'sessionStorage', { value: sessionStorageMock, wri
 // location.state setup
 let mockLocationState = { vendor: mockVendor, cart: mockCart, items: mockItems };
 
+// Single combined mock for react-router-dom — both useNavigate and useLocation
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
