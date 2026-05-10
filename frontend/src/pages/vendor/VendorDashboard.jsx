@@ -888,6 +888,7 @@ export default function VendorDashboard() {
     // Has a vendor row
     setVendorId(data.id);
     setVendorDisplayName(data.name || '');
+    console.log('VENDOR DATA:', data);
     if (data.status === 'suspended') setVendorStatus('suspended');
     else if (data.status === 'active') setVendorStatus('approved');
     else setVendorStatus('pending');
@@ -932,7 +933,9 @@ export default function VendorDashboard() {
   if (vendorStatus === 'pending') {
     return <VendorPendingScreen vendorName={vendorDisplayName} />;
   }
-
+if (vendorStatus === 'suspended') {
+  return <VendorSuspendedScreen vendorName={vendorDisplayName} />;
+}
   const handleUpdateStatus = async (orderId) => {
   try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}/status`, {

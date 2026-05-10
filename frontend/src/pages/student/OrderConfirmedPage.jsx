@@ -6,9 +6,9 @@ import {useAuth0} from '@auth0/auth0-react';
 const BRAND = '#C0474A';
 
 const steps = [
-  { id: 'confirmed', label: 'Order Confirmed', icon: '✅', description: 'Your order has been received' },
-  { id: 'preparing', label: 'Preparing', icon: '👨‍🍳', description: 'The vendor is preparing your food' },
-  { id: 'ready', label: 'Ready for Pickup', icon: '🛎️', description: 'Your order is ready to collect!' },
+  { id: 'confirmed', label: 'Order Received', icon: '✅', description: 'Your order has been received' },
+  { id: 'preparing', label: 'Preparing', icon: '👨‍🍳', description: 'The vendor is busy making your food' },
+  { id: 'ready', label: 'Ready for Collection', icon: '🛎️', description: 'Your order is ready to collect!' },
 ];
 
 const STATUS_TO_STEP = {
@@ -112,7 +112,7 @@ export default function OrderConfirmedPage() {
   useEffect(() => {
     if (!orderData?.id) return;
 
-    const poll = setInterval(async () => {
+    const pollOnce = async () => {
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderData.id}/status`);
         const data = await res.json();
@@ -125,7 +125,10 @@ export default function OrderConfirmedPage() {
       } catch (err) {
         console.error('Polling error:', err);
       }
-    }, 5000);
+    };
+
+    pollOnce();
+    const poll = setInterval(pollOnce, 5000);
 
     return () => clearInterval(poll);
   }, [orderData?.id]);
