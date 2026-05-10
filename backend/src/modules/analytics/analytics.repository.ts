@@ -95,18 +95,17 @@ export const getCustomerTotal = async (
 }
 // thats it for now. db needs to be updated to call customer reveiws, and likes /dislikes for items
 export const getItems = async (
-    vendor_id : string
+    vendor_id: string
 ) => {
 
     const query = `
-         SELECT
-            mi.id,
-            mi.name,
+        SELECT
+            item->>'name' AS name,
 
             COALESCE(SUM(
                 CASE
                     WHEN o.created_at >= NOW() - INTERVAL '7 days'
-                    THEN oi.quantity
+                    THEN (item->>'quantity')::int
                     ELSE 0
                 END
             ), 0) AS "weeklyOrders",
@@ -114,7 +113,7 @@ export const getItems = async (
             COALESCE(SUM(
                 CASE
                     WHEN o.created_at >= NOW() - INTERVAL '30 days'
-                    THEN oi.quantity
+                    THEN (item->>'quantity')::int
                     ELSE 0
                 END
             ), 0) AS "monthlyOrders",
@@ -122,7 +121,7 @@ export const getItems = async (
             COALESCE(SUM(
                 CASE
                     WHEN o.created_at >= NOW() - INTERVAL '7 days'
-                    THEN oi.quantity * oi.price_paid
+                    THEN ((item->>'quantity')::int * (item->>'price')::numeric)
                     ELSE 0
                 END
             ), 0) AS "weeklyRevenue",
@@ -130,30 +129,23 @@ export const getItems = async (
             COALESCE(SUM(
                 CASE
                     WHEN o.created_at >= NOW() - INTERVAL '30 days'
-                    THEN oi.quantity * oi.price_paid
+                    THEN ((item->>'quantity')::int * (item->>'price')::numeric)
                     ELSE 0
                 END
             ), 0) AS "monthlyRevenue"
 
-        FROM menu_items mi
+        FROM orders o,
 
-        LEFT JOIN order_items oi
-            ON mi.id = oi.menu_item_id
+        jsonb_array_elements(o.items) AS item
 
-        LEFT JOIN orders o
-            ON oi.order_id = o.id
+        WHERE o.vendor_id = $1
 
-        WHERE mi.vendor_id = $1
-
-        GROUP BY mi.id, mi.name
+        GROUP BY item->>'name'
 
         ORDER BY "monthlyRevenue" DESC;
-
     `;
 
     const result = await pool.query(query, [vendor_id]);
 
-    return result.rows
-
-    
+    return result.rows;
 }

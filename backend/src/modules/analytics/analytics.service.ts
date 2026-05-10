@@ -14,7 +14,7 @@ export class ValidationError extends Error {
 // FOR ANALYTICS IT MAY BE IMPORTANT TO DECERN THE start and end times (range of time being recorded)
 // for this puropose a new function, getRangeConfig is born! 
 // This will be used in our functions to return only what is needed
-type Range = 'day' | 'week' | 'month' | '3months' | '6months' | 'year' | null;
+type Range = 'day' | 'week' | 'month' | '3 months' | '6 months' | 'year' | null;
 type Interval = 'hour' | 'day' | 'week' | 'month' | 'year';
 type RangeConfig = {
     interval: Interval;
@@ -28,9 +28,9 @@ const getRangeConfig = (range: Range | null) : RangeConfig => {
       return { interval: 'day', window: '7 days' };
     case 'month':
       return { interval: 'day', window: '1 month' };
-    case '3months':
+    case '3 months':
       return { interval: 'week', window: '3 months' };
-    case '6months':
+    case '6 months':
       return { interval: 'week', window: '6 months' };
     case 'year':
       return { interval: 'month', window: '1 year' };
@@ -111,7 +111,7 @@ export const getItems = async (
     vendor_id: string,
     range: Range = null
 ) => {
-    const { interval, window } = getRangeConfig(range);
+    
 
     return AnalyticsRepo.getItems(
         vendor_id
@@ -120,6 +120,7 @@ export const getItems = async (
 
 // The requirements we need to report Sales, peak ordering hrs and a custom view, I was thinking Highest selling items
 // The getRevenueTotal func in the repository satisfies the 1st view req
+
 
 
 /*
@@ -136,3 +137,16 @@ export const getRevenueStats = async (
     }));
 };
 
+// export const getVendorAnalytics = async (
+//     vendor_id: string,
+//     range: Range = null
+// ) => {
+//     const { interval, window } = getRangeConfig(range);
+//     const [orders, revenue, customers, items] = await Promise.all([
+//     AnalyticsRepo.getOrderTotal(vendor_id, interval, window),
+//     AnalyticsRepo.getRevenueTotal(vendor_id, interval, window),
+//     AnalyticsRepo.getCustomerTotal(vendor_id, interval, window),
+//     AnalyticsRepo.getItems(vendor_id),
+//   ]);
+//   return [orders, revenue, customers, items];
+// };

@@ -28,8 +28,8 @@ type Range =
     | 'day'
     | 'week'
     | 'month'
-    | '3months'
-    | '6months'
+    | '3 months'
+    | '6 months'
     | 'year';
 
 const isValidRange = (value: any): value is Range => {
@@ -37,8 +37,8 @@ const isValidRange = (value: any): value is Range => {
         'day',
         'week',
         'month',
-        '3months',
-        '6months',
+        '3 months',
+        '6 months',
         'year'
     ].includes(value);
 };
@@ -101,7 +101,8 @@ export const getRevenueAnalytics = async (
             return res.status(400).json({
                 error: 'Invalid vendor_iddddd' 
             });
-        }        const { range } = req.query;
+        }        
+        const { range } = req.query;
 
         if (!vendor_id) {
             return res.status(400).json({
@@ -229,3 +230,44 @@ export const getItemAnalytics = async (
     }
 };
 
+export const getVendorAnalytics = async (    
+    req: Request,
+    res: Response
+) => {
+        const vendor_id = req.params.vendor_id;
+        if (!vendor_id || Array.isArray(vendor_id)) {
+            return res.status(400).json({
+                error: 'Invalid vendor_iddddd' 
+            });
+        }        
+        const { range } = req.query;
+
+        if (!vendor_id) {
+            return res.status(400).json({
+                error: 'vendor_id is required'
+            });
+        }
+
+        if (range && !isValidRange(range)) {
+            return res.status(400).json({
+                error: 'Invalid range value'
+            });
+        }
+
+   
+    const [orders, revenue, customers, items] = await Promise.all([
+    AnalyticsService.getOrderInRange(vendor_id, (range as Range) || null),
+    AnalyticsService.getRevenueInRange(vendor_id, (range as Range) || null),
+    AnalyticsService.getCustomerInRange(vendor_id, (range as Range) || null),
+    AnalyticsService.getItems(vendor_id),
+  ]);
+  return res.json({
+    success: true,
+    data: {
+      orders,
+      revenue,
+      customers,
+      items,
+    }
+  });
+};

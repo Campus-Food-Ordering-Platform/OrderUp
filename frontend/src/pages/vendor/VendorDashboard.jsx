@@ -918,6 +918,54 @@ export default function VendorDashboard() {
   }, [vendorId]);// this would fetch the orders for the vendor when the dashboard loads
 
 
+  //  below we setup the weekly revenue and orders
+  const [analyticsData, setAnalyticsData] = useState({
+    weeklyRevenue: [],
+    weeklyOrders: [],
+    topSellingItems: [],
+  });
+
+
+  useEffect(() => {
+    if (!vendorId) return;
+
+    const fetchAnalytics = async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/analytics/graph/${vendorId}`
+        );
+
+        const json = await res.json();
+        const data = json.data || {};
+
+        setAnalyticsData({
+          weeklyRevenue: (data.revenue || []).map((r) => ({
+            x: new Date(r.period).getTime(),
+            y: Number(r.revenue),
+          })),
+
+          weeklyOrders: (data.orders || []).map((o) => ({
+            x: new Date(o.period).getTime(),
+            y: Number(o.orders),
+          })),
+
+          topSellingItems: (data.items || []).map((i) => ({
+            name: i.name,
+            weeklyOrders: Number(i.weeklyOrders),
+            monthlyOrders: Number(i.monthlyOrders),
+            weeklyRevenue: Number(i.weeklyRevenue),
+            monthlyRevenue: Number(i.monthlyRevenue),
+          })),
+        });
+
+      } catch (err) {
+        console.error("Failed to fetch analytics:", err);
+      }
+    };
+
+    fetchAnalytics();
+  }, [vendorId]);
+
   if (vendorStatus === 'loading') {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -983,11 +1031,22 @@ if (vendorStatus === 'suspended') {
     itemSalesMap[name].revenue += parseFloat(item.price);
   });
 });
-  const topSellingItems = Object.values(itemSalesMap).sort((a, b) => b.quantity - a.quantity);
-
-  const weeklyRevenue = [18500, 22100, 19800, 24300, 26700, 28900, 31200];
-  const weeklyOrders = [42, 48, 45, 52, 58, 62, 68];
+  // const topSellingItems = Object.values(itemSalesMap).sort((a, b) => b.quantity - a.quantity);
+  const weeklyRevenue = analyticsData.weeklyRevenue ?? [];
+  const weeklyOrders = analyticsData.weeklyOrders ?? [];
+  const topSellingItems = analyticsData.topSellingItems.map(i => ({
+    name: i.name,
+    quantity: i.weeklyOrders,
+    revenue: i.weeklyRevenue,
+  }));  
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+
+  const revenueChart = weeklyRevenue.map(p => p.y);
+  const orderChart = weeklyOrders.map(p => p.y);
+  const labels = weeklyRevenue.map(p =>
+    new Date(p.x).toLocaleDateString(undefined, { weekday: 'short' })
+  );
 
   const likedDishesData = [
     { name: 'Classic Kota', percentage: 45, sales: 156, trend: '+12%' },
@@ -1090,7 +1149,7 @@ if (vendorStatus === 'suspended') {
             <div style={cardStyle}>
               <div style={cardHeader}><DollarSign size={16} color={BRAND} /><span style={trendStyle}>+8%</span></div>
               <p style={labelStyle}>Total Revenue</p>
-              <h3 style={valueStyle}>R {totalRevenue}</h3>
+              <h3 style={valueStyle}>R {parseFloat(totalRevenue).toFixed(2)}</h3>
             </div>
             <div style={cardStyle}>
               <div style={cardHeader}><TrendingUp size={16} color="#C26A1A" /><span style={{ fontSize: '0.65rem', color: BRAND }}>Last month: R 2,30,200</span></div>
@@ -1115,7 +1174,7 @@ if (vendorStatus === 'suspended') {
               <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📈 Revenue Trend (This Week)</h3>
               <span style={{ fontSize: '0.7rem', color: '#2A7D2A' }}>↑ 12% vs last week</span>
             </div>
-            <SimpleBarChart data={weeklyRevenue} labels={days} color={BRAND} height={140} />
+            <SimpleBarChart data={revenueChart} labels={labels} color={BRAND} height={140} />            
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
               <span style={{ fontSize: '0.65rem', color: '#888' }}>Total: R {weeklyRevenue.reduce((a, b) => a + b, 0).toLocaleString()}</span>
               <span style={{ fontSize: '0.65rem', color: '#888' }}>Avg: R {(weeklyRevenue.reduce((a, b) => a + b, 0) / 7).toFixed(0)}</span>
@@ -1127,8 +1186,8 @@ if (vendorStatus === 'suspended') {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📊 Orders Trend (This Week)</h3>
               <span style={{ fontSize: '0.7rem', color: '#2A7D2A' }}>↑ 8% vs last week</span>
-            </div>
-            <SimpleBarChart data={weeklyOrders} labels={days} color="#7B4FBF" height={120} />
+            </div> 
+            <SimpleBarChart data={orderChart} labels={labels} color={'#7B4FBF'} height={140} />            
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
               <span style={{ fontSize: '0.65rem', color: '#888' }}>Total: {weeklyOrders.reduce((a, b) => a + b, 0)} orders</span>
               <span style={{ fontSize: '0.65rem', color: '#888' }}>Peak: {Math.max(...weeklyOrders)} orders (Fri)</span>

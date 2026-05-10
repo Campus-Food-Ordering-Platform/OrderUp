@@ -1,6 +1,7 @@
 
 console.log("ANALYTICS ROUTE FILE LOADED");
 
+
 import { Router } from "express";
 import * as analyticsController from "./analytics.controller";
 
@@ -30,8 +31,11 @@ router.get("/customers/:vendor_id", analyticsController.getCustomerAnalytics);
  */
 router.get("/items/:vendor_id", analyticsController.getItemAnalytics);
 
+router.get("/graph/:vendor_id", analyticsController.getVendorAnalytics);
 
 
 router.get('/:vendor_id/revenue/export/csv', analyticsController.exportRevenueCSV);
+
+
 
 export default router;
