@@ -78,21 +78,24 @@ function OrderCard({ order, onUpdateStatus }) {
 }
 
 // ============ MENU MANAGER DATA ============
-const ALLERGENS = ['Halal', 'Vegan', 'Vegetarian', 'Nut-free', 'Gluten-free', 'Dairy-free', 'Egg-free'];
-const CATEGORIES_DEFAULT = ['Mains', 'Sides', 'Drinks', 'Starters', 'Extras'];
+const CATEGORIES_DEFAULT = ['Cafe', 'Fast Food', 'Asian', 'Pizza', 'Healthy', 'Indian','Mains'];
+const ALLERGENS = ["Cow's Milk", 'Peanuts', 'Tree Nuts', 'Soya', 'Gluten', 'Egg', 'Fish', 'Shellfish'];
+const DIETARY_TAGS = ['Halaal', 'Vegetarian', 'Vegan', 'Kosher', 'Nut-Free', 'Gluten-Free', 'Dairy-Free'];
 
 const tagColors = {
-  Halal: { bg: '#E0F7EF', color: '#2A9D6A' },
-  Vegan: { bg: '#E8F8E8', color: '#2A7D2A' },
+  Halaal: { bg: '#E0F7EF', color: '#2A9D6A' },
   Vegetarian: { bg: '#F0FFF0', color: '#3A8A3A' },
-  'Nut-free': { bg: '#FFF8E1', color: '#B8860B' },
-  'Gluten-free': { bg: '#F3E8FF', color: '#7B4FBF' },
-  'Dairy-free': { bg: '#E8F4FD', color: '#2A6DB5' },
-  'Egg-free': { bg: '#FFF0F0', color: '#C0474A' },
+  Vegan: { bg: '#E8F8E8', color: '#2A7D2A' },
+  Kosher: { bg: '#FFF8E1', color: '#B8860B' },
+  'Nut-Free': { bg: '#FFF8E1', color: '#B8860B' },
+  'Gluten-Free': { bg: '#F3E8FF', color: '#7B4FBF' },
+  'Dairy-Free': { bg: '#E8F4FD', color: '#77ade7' },
 };
 
-const makeEmptyForm = (categories) => ({
-  name: '', description: '', price: '', category: categories[0], tags: [], available: true, image_url: null,
+
+const makeEmptyForm = () => ({
+  name: '', description: '', price: '', category: CATEGORIES_DEFAULT[0], 
+  allergens: [], tags: [], available: true, image_url: null,
 });
 
 // ============ MENU MANAGER COMPONENT ============
@@ -100,15 +103,12 @@ function MenuManager() {
   const [items, setItems] = useState([]);
   const [vendorId, setVendorId] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState(CATEGORIES_DEFAULT);
   const [activeCategory, setActiveCategory] = useState('All');
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [showCatInput, setShowCatInput] = useState(false);
-  const [newCat, setNewCat] = useState('');
-  const [form, setForm] = useState(makeEmptyForm(CATEGORIES_DEFAULT));
+  const [form, setForm] = useState(makeEmptyForm());
 
-  const emptyForm = makeEmptyForm(categories);
+  const emptyForm = makeEmptyForm();
 
   useEffect(() => {
     const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
@@ -164,6 +164,15 @@ function MenuManager() {
     }));
   };
 
+  const toggleAllergen = (allergen) => {
+  setForm(prev => ({
+    ...prev,
+    allergens: prev.allergens.includes(allergen) 
+      ? prev.allergens.filter(a => a !== allergen) 
+      : [...prev.allergens, allergen],
+  }));
+};
+
   const handleImageFile = async (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     try {
@@ -211,16 +220,22 @@ function MenuManager() {
     } else {
       setItems(prev => [...prev, saved]);
     }
-    setForm(makeEmptyForm(categories));
+    setForm(makeEmptyForm());
     setEditingItem(null);
     setShowForm(false);
   };
 
-  const handleEdit = (item) => {
-    setForm({ ...item, price: String(item.price), tags: item.tags || [], image_url: item.image_url || null });
-    setEditingItem(item.id);
-    setShowForm(true);
-  };
+const handleEdit = (item) => {
+  setForm({ 
+    ...item, 
+    price: String(item.price), 
+    allergens: item.allergens || [],
+    tags: item.tags || [], 
+    image_url: item.image_url || null 
+  });
+  setEditingItem(item.id);
+  setShowForm(true);
+};
 
   const handleDelete = async (id) => {
     await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/${vendorId}/menu/${id}`, { method: 'DELETE' });
@@ -244,11 +259,6 @@ function MenuManager() {
     }
   };
 
-  const handleAddCategory = () => {
-    if (newCat.trim() && !categories.includes(newCat.trim())) setCategories(prev => [...prev, newCat.trim()]);
-    setNewCat(''); setShowCatInput(false);
-  };
-
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
@@ -264,33 +274,17 @@ function MenuManager() {
         </button>
       </div>
 
-      <div style={{ marginBottom: '14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#555', margin: 0 }}>Menu categories</p>
-          <button onClick={() => setShowCatInput(true)}
-            style={{ background: 'none', border: `1.5px solid ${BRAND}`, color: BRAND, borderRadius: '2rem', padding: '4px 12px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}>
-            + Add Category
+    <div style={{ marginBottom: '14px' }}>
+      <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#555', margin: '0 0 8px' }}>Menu categories</p>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        {['All', ...CATEGORIES_DEFAULT].map(cat => (
+          <button key={cat} onClick={() => setActiveCategory(cat)}
+            style={{ padding: '5px 16px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', border: activeCategory === cat ? 'none' : '1.5px solid #E0E0E0', backgroundColor: activeCategory === cat ? BRAND : 'white', color: activeCategory === cat ? 'white' : '#666' }}>
+            {cat}
           </button>
-        </div>
-        {showCatInput && (
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-            <input value={newCat} onChange={e => setNewCat(e.target.value)} placeholder="Category name..."
-              style={{ flex: 1, padding: '8px 12px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.85rem', outline: 'none' }} />
-            <button onClick={handleAddCategory}
-              style={{ backgroundColor: BRAND, color: 'white', border: 'none', borderRadius: '10px', padding: '8px 16px', fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem' }}>
-              Add
-            </button>
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {['All', ...categories].map(cat => (
-            <button key={cat} onClick={() => setActiveCategory(cat)}
-              style={{ padding: '5px 16px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', border: activeCategory === cat ? 'none' : '1.5px solid #E0E0E0', backgroundColor: activeCategory === cat ? BRAND : 'white', color: activeCategory === cat ? 'white' : '#666' }}>
-              {cat}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
+    </div>
 
       {showForm && (
         <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.25rem', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', marginBottom: '16px', border: `1.5px solid ${BRAND}` }}>
@@ -336,18 +330,39 @@ function MenuManager() {
               </div>
               <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
                 style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.85rem', outline: 'none', backgroundColor: 'white' }}>
-                {categories.map(c => <option key={c}>{c}</option>)}
+                {CATEGORIES_DEFAULT.map(c => <option key={c}>{c}</option>)}
               </select>
+            </div>
+              
+            <div>
+              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', margin: '0 0 6px' }}>Allergens</p>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {ALLERGENS.map(allergen => {
+                  const selected = form.allergens.includes(allergen);
+                  return (
+                    <button key={allergen} onClick={() => toggleAllergen(allergen)}
+                      style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', border: 'none',
+                        backgroundColor: selected ? '#FFE8E8' : '#F5F5F5',
+                        color: selected ? '#C0474A' : '#999',
+                        outline: selected ? '1.5px solid #C0474A' : '1.5px solid transparent' }}>
+                      {allergen}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', margin: '0 0 6px' }}>Dietary & Allergen Info</p>
+              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', margin: '6px 0 6px' }}>Dietary Tags</p>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {ALLERGENS.map(tag => {
+                {DIETARY_TAGS.map(tag => {
                   const selected = form.tags.includes(tag);
                   return (
                     <button key={tag} onClick={() => toggleTag(tag)}
-                      style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', border: 'none', backgroundColor: selected ? (tagColors[tag]?.bg || '#eee') : '#F5F5F5', color: selected ? (tagColors[tag]?.color || '#444') : '#999', outline: selected ? `1.5px solid ${tagColors[tag]?.color || '#ccc'}` : '1.5px solid transparent' }}>
+                      style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', border: 'none',
+                        backgroundColor: selected ? (tagColors[tag]?.bg || '#eee') : '#F5F5F5',
+                        color: selected ? (tagColors[tag]?.color || '#444') : '#999',
+                        outline: selected ? `1.5px solid ${tagColors[tag]?.color || '#ccc'}` : '1.5px solid transparent' }}>
                       {tag}
                     </button>
                   );
@@ -519,7 +534,7 @@ const estimatedRevenue = selectedItem
 }
 
 // ============ VENDOR APPLICATION FORM ============
-const VENDOR_CATEGORIES = ['Fast Food', 'Cafe', 'Asian', 'Pizza', 'Healthy', 'Indian', 'Other'];
+const VENDOR_CATEGORIES = ['Fast Food', 'Cafe', 'Asian', 'Pizza', 'Healthy', 'Indian', 'Mains'];
 
 function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
   const [submitting, setSubmitting] = useState(false);
