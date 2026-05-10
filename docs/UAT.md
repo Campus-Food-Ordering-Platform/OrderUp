@@ -227,3 +227,96 @@ so that I can identify and resolve student or vendor complaints efficiently.
 | 2 | I am on the Disputes tab | I view a dispute entry | I can see the order ID, student name, vendor and dispute reason | Pass |
 | 3 | I am on the Disputes tab | I type in the search bar | Only disputes matching the search query are displayed | Pass |
 | 4 | I am on the Disputes tab | No disputes match my search | An empty state message is displayed | Pass |
+
+# OrderUp – Sprint 3 User Stories & Acceptance Tests
+
+---
+
+## US013 - Student Rate a Vendor
+
+**User Story:** As a student, I want to rate a vendor after my order is completed, so that I can share my experience and help other students make informed choices.
+
+| # | Given | When | Then | Status |
+|---|---|---|---|---|
+| 1 | I am on the Order History page | I view a completed order | I can see a "Rate" button on the order card | Pass |
+| 2 | I have already rated a vendor | I view that order | The "Rate" button is no longer visible for that order | Pass |
+| 3 | I am on the Order History page | I click "Rate" on a completed order | A rating modal opens with 5 stars and a comment box | Pass |
+| 4 | The rating modal is open | I click on a star | The stars highlight up to my selection | Pass |
+| 5 | I have selected a rating | I click "Submit Review" | The modal closes and the "Rate" button disappears for that order | Pass |
+| 6 | I try to rate an order that is not completed | I view the order card | No "Rate" button is shown | Pass |
+
+---
+
+## US014 - Vendor View Analytics Dashboard
+
+**User Story:** As a vendor, I want to view my analytics, so that I can track my revenue, popular times and top-selling items to make better business decisions.
+
+| # | Given | When | Then | Status |
+|---|---|---|---|---|
+| 1 | I am on the vendor dashboard | I click the "Analytics" tab | I see my analytics dashboard | Pass |
+| 2 | I am on the Analytics tab | The page loads | I can see stat cards showing Total Revenue, Total Orders and Total Customers | Pass |
+| 3 | I am on the Analytics tab | The page loads | I can see a weekly revenue bar chart | Pass |
+| 4 | I am on the Analytics tab | The page loads | I can see a "Top Selling Items" list with item name, quantity sold and revenue | Pass |
+| 5 | I am on the Analytics tab | The page loads | I can see a "Popular Times" section showing peak order hours | Pass |
+| 6 | I am on the Analytics tab | I change the time period dropdown | The stats update to reflect the selected period | Pass |
+
+---
+
+## US015 - New Vendor Apply to the Platform
+
+**User Story:** As a new vendor, I want to submit a vendor application, so that I can register my stall on OrderUp and start receiving orders once approved.
+
+| # | Given | When | Then | Status |
+|---|---|---|---|---|
+| 1 | I sign up and log in as a vendor for the first time | The vendor dashboard loads | I am taken directly to the Vendor Application form | Pass |
+| 2 | I am on the Vendor Application form | I view the page | I can see fields for stall name, category, owner details, location, hours, description and banking info | Pass |
+| 3 | I am on the application form | I try to submit without filling required fields | I see an alert asking me to complete all required fields | Pass |
+| 4 | I have filled in all required fields | I click "Submit Application" | The form submits and I am taken to a pending review screen | Pass |
+| 5 | I am on the pending review screen | The page loads | I see a progress tracker showing "Submitted → Under Review → Approved & Live" | Pass |
+| 6 | I log back in while my application is under review | The vendor dashboard loads | I am still shown the pending screen, not the main dashboard | Pass |
+
+---
+
+## US016 - Student Track Active Order from Dashboard
+
+**User Story:** As a student, I want to see my active order directly on the dashboard, so that I can quickly check its status without navigating away.
+
+| # | Given | When | Then | Status |
+|---|---|---|---|---|
+| 1 | I have placed an order that is still active | I open the student dashboard | I see an active order banner below the hero section | Pass |
+| 2 | I am on the student dashboard | I view the active order banner | I can see the vendor name, item names and current order status | Pass |
+| 3 | I am on the student dashboard | I click the active order banner | I am taken to the Order Confirmed page for that order | Pass |
+| 4 | I am on the student dashboard | I click the box icon in the top nav bar | I am taken to the Order Confirmed page | Pass |
+| 5 | I have no active orders | I open the student dashboard | No active order banner is shown | Pass |
+| 6 | I have no active orders | I click the box icon in the nav bar | I see a message saying there are no active orders | Pass |
+
+---
+
+## US017 - Admin Reinstate a Suspended Vendor
+
+**User Story:** As an admin, I want to reinstate a suspended vendor, so that I can restore their access to the platform after resolving an issue.
+
+| # | Given | When | Then | Status |
+|---|---|---|---|---|
+| 1 | I am on the Vendors tab | I click the "Suspended" filter | Only suspended vendors are shown | Pass |
+| 2 | I am viewing a suspended vendor card | I view the card | I can see a "Reinstate" button instead of the Suspend button | Pass |
+| 3 | I am viewing a suspended vendor | I click "Reinstate" | The vendor's status immediately changes to Active | Pass |
+| 4 | I have reinstated a vendor | I view their card | The status badge now shows "Active" | Pass |
+| 5 | A vendor has been reinstated | A student opens the student dashboard | The vendor's stall now appears in the vendor grid | Pass |
+
+---
+
+## US018 - Student Sign Out of the Application
+
+**User Story:** As a student, I want to be able to sign out of the application, so that I can securely end my session and protect my account.
+
+| # | Given | When | Then | Status |
+|---|---|---|---|---|
+| 1 | I am logged in as a student on any page | I hover over the person icon in the top nav bar | A "Sign Out" button appears below the icon | Pass |
+| 2 | The "Sign Out" button is visible | I move my mouse towards the button | The button remains visible and does not disappear before I can click it | Pass |
+| 3 | The "Sign Out" button is visible | I click "Sign Out" | I am logged out and redirected to the login page | Pass |
+| 4 | I am on the Student Dashboard | I hover over the person icon | The "Sign Out" popup appears | Pass |
+| 5 | I am on the Order History page | I hover over the person icon | The "Sign Out" popup appears | Pass |
+| 6 | I am on the Vendor Menu page | I hover over the person icon | The "Sign Out" popup appears | Pass |
+| 7 | I signed out successfully | I try to navigate back using the browser back button | I am redirected back to the login page and cannot access student pages | Pass |
+
