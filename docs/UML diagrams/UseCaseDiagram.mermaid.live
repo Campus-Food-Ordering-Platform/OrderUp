@@ -1,0 +1,108 @@
+flowchart LR
+    %% Actors
+    Student((Student / Customer))
+    Vendor((Vendor))
+    Admin((Admin))
+    Auth0((Auth0))
+    PayStack((PayStack))
+    WebPush((Web Push / VAPID))
+
+    %% System Boundary
+    subgraph OrderUp ["OrderUp System (Final Vision)"]
+        direction TB
+
+        %% Auth & Foundation
+        UC_SignIn([Sign in])
+        UC_Auth([Authenticate user])
+        UC_RoleSelect([Select Role])
+        UC_SignOut([Sign Out])
+
+        %% Student Use Cases
+        UC_Browse([Browse Vendors & Feature Popular])
+        UC_Menu([View Menu & Standardized Dietary Labels])
+        UC_Cart([Manage Multi-Vendor Cart])
+        UC_Checkout([Checkout multi-vendor order])
+        UC_Pay([Process payment via PayStack])
+        UC_Track([Track Order Live])
+        UC_Cancel([Cancel Order before prep starts])
+        UC_History([View Order History])
+        UC_Rate([Rate & Review Vendors])
+        UC_Place([Place Order])
+        UC_EnableNotif([Enable Push Notifications])
+        UC_ReceiveNotif([Receive Order Status Notification])
+
+        %% Vendor Use Cases
+        UC_VendApp([Submit First-Time Vendor Application])
+        UC_Profile([Manage Vendor Profile & Hours])
+        UC_ManageMenu([Create/Update/Delete Menu Item])
+        UC_SoldOut([Mark item as sold out])
+        UC_InOrders([View Incoming Orders])
+        UC_UpdateOrder([Update Order Status])
+        UC_VendAnalytics([View Vendor Analytics])
+        UC_VendExport([Export Analytics as CSV/PDF])
+        UC_TriggerNotif([Trigger Order Notification])
+
+        %% Admin Use Cases
+        UC_ReviewApp([Review Vendor Applications])
+        UC_Approve([Approve/Reject Vendor])
+        UC_Suspend([Suspend Vendor])
+        UC_Reinstate([Reinstate Suspended Vendor])
+        UC_AdminAnalytics([Monitor Platform Activities])
+        UC_AdminExport([Export Platform Reports])
+        UC_NotifAdmin([Receive New Application Alert])
+    end
+
+    %% Student Connections
+    Student --- UC_SignIn
+    Student --- UC_SignOut
+    Student --- UC_Browse
+    Student --- UC_Menu
+    Student --- UC_Cart
+    Student --- UC_Checkout
+    Student --- UC_Track
+    Student --- UC_Cancel
+    Student --- UC_History
+    Student --- UC_Rate
+    Student --- UC_EnableNotif
+    Student --- UC_ReceiveNotif
+
+    %% Vendor Connections
+    Vendor --- UC_SignIn
+    Vendor --- UC_SignOut
+    Vendor --- UC_VendApp
+    Vendor --- UC_Profile
+    Vendor --- UC_ManageMenu
+    Vendor --- UC_SoldOut
+    Vendor --- UC_InOrders
+    Vendor --- UC_UpdateOrder
+    Vendor --- UC_VendAnalytics
+    Vendor --- UC_VendExport
+    Vendor --- UC_TriggerNotif
+
+    %% Admin Connections
+    Admin --- UC_SignIn
+    Admin --- UC_SignOut
+    Admin --- UC_ReviewApp
+    Admin --- UC_Approve
+    Admin --- UC_Suspend
+    Admin --- UC_Reinstate
+    Admin --- UC_AdminAnalytics
+    Admin --- UC_AdminExport
+    Admin --- UC_NotifAdmin
+
+    %% Includes & Dependencies
+    UC_SignIn -. "<<includes>>" .-> UC_Auth
+    UC_SignIn -. "<<includes>>" .-> UC_RoleSelect
+    UC_Checkout -. "<<includes>>" .-> UC_Pay
+    UC_Checkout -. "<<includes>>" .-> UC_Place
+    UC_EnableNotif -. "<<includes>>" .-> UC_SignIn
+    UC_UpdateOrder -. "<<includes>>" .-> UC_TriggerNotif
+    UC_TriggerNotif -. "<<includes>>" .-> UC_ReceiveNotif
+    UC_Approve -. "<<includes>>" .-> UC_NotifAdmin
+
+    %% External Systems
+    UC_Auth --- Auth0
+    UC_Pay --- PayStack
+    UC_TriggerNotif --- WebPush
+    UC_ReceiveNotif --- WebPush
+    UC_NotifAdmin --- WebPush
