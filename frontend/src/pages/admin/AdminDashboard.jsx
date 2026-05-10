@@ -46,24 +46,17 @@ export default function AdminDashboard() {
   const [reviewingVendor, setReviewingVendor]   = useState(null);
 
   useEffect(() => {
-  Promise.all([
-    fetch(`${import.meta.env.VITE_API_URL}/api/vendors/admin/all`).then(r => r.json()),
-    fetch(`${import.meta.env.VITE_API_URL}/api/vendors/applications/pending`).then(r => r.json()),
-  ])
-    .then(([vendorData, pendingData]) => {
-      const vendors = Array.isArray(vendorData) ? vendorData : [];
-      const pending = Array.isArray(pendingData) ? pendingData : [];
-      // Merge, avoiding duplicates (approved apps already have a vendor row)
-      const vendorAppIds = new Set(vendors.map(v => v.application_id).filter(Boolean));
-      const newPending = pending.filter(p => !vendorAppIds.has(p.id));
-      setVendors([...vendors, ...newPending]);
-      setLoading(false);
-    })
-    .catch(err => {
-      console.error('Failed to fetch vendors:', err);
-      setLoading(false);
-    });
-}, []);
+    fetch(`${import.meta.env.VITE_API_URL}/api/vendors/admin/all`)
+      .then(r => r.json())
+      .then(data => {
+        setVendors(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to fetch vendors:', err);
+        setLoading(false);
+      });
+  }, []);
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/orders/admin/all`)
