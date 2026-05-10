@@ -451,7 +451,6 @@ function ProfitCalculator() {
         );
 
         const json = await res.json();
-        JASON = json;
         // expects backend to return:
         // [{ name, weeklyRevenue, monthlyRevenue, weeklyOrders, monthlyOrders }]
         setItems(json.data);
