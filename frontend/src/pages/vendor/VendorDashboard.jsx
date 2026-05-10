@@ -442,28 +442,27 @@ function SimpleBarChart({ data, labels, color, height = 120 }) {
   );
 }
 
-function ProfitCalculator() {
+function RevenueCalculator({vendorId}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [duration, setDuration] = useState('week');
   const [applyDiscount, setApplyDiscount] = useState(false);
 
-  // const menuItemsForProfit = [
-  //   { id: 1, name: 'Classic Kota', basePrice: 25, weeklyProfit: 12500, monthlyProfit: 50000 },
-  //   { id: 2, name: 'Chicken Burger', basePrice: 45, weeklyProfit: 18900, monthlyProfit: 75600 },
-  //   { id: 3, name: 'Mini Chips', basePrice: 15, weeklyProfit: 5250, monthlyProfit: 21000 },
-  // ];
+
+
   const [items, setItems] = useState([]); 
 
 
   useEffect(() => {
+    // wait for vendorId to exist
+    if (!vendorId) return;
+
     const fetchItemAnalytics = async () => {
-      let JASON = undefined;
       try {
         const res = await fetch(
           // `${import.meta.env.VITE_API_URL}/api/analytics/items/${vendor_id}?range=month`
 
-          `${import.meta.env.VITE_API_URL}/api/analytics/items/52a38ed7-bb34-4b34-813e-026eb1e9f616?range=month`//using siya's vendor for development purposes
+          `${import.meta.env.VITE_API_URL}/api/analytics/items/${vendorId}?range=month`//using siya's vendor for development purposes
         );
 
         const json = await res.json();
@@ -476,7 +475,7 @@ function ProfitCalculator() {
     };
 
     fetchItemAnalytics();
-  }, []);
+  }, [vendorId]);
 
 
   const filteredItems = items.filter(item =>
@@ -497,8 +496,8 @@ const estimatedRevenue = selectedItem
 
   return (
     <div style={{ background: 'white', borderRadius: '14px', padding: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
-      <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px' }}>💰 Profit Calculator</h3>
-      <p style={{ fontSize: '0.7rem', color: '#888', marginBottom: '12px' }}>Calculate estimated profit for any menu item</p>
+      <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px' }}>💰 Revenue Calculator</h3>
+      <p style={{ fontSize: '0.7rem', color: '#888', marginBottom: '12px' }}>Calculate estimated Revenue for any menu item</p>
       <div style={{ position: 'relative', marginBottom: '12px' }}>
         <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
         <input type="text" placeholder="Search menu item..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); if (!e.target.value) setSelectedItem(null); }} style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }} />
@@ -521,7 +520,7 @@ const estimatedRevenue = selectedItem
       {estimatedRevenue && (
         <div>
           <p style={{ fontSize: '0.7rem', color: '#888' }}>Revenue contribution for "{selectedItem?.name}" {duration === 'week' ? 'next week' : 'next month'}:</p>
-          <p style={{ fontSize: '1.2rem', fontWeight: 700, color: BRAND, margin: '4px 0 8px' }}>R {estimatedRevenuet.toLocaleString()}</p>
+          <p style={{ fontSize: '1.2rem', fontWeight: 700, color: BRAND, margin: '4px 0 8px' }}>R {estimatedRevenue.toLocaleString()}</p>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.7rem' }}>
             <input type="checkbox" checked={applyDiscount} onChange={(e) => setApplyDiscount(e.target.checked)} />
             Apply 10% discount
@@ -978,7 +977,7 @@ export default function VendorDashboard() {
     }
 
     itemSalesMap[name].quantity += 1;
-    itemSalesMap[name].revenue += item.price;
+    itemSalesMap[name].revenue += parseFloat(item.price);
   });
 });
   const topSellingItems = Object.values(itemSalesMap).sort((a, b) => b.quantity - a.quantity);
@@ -1092,7 +1091,7 @@ export default function VendorDashboard() {
             </div>
             <div style={cardStyle}>
               <div style={cardHeader}><TrendingUp size={16} color="#C26A1A" /><span style={{ fontSize: '0.65rem', color: BRAND }}>Last month: R 2,30,200</span></div>
-              <p style={labelStyle}>Profit (Last Month)</p>
+              <p style={labelStyle}>Revenue (Last Month)</p>
               <h3 style={valueStyle}>R 1,85,500</h3>
             </div>
             <div style={cardStyle}>
@@ -1175,9 +1174,9 @@ export default function VendorDashboard() {
             </div>
           </div>
 
-          {/* Profit Calculator */}
+          {/* Revenue Calculator */}
           <div style={{ marginBottom: '20px' }}>
-            <ProfitCalculator />
+            <RevenueCalculator vendorId={vendorId}/>
           </div>
 
           {/* Customer Reviews */}
