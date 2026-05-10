@@ -4,6 +4,7 @@ import {
   TrendingUp, Users, ShoppingBag, DollarSign, CheckCircle2,
   Search, Star, Clock, MessageSquare, ThumbsUp, XCircle, Download
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const BRAND = '#C0474A';
 
@@ -850,6 +851,7 @@ function VendorSuspendedScreen({ vendorName }) {
 
 // ============ MAIN VENDOR DASHBOARD ============
 export default function VendorDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('orders');
   const [activeFilter, setActiveFilter] = useState('All orders');
   const [orders, setOrders] = useState([]);
@@ -1018,16 +1020,28 @@ if (vendorStatus === 'suspended') {
     <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
       {/* Header */}
       <header style={{ backgroundColor: BRAND, padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
-          </div>
-          <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
-        </div>
-        <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <UserRound size={16} color="white" strokeWidth={2} />
-        </div>
-      </header>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <div style={{ width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
+    </div>
+    <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
+  </div>
+  <div 
+    onClick={() => navigate('/vendor-settings')}
+    style={{ 
+      width: '34px', 
+      height: '34px', 
+      borderRadius: '50%', 
+      backgroundColor: 'rgba(255,255,255,0.2)', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      cursor: 'pointer' 
+    }}
+  >
+    <UserRound size={16} color="white" strokeWidth={2} />
+  </div>
+</header>
 
       {/* Hero Banner */}
       <section style={{ margin: '16px', background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, borderRadius: '18px', padding: '20px 24px' }}>
