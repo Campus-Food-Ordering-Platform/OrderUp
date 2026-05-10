@@ -2,12 +2,13 @@ import pool from '../../config/db';
 
 // ───────────── Vendors ─────────────
 
-// Fetch all vendors with their profile name (used on student dashboard)
+// Fetch all valid vendors with their profile name (used on student dashboard)
 export const getAllVendors = async () => {
   const result = await pool.query(`
     SELECT v.id, v.description, v.is_active, v.logo_url, p.name
     FROM vendors v
     JOIN profiles p ON v.profile_id = p.id
+    WHERE v.status = 'active'
     ORDER BY v.id ASC
   `);
   return result.rows;
@@ -39,47 +40,46 @@ export const getVendorMenu = async (vendorId: string) => {
 // Create a new menu item — includes tags and available from the start
 // so the vendor dashboard toggle works immediately after creation
 export const createMenuItem = async (vendorId: string, body: any) => {
+  const values = [
+    vendorId,
+    body.name,
+    body.description ?? null,
+    body.price,
+    body.category ?? null,
+    body.image_url ?? null,
+    body.tags ?? [],
+    body.available ?? true,
+  ];
   const result = await pool.query(
     `INSERT INTO menu_items (vendor_id, name, description, price, category, image_url, tags, available)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
-    [
-      vendorId,
-      body.name,
-      body.description,
-      body.price,
-      body.category,
-      body.image_url,
-      body.available ?? true,
-    ]
+    values
   );
   return result.rows[0];
 };
 
 // Update a menu item — includes tags and available so the availability
 // toggle persists after refresh and tags are not wiped on edit
-export const updateMenuItem = async (
-  vendorId: string,
-  itemId: string,
-  body: any
-) => {
+export const updateMenuItem = async (vendorId: string, itemId: string, body: any) => {
   const result = await pool.query(
     `UPDATE menu_items
-     SET name=$1, description=$2, price=$3, category=$4, image_url=$5, available=$6
-     WHERE id=$7 AND vendor_id=$8
+     SET name=$1, description=$2, price=$3, category=$4, image_url=$5, available=$6, tags=$7
+     WHERE id=$8 AND vendor_id=$9
      RETURNING *`,
     [
       body.name,
-      body.description,
+      body.description ?? null,
       body.price,
-      body.category,
-      body.image_url,
+      body.category ?? null,
+      body.image_url ?? null,
       body.available ?? true,
+      body.tags ?? [],
       itemId,
       vendorId,
     ]
   );
-  return result.rows[0]; // returns undefined if not found — controller handles 404
+  return result.rows[0];
 };
 
 // Delete a menu item — vendor_id check prevents deleting another vendor's items
@@ -107,6 +107,43 @@ export const registerVendor = async (body: any) => {
     [body.profile_id, body.description ?? null, body.logo_url ?? null]
   );
   return result.rows[0];
+};
+export const submitVendorApplication = async (body: any) => {
+  const result = await pool.query(
+    `INSERT INTO vendor_applications 
+      (profile_id, name, description, category, location, operating_hours, 
+       health_certificate_url, sample_items)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING *`,
+    [
+      body.profile_id,
+      body.name,
+      body.description ?? null,
+      body.category ?? null,        
+      body.location ?? null,
+      body.operating_hours ? JSON.stringify(body.operating_hours) : null,
+      body.health_certificate_url ?? null,
+      body.sample_items ?? null,
+    ]
+  );
+  return result.rows[0];
+};
+export const getVendorStatusByProfileId = async (profileId: string) => {
+  // First check if they have an approved vendor row
+  const vendorResult = await pool.query(
+    `SELECT v.id, v.status, v.vendor_name as name FROM vendors v WHERE v.profile_id = $1`,
+    [profileId]
+  );
+  if (vendorResult.rows[0]) return { type: 'vendor', ...vendorResult.rows[0] };
+
+  // Otherwise check for a pending/rejected application
+  const appResult = await pool.query(
+    `SELECT id, status, name FROM vendor_applications WHERE profile_id = $1 ORDER BY submitted_at DESC LIMIT 1`,
+    [profileId]
+  );
+  if (appResult.rows[0]) return { type: 'application', ...appResult.rows[0] };
+
+  return null;
 };
 // ───────────── admin ─────────────
 export const updateVendorStatus = async (vendorId: string, status: 'active' | 'suspended') => {//for admin to change a vendor's status
@@ -162,7 +199,33 @@ export const getAllVendorsAdmin = async () => {
   `);
   return result.rows;
 };
-
+export const getPendingApplications = async () => {
+  const result = await pool.query(`
+    SELECT
+      va.id,
+      va.name                   AS vendor_name,
+      va.description,
+      va.category,
+      va.location,
+      va.operating_hours,
+      va.health_certificate_url,
+      va.sample_items,
+      va.submitted_at,
+      va.rejection_reason,
+      va.status                 AS application_status,
+      NULL                      AS vendor_status,
+      p.name                    AS owner_name,
+      p.created_at              AS join_date,
+      va.id                     AS application_id,
+      0                         AS revenue,
+      0                         AS orders
+    FROM vendor_applications va
+    JOIN profiles p ON va.profile_id = p.id
+    WHERE va.status = 'pending'
+    ORDER BY va.submitted_at ASC
+  `);
+  return result.rows;
+};
 export const approveApplication = async (applicationId: string) => {
   const client = await pool.connect();
   try {

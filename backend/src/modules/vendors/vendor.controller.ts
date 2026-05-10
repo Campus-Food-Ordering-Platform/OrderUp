@@ -44,6 +44,7 @@ export const createMenuItem = async (req: Request<{ id: string }>, res: Response
     const data = await vendorService.createMenuItem(req.params.id, req.body);
     res.status(201).json(data);
   } catch (err) {
+    
     console.error(err);
     if (err instanceof ValidationError) {
       res.status(400).json({ error: err.message });
@@ -122,6 +123,31 @@ export const getAllVendorsAdmin = async (_req: Request, res: Response) => {
   }
 };
 
+export const submitVendorApplication = async (req: Request, res: Response) => {
+  try {
+    const data = await vendorService.submitVendorApplication(req.body);
+    res.status(201).json(data);
+  } catch (err) {
+    console.error(err);
+    if (err instanceof ValidationError) {
+      res.status(400).json({ error: err.message });
+    } else {
+      res.status(500).json({ error: 'Failed to submit application' });
+    }
+  }
+};
+export const checkVendorStatus = async (req: Request, res: Response) => {
+  try {
+    const { profile_id } = req.body;
+    if (!profile_id) return res.status(400).json({ error: 'profile_id required' });
+    const data = await vendorService.getVendorStatusByProfileId(profile_id);
+    res.json(data ?? { type: 'none' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to check status' });
+  }
+};
+
 export const approveApplicationHandler = async (req: Request<{ id: string }>, res: Response) => {
   try {
     const data = await vendorService.approveApplication(req.params.id);
@@ -149,5 +175,14 @@ export const rejectApplicationHandler = async (req: Request<{ id: string }>, res
     } else {
       res.status(500).json({ error: 'Failed to reject application' });
     }
+  }
+};
+export const getPendingApplications = async (_req: Request, res: Response) => {
+  try {
+    const data = await vendorService.getPendingApplications();
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch pending applications' });
   }
 };

@@ -46,6 +46,16 @@ export const registerVendor = (body: any) => {
   }
   return vendorRepo.registerVendor(body);
 };
+export const submitVendorApplication = (body: any) => {
+  if (!body.profile_id) throw new ValidationError('profile_id is required');
+  if (!body.name)       throw new ValidationError('Vendor name is required');
+  if (!body.category)   throw new ValidationError('Category is required');
+  return vendorRepo.submitVendorApplication(body);
+};
+export const getVendorStatusByProfileId = (profileId: string) => {
+  return vendorRepo.getVendorStatusByProfileId(profileId);
+};
+
 // ───────────── admin ─────────────
 
 export const updateVendorStatus = (vendorId: string, status: 'active' | 'suspended') => {
@@ -66,4 +76,7 @@ export const approveApplication = (applicationId: string) => {
 export const rejectApplication = (applicationId: string, rejectionReason?: string) => {
   if (!applicationId) throw new ValidationError('Application ID is required');
   return vendorRepo.rejectApplication(applicationId, rejectionReason);
+};
+export const getPendingApplications = () => {
+  return vendorRepo.getPendingApplications();
 };

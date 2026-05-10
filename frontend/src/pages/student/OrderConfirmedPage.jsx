@@ -54,6 +54,7 @@ export default function OrderConfirmedPage() {
           const pendingOrder = JSON.parse(sessionStorage.getItem('pendingOrder') || '{}');
 
           if (pendingOrder.vendor_id) {
+            sessionStorage.removeItem('pendingOrder');
             const orderRes = await fetch(`${import.meta.env.VITE_API_URL}/api/orders`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -74,7 +75,6 @@ export default function OrderConfirmedPage() {
             ...order,
             id: order.id,
           });
-          sessionStorage.removeItem('pendingOrder');
           }
 
         } catch (err) {

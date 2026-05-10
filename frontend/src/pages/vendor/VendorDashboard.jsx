@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   ShoppingCart, UserRound, UtensilsCrossed, BarChart2, Trash2,
   TrendingUp, Users, ShoppingBag, DollarSign, CheckCircle2,
-  Search, Star, Clock, MessageSquare, ThumbsUp
+  Search, Star, Clock, MessageSquare, ThumbsUp, XCircle
 } from 'lucide-react';
 
 const BRAND = '#C0474A';
@@ -110,48 +110,49 @@ function MenuManager() {
 
   const emptyForm = makeEmptyForm();
 
-  useEffect(() => {
-    const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
-    const user = raw?.user ?? raw;
-    if (!user?.id) { setLoading(false); return; }
+useEffect(() => {
+  const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
+  const user = raw?.user ?? raw;
+  if (!user?.id) { setLoading(false); return; }
 
-    const init = async () => {
-      try {
-        const regRes = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profile_id: user.id }),
-        });
-        
-        // better regRes  and vendor response handling to more easily debug
-        if (!regRes.ok) {
-          const err = await regRes.text();
-          throw new Error(`Vendor register failed: ${regRes.status} - ${err}`);
-        }
+  const init = async () => {
+    try {
+      // Use /status instead of /register — register breaks for approved vendors
+      const statusRes = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile_id: user.id }),
+      });
 
-        const vendor = await regRes.json();
-
-        if (!vendor?.id) {
-          console.log('BAD VENDOR RESPONSE:', vendor);
-          throw new Error('Could not resolve vendor');
-        }
-        // now set vendor id
-        setVendorId(vendor.id);
-
-        const menuRes = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/${vendor.id}/menu`);
-        if (!menuRes.ok) throw new Error(`Server error: ${menuRes.status}`);
-        const data = await menuRes.json();
-        setItems(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Failed to initialise menu manager:', err);
-        setItems([]);
-      } finally {
-        setLoading(false);
+      if (!statusRes.ok) {
+        const err = await statusRes.text();
+        throw new Error(`Status check failed: ${statusRes.status} - ${err}`);
       }
-    };
 
-    init();
-  }, []);
+      const data = await statusRes.json();
+
+      if (!data || data.type !== 'vendor' || !data.id) {
+        console.log('No approved vendor found:', data);
+        setLoading(false);
+        return;
+      }
+
+      setVendorId(data.id);
+
+      const menuRes = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/${data.id}/menu`);
+      if (!menuRes.ok) throw new Error(`Menu fetch failed: ${menuRes.status}`);
+      const menuData = await menuRes.json();
+      setItems(Array.isArray(menuData) ? menuData : []);
+    } catch (err) {
+      console.error('Failed to initialise menu manager:', err);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  init();
+}, []);
 
   if (loading) return <p style={{ textAlign: 'center', color: '#aaa', padding: '3rem' }}>Loading menu...</p>;
 
@@ -568,27 +569,40 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
     update('sample_items', form.sample_items.filter((_, i) => i !== idx));
 
   const handleSubmit = async () => {
-    if (!form.owner_name || !form.phone || !form.description || !form.location) {
-      alert('Please fill in all required fields (marked with *)');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/${vendorId}/apply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error('Failed to submit');
-      onSubmitted();
-    } catch (err) {
-      console.error(err);
-      // Even if backend endpoint not ready, proceed to pending screen
-      onSubmitted();
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  if (!form.owner_name || !form.phone || !form.description || !form.location) {
+    alert('Please fill in all required fields (marked with *)');
+    return;
+  }
+
+  const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
+  const user = raw?.user ?? raw;
+  if (!user?.id) { alert('Not logged in'); return; }
+
+  setSubmitting(true);
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/applications`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profile_id: user.id,
+        name: form.stall_name,
+        description: form.description,
+        category: form.category ? [form.category] : [],  // wrap string in array
+        location: form.location,
+        operating_hours: form.hours ? { hours: form.hours } : null,
+        sample_items: form.sample_items.join(', ') || null,
+        health_certificate_url: null, // upload separately if needed
+      }),
+    });
+    if (!res.ok) throw new Error('Failed to submit');
+    onSubmitted();
+  } catch (err) {
+    console.error(err);
+    onSubmitted(); // existing fallback
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const inputStyle = { width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1.5px solid #EBEBEB', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', backgroundColor: 'white' };
   const labelStyle = { fontSize: '0.72rem', fontWeight: 700, color: '#888', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '6px', display: 'block' };
@@ -787,6 +801,54 @@ function VendorPendingScreen({ vendorName }) {
     </div>
   );
 }
+function VendorSuspendedScreen({ vendorName }) {
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
+      <header style={{ background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
+        </div>
+        <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
+      </header>
+
+      <div style={{ padding: '32px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#FFE8E8', border: `3px solid ${BRAND}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+          <XCircle size={36} color={BRAND} />
+        </div>
+
+        <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1a1a2e', margin: '0 0 8px', textAlign: 'center' }}>
+          Account Suspended
+        </h1>
+        <p style={{ fontSize: '0.9rem', color: '#666', textAlign: 'center', lineHeight: 1.6, marginBottom: '28px', maxWidth: '320px' }}>
+          {vendorName ? `${vendorName}, your` : 'Your'} vendor account has been temporarily suspended by an administrator.
+        </p>
+
+        <div style={{ width: '100%', backgroundColor: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)', marginBottom: '16px', borderLeft: `4px solid ${BRAND}` }}>
+          <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a1a2e', margin: '0 0 10px' }}>
+            What this means:
+          </p>
+          <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.82rem', color: '#666', lineHeight: 2 }}>
+            <li>Your store is hidden from students</li>
+            <li>You cannot receive new orders</li>
+            <li>Your menu and data are preserved</li>
+          </ul>
+        </div>
+
+        <div style={{ width: '100%', backgroundColor: '#FFF8F0', border: '1.5px solid #FFE0C8', borderRadius: '14px', padding: '16px' }}>
+          <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#C26A1A', margin: '0 0 6px' }}>
+            📩 To appeal this decision:
+          </p>
+          <p style={{ fontSize: '0.78rem', color: '#666', margin: 0, lineHeight: 1.6 }}>
+            Contact our support team at{' '}
+            <span style={{ color: BRAND, fontWeight: 600 }}>support@orderup.co.za</span>{' '}
+            with your vendor name and account details.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 // ============ MAIN VENDOR DASHBOARD ============
 export default function VendorDashboard() {
@@ -798,9 +860,6 @@ export default function VendorDashboard() {
   const [vendorDisplayName, setVendorDisplayName] = useState('');
   // so here we passing the vendor menu 
   useEffect(() => {
-    setVendorId('52a38ed7-bb34-4b34-813e-026eb1e9f616');
-    setVendorStatus('approved');
-    return; // default to approved for development/testing
     const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
     const user = raw?.user ?? raw;
     if (!user?.id) {
@@ -809,30 +868,40 @@ export default function VendorDashboard() {
     }
     // we then check the state of the user 
     const checkStatus = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profile_id: user.id }),
-        });
-        const vendor = await res.json();
-        if (!vendor?.id) { setVendorStatus('apply'); return; }
-        setVendorId(vendor.id);
-        setVendorDisplayName(vendor.stall_name || vendor.name || '');
-        if (!vendor.phone && !vendor.description) {
-          setVendorStatus('apply');
-        } else if (vendor.status === 'approved') {
-          setVendorStatus('approved');
-        } else {
-          setVendorStatus('pending');
-        }
-      } catch (err) {
-        console.error('Could not check vendor status:', err);
-        setVendorStatus('approved'); // fallback to dashboard if API unreachable
-      }
-    };
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile_id: user.id }),
+    });
+    const data = await res.json();
+
+    if (!data || data.type === 'none') {
+      setVendorStatus('apply');
+      return;
+    }
+
+    if (data.type === 'application') {
+      // Has submitted an application but not yet approved
+      setVendorStatus(data.status === 'rejected' ? 'apply' : 'pending');
+      return;
+    }
+
+    // Has a vendor row
+    setVendorId(data.id);
+    setVendorDisplayName(data.name || '');
+    if (data.status === 'suspended') setVendorStatus('suspended');
+    else if (data.status === 'active') setVendorStatus('approved');
+    else setVendorStatus('pending');
+
+  } catch (err) {
+    console.error('Could not check vendor status:', err);
+    setVendorStatus('apply');
+  }
+
+};
     checkStatus();
-  }, []);
+  }, [])
 
    useEffect(() => {
     if (!vendorId) return;
