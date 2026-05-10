@@ -1,4 +1,4 @@
-export type MenuCategory = 'Cafe' | 'Fast Food' | 'Asian' | 'Pizza' | 'Healthy' | 'Indian';
+export type MenuCategory = 'Cafe' | 'Fast Food' | 'Asian' | 'Pizza' | 'Healthy' | 'Indian' | 'Mains';
 
 export type VendorApplicationStatus = 'pending' | 'approved' | 'rejected';
 

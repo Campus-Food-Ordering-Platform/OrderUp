@@ -46,17 +46,24 @@ export default function AdminDashboard() {
   const [reviewingVendor, setReviewingVendor]   = useState(null);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/vendors/admin/all`)
-      .then(res => res.json())
-      .then(data => {
-        setVendors(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Failed to fetch vendors:', err);
-        setLoading(false);
-      });
-  }, []);
+  Promise.all([
+    fetch(`${import.meta.env.VITE_API_URL}/api/vendors/admin/all`).then(r => r.json()),
+    fetch(`${import.meta.env.VITE_API_URL}/api/vendors/applications/pending`).then(r => r.json()),
+  ])
+    .then(([vendorData, pendingData]) => {
+      const vendors = Array.isArray(vendorData) ? vendorData : [];
+      const pending = Array.isArray(pendingData) ? pendingData : [];
+      // Merge, avoiding duplicates (approved apps already have a vendor row)
+      const vendorAppIds = new Set(vendors.map(v => v.application_id).filter(Boolean));
+      const newPending = pending.filter(p => !vendorAppIds.has(p.id));
+      setVendors([...vendors, ...newPending]);
+      setLoading(false);
+    })
+    .catch(err => {
+      console.error('Failed to fetch vendors:', err);
+      setLoading(false);
+    });
+}, []);
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/orders/admin/all`)
@@ -67,25 +74,27 @@ export default function AdminDashboard() {
 
   //  Takes whole vendor object, uses vendor_status for existing vendors
   const handleApprove = async (vendor) => {
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/${vendor.id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'active' }), //  'active' is valid vendor_status enum
-      });
-      const data = await res.json();
-      console.log('APPROVE RESPONSE:', res.status, data);
-      if (res.ok) {
-        setVendors(prev => prev.map(v =>
-          v.id === vendor.id ? { ...v, vendor_status: 'active' } : v
-        ));
-        setSelectedVendor(null);
-        setReviewingVendor(null);
-      }
-    } catch (err) {
-      console.error('Failed to approve vendor:', err);
+  try {
+    const isPendingApp = !vendor.vendor_status && vendor.application_status === 'pending';
+    const url = isPendingApp
+      ? `${import.meta.env.VITE_API_URL}/api/vendors/applications/${vendor.application_id}/approve`
+      : `${import.meta.env.VITE_API_URL}/api/vendors/${vendor.id}/status`;
+    const body = isPendingApp ? {} : { status: 'active' };
+    const method = isPendingApp ? 'POST' : 'PATCH';
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      setVendors(prev => prev.filter(v => v.id !== vendor.id)); // remove from list; reload will show as active
+      setReviewingVendor(null);
     }
-  };
+  } catch (err) {
+    console.error('Failed to approve:', err);
+  }
+};
 
   //  Takes whole vendor object, uses vendor_status for existing vendors
   const handleSuspend = async (vendor) => {
@@ -709,7 +718,10 @@ export default function AdminDashboard() {
                 <h4 style={{ margin: '0 0 12px', fontSize: '0.85rem', textTransform: 'uppercase', color: '#888', fontWeight: 700 }}>Sample Menu Items</h4>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                   {reviewingVendor.sample_items && reviewingVendor.sample_items.length > 0 ? (
-                    reviewingVendor.sample_items.map((item, idx) => (
+                     (typeof reviewingVendor.sample_items === 'string'
+                    ? reviewingVendor.sample_items.split(',').map(s => s.trim()).filter(Boolean)
+                       : reviewingVendor.sample_items
+                        ).map((item, idx) => (
                       <span key={idx} style={{ backgroundColor: '#F0F0F0', color: '#444', padding: '6px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>
                         {item}
                       </span>

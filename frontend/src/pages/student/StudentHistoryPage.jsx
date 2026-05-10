@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Home, History, UserRound, Search, HelpCircle, MessageSquare, Calendar, ChevronRight, Star } from 'lucide-react';
+import { ShoppingCart, Home, History, UserRound, Search, HelpCircle, MessageSquare, Calendar, ChevronRight, Star, Package } from 'lucide-react';
+import { useAuth0 } from '@auth0/auth0-react';
 
 const BRAND = '#C0474A';
 
@@ -14,10 +15,12 @@ const STATUS_LABELS = {
 
 export default function StudentHistoryPage() {
   const navigate = useNavigate();
+  const { logout } = useAuth0();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('All');
   const [pastOrders, setPastOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showLogout, setShowLogout] = useState(false);
 
   const [ratedVendors, setRatedVendors] = useState(() => {
     try { return JSON.parse(localStorage.getItem('rated_vendors')) || []; }
@@ -116,8 +119,34 @@ export default function StudentHistoryPage() {
           <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <History size={16} color="white" strokeWidth={2} />
           </div>
-          <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <div 
+            onClick={() => navigate('/order-confirmed')}
+            style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
+            <Package size={16} color="white" strokeWidth={2} />
+          </div>
+          <div 
+            onClick={() => navigate('/checkout')}
+            style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
+            <ShoppingCart size={16} color="white" strokeWidth={2} />
+          </div>
+          <div 
+            onMouseEnter={() => setShowLogout(true)}
+            onMouseLeave={() => setShowLogout(false)}
+            style={{ position: 'relative', width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
             <UserRound size={16} color="white" strokeWidth={2} />
+            {showLogout && (
+              <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '8px', zIndex: 100 }}>
+                <div 
+                  onClick={(e) => { e.stopPropagation(); logout({ logoutParams: { returnTo: window.location.origin } }); }}
+                  style={{ backgroundColor: 'white', color: '#C0474A', padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', whiteSpace: 'nowrap' }}
+                >
+                  Sign Out
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -284,7 +313,7 @@ export default function StudentHistoryPage() {
                 )}
 
                 <button
-                  onClick={() => alert(`Opening support chat for order #${order.order_number}. Real-time support is a future feature!`)}
+                  onClick={() => window.location.href = `mailto:support@orderup.com?subject=Support Request for Order #${order.order_number}`}
                   style={{
                     flex: 1, padding: '10px', backgroundColor: '#FFF0F0', color: BRAND,
                     border: 'none', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',

@@ -21,7 +21,7 @@ const STATUS_TO_STEP = {
 export default function OrderConfirmedPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth0();
+  const { user, logout } = useAuth0();
 
   const [orderData, setOrderData] = useState(
     state ?? JSON.parse(sessionStorage.getItem('pendingOrder') || 'null')
@@ -32,6 +32,7 @@ export default function OrderConfirmedPage() {
   const note = orderData?.note;
 
   const [currentStep, setCurrentStep] = useState(0);
+  const [showLogout, setShowLogout] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -53,6 +54,7 @@ export default function OrderConfirmedPage() {
           const pendingOrder = JSON.parse(sessionStorage.getItem('pendingOrder') || '{}');
 
           if (pendingOrder.vendor_id) {
+            sessionStorage.removeItem('pendingOrder');
             const orderRes = await fetch(`${import.meta.env.VITE_API_URL}/api/orders`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -73,7 +75,6 @@ export default function OrderConfirmedPage() {
             ...order,
             id: order.id,
           });
-          sessionStorage.removeItem('pendingOrder');
           }
 
         } catch (err) {
@@ -141,8 +142,27 @@ export default function OrderConfirmedPage() {
             </div>
             <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
           </div>
-          <div onClick={() => navigate('/student-dashboard')} style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <Home size={16} color="white" strokeWidth={2} />
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <div onClick={() => navigate('/student-dashboard')} style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <Home size={16} color="white" strokeWidth={2} />
+            </div>
+            <div 
+              onMouseEnter={() => setShowLogout(true)}
+              onMouseLeave={() => setShowLogout(false)}
+              style={{ position: 'relative', width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            >
+              <UserRound size={16} color="white" strokeWidth={2} />
+              {showLogout && (
+                <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '8px', zIndex: 100 }}>
+                  <div 
+                    onClick={(e) => { e.stopPropagation(); logout({ logoutParams: { returnTo: window.location.origin } }); }}
+                    style={{ backgroundColor: 'white', color: '#C0474A', padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', whiteSpace: 'nowrap' }}
+                  >
+                    Sign Out
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -191,20 +211,35 @@ export default function OrderConfirmedPage() {
           >
             <Home size={16} color="white" strokeWidth={2} />
           </div>
-          <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <div 
+            onClick={() => navigate('/student-history')}
+            style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
             <History size={16} color="white" strokeWidth={2} />
           </div>
-          <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <Package size={16} color="white" strokeWidth={2} />
-          </div>
+
           <div
             onClick={() => navigate('/checkout')}
             style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
           >
             <ShoppingCart size={16} color="white" strokeWidth={2} />
           </div>
-          <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <div 
+            onMouseEnter={() => setShowLogout(true)}
+            onMouseLeave={() => setShowLogout(false)}
+            style={{ position: 'relative', width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
             <UserRound size={16} color="white" strokeWidth={2} />
+            {showLogout && (
+              <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '8px', zIndex: 100 }}>
+                <div 
+                  onClick={(e) => { e.stopPropagation(); logout({ logoutParams: { returnTo: window.location.origin } }); }}
+                  style={{ backgroundColor: 'white', color: '#C0474A', padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', whiteSpace: 'nowrap' }}
+                >
+                  Sign Out
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>

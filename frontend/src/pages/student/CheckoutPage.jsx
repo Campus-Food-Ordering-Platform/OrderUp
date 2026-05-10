@@ -8,6 +8,7 @@ const BRAND = '#C0474A';
 export default function CheckoutPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth0();
 
   const vendor = state?.vendor;
   const initialCart = state?.cart || {};
@@ -16,6 +17,7 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState(initialCart);
   const [note, setNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('paystack');
+  const [showLogout, setShowLogout] = useState(false);
 
   const addToCart = (itemId) =>
     setCart((prev) => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
@@ -109,8 +111,22 @@ export default function CheckoutPage() {
           <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <ShoppingCart size={16} color="white" strokeWidth={2} />
           </div>
-          <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <div 
+            onMouseEnter={() => setShowLogout(true)}
+            onMouseLeave={() => setShowLogout(false)}
+            style={{ position: 'relative', width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
             <UserRound size={16} color="white" strokeWidth={2} />
+            {showLogout && (
+              <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '8px', zIndex: 100 }}>
+                <div 
+                  onClick={(e) => { e.stopPropagation(); logout({ logoutParams: { returnTo: window.location.origin } }); }}
+                  style={{ backgroundColor: 'white', color: '#C0474A', padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', whiteSpace: 'nowrap' }}
+                >
+                  Sign Out
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>

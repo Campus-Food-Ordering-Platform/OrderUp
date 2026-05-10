@@ -11,14 +11,17 @@ router.post('/applications/:id/approve', approveApplicationHandler);
 router.post('/applications/:id/reject', rejectApplicationHandler);
 
 //admin
+router.get('/applications/pending', vendorController.getPendingApplications);
 router.get('/admin/all', vendorController.getAllVendorsAdmin);
 router.patch('/:id/status', vendorController.updateVendorStatus);
+
 // Vendors
 
 router.get('/', vendorController.getAllVendors);
 router.get('/:id', vendorController.getVendorById);
+router.post('/applications', vendorController.submitVendorApplication);
 router.post('/register', vendorController.registerVendor);
-
+router.post('/status', vendorController.checkVendorStatus);
 
 // Menu
 router.get('/:id/menu', vendorController.getVendorMenu);
