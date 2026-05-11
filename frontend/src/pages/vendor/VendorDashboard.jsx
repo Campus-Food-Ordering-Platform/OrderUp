@@ -1340,7 +1340,7 @@ const getChartInterval = (range) => {
           {/* KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '20px' }}>
             <div style={cardStyle}>
-              <div style={cardHeader}><DollarSign size={16} color={BRAND} /><span style={trendStyle}>+8%</span></div>
+              <div style={cardHeader}><DollarSign size={16} color={BRAND} /></div>
               <p style={labelStyle}>Total Revenue</p>
               <h3 style={valueStyle}>R {parseFloat(totalRevenue).toFixed(2)}</h3>
             </div>
