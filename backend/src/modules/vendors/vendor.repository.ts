@@ -30,11 +30,30 @@ export const getVendorById = async (id: string) => {
 // Fetch all menu items for a vendor — returns available AND unavailable
 // items so the student menu page can show "Out of stock" for unavailable ones
 export const getVendorMenu = async (vendorId: string) => {
-  const result = await pool.query(
-    `SELECT * FROM menu_items WHERE vendor_id = $1 ORDER BY category, name ASC`,
-    [vendorId]
-  );
-  return result.rows;
+    const result = await pool.query(
+        `SELECT 
+          m.id,
+          m.vendor_id,
+          m.name,
+          m.description,
+          m.price,
+          m.image_url,
+          m.category,
+          m.available,
+          ARRAY_AGG(DISTINCT a.allergen::text) FILTER (WHERE a.allergen IS NOT NULL) AS allergens,
+          ARRAY_AGG(DISTINCT t.tag::text) FILTER (WHERE t.tag IS NOT NULL) AS tags
+        FROM menu_items m
+        LEFT JOIN menu_item_allergens a ON a.menu_item_id = m.id
+        LEFT JOIN menu_item_dietary_tags t ON t.menu_item_id = m.id
+        WHERE m.vendor_id = $1
+        GROUP BY m.id`,
+        [vendorId]
+    );
+    return result.rows.map(row => ({
+      ...row,
+      allergens: Array.isArray(row.allergens) ? row.allergens : [],
+      tags: Array.isArray(row.tags) ? row.tags : [],
+    }));
 };
 
 // Create a new menu item — includes tags and available from the start

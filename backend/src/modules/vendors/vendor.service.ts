@@ -1,4 +1,6 @@
 import * as vendorRepo from '././vendor.repository';
+import { insertMenuItem, updateMenuItemById, findMenuItemsByVendor } from '../menu/menu.repository';
+
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -22,7 +24,7 @@ export const getVendorById = (id: string) => {
 export const getVendorMenu = (vendorId: string) => {
   return vendorRepo.getVendorMenu(vendorId);
 };
-
+/*
 export const createMenuItem = (vendorId: string, body: any) => {
   if (!body.name || !body.price) {
     throw new ValidationError('Name and price required');
@@ -33,7 +35,37 @@ export const createMenuItem = (vendorId: string, body: any) => {
 export const updateMenuItem = (vendorId: string, itemId: string, body: any) => {
   return vendorRepo.updateMenuItem(vendorId, itemId, body);
 };
+*/
+export const createMenuItem = async (vendorId: string, body: any) => {
+  if (!body.name || !body.price) {
+    throw new ValidationError('Name and price required');
+  }
+  return insertMenuItem(
+    vendorId,
+    body.name,
+    body.description ?? null,
+    body.price,
+    body.image_url ?? null,
+    body.category ?? null,
+    body.available ?? true,
+    body.allergens ?? [],
+    body.tags ?? []
+  );
+};
 
+export const updateMenuItem = async (vendorId: string, itemId: string, body: any) => {
+  return updateMenuItemById(
+    itemId,
+    body.name,
+    body.description ?? null,
+    body.price,
+    body.image_url ?? null,
+    body.category ?? null,
+    body.available ?? true,
+    body.allergens ?? [],
+    body.tags ?? []
+  );
+};
 export const deleteMenuItem = (vendorId: string, itemId: string) => {
   return vendorRepo.deleteMenuItem(vendorId, itemId);
 };

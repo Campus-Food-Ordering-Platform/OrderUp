@@ -392,11 +392,15 @@ const handleEdit = (item) => {
             <div style={{ padding: '10px 12px' }}>
               <h3 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1a1a2e', margin: '0 0 2px' }}>{item.name}</h3>
               <p style={{ fontSize: '0.72rem', color: '#888', margin: '0 0 6px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.description}</p>
-              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                {(item.tags || []).map(tag => (
-                  <span key={tag} style={{ backgroundColor: tagColors[tag]?.bg || '#F0F0F0', color: tagColors[tag]?.color || '#666', fontSize: '0.62rem', fontWeight: 600, padding: '2px 8px', borderRadius: '20px' }}>{tag}</span>
+              {/* 
+              Diplaying "tags" on menu_items card, now comdining allergens and d tags
+              */}
+             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                {[...(item.tags || []), ...(item.allergens || [])].map(tag => (
+                  <span key={tag} style={{ backgroundColor: tagColors[tag]?.bg || '#FFE8E8', color: tagColors[tag]?.color || '#C0474A', fontSize: '0.62rem', fontWeight: 600, padding: '2px 8px', borderRadius: '20px' }}>{tag}</span>
                 ))}
               </div>
+ 
               <p style={{ fontSize: '0.88rem', fontWeight: 700, color: BRAND, margin: '0 0 10px' }}>R {parseFloat(item.price).toFixed(2)}</p>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
