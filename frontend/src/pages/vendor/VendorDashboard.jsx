@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import {
   ShoppingCart, UserRound, UtensilsCrossed, BarChart2, Trash2,
   TrendingUp, Users, ShoppingBag, DollarSign, CheckCircle2,
-  Search, Star, Clock, MessageSquare, ThumbsUp, XCircle
+  Search, Star, Clock, MessageSquare, ThumbsUp, XCircle, Download
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const BRAND = '#C0474A';
 
@@ -446,32 +447,30 @@ function SimpleBarChart({ data, labels, color, height = 120 }) {
   );
 }
 
-function ProfitCalculator() {
+function RevenueCalculator({vendorId}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [duration, setDuration] = useState('week');
   const [applyDiscount, setApplyDiscount] = useState(false);
 
-  // const menuItemsForProfit = [
-  //   { id: 1, name: 'Classic Kota', basePrice: 25, weeklyProfit: 12500, monthlyProfit: 50000 },
-  //   { id: 2, name: 'Chicken Burger', basePrice: 45, weeklyProfit: 18900, monthlyProfit: 75600 },
-  //   { id: 3, name: 'Mini Chips', basePrice: 15, weeklyProfit: 5250, monthlyProfit: 21000 },
-  // ];
+
+
   const [items, setItems] = useState([]); 
 
 
   useEffect(() => {
+    // wait for vendorId to exist
+    if (!vendorId) return;
+
     const fetchItemAnalytics = async () => {
-      let JASON = undefined;
       try {
         const res = await fetch(
           // `${import.meta.env.VITE_API_URL}/api/analytics/items/${vendor_id}?range=month`
 
-          `${import.meta.env.VITE_API_URL}/api/analytics/items/52a38ed7-bb34-4b34-813e-026eb1e9f616?range=month`//using siya's vendor for development purposes
+          `${import.meta.env.VITE_API_URL}/api/analytics/items/${vendorId}?range=month`//using siya's vendor for development purposes
         );
 
         const json = await res.json();
-        JASON = json;
         // expects backend to return:
         // [{ name, weeklyRevenue, monthlyRevenue, weeklyOrders, monthlyOrders }]
         setItems(json.data);
@@ -481,7 +480,7 @@ function ProfitCalculator() {
     };
 
     fetchItemAnalytics();
-  }, []);
+  }, [vendorId]);
 
 
   const filteredItems = items.filter(item =>
@@ -502,8 +501,8 @@ const estimatedRevenue = selectedItem
 
   return (
     <div style={{ background: 'white', borderRadius: '14px', padding: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
-      <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px' }}>💰 Profit Calculator</h3>
-      <p style={{ fontSize: '0.7rem', color: '#888', marginBottom: '12px' }}>Calculate estimated profit for any menu item</p>
+      <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px' }}>💰 Revenue Calculator</h3>
+      <p style={{ fontSize: '0.7rem', color: '#888', marginBottom: '12px' }}>Calculate estimated Revenue for any menu item</p>
       <div style={{ position: 'relative', marginBottom: '12px' }}>
         <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
         <input type="text" placeholder="Search menu item..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); if (!e.target.value) setSelectedItem(null); }} style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }} />
@@ -526,7 +525,7 @@ const estimatedRevenue = selectedItem
       {estimatedRevenue && (
         <div>
           <p style={{ fontSize: '0.7rem', color: '#888' }}>Revenue contribution for "{selectedItem?.name}" {duration === 'week' ? 'next week' : 'next month'}:</p>
-          <p style={{ fontSize: '1.2rem', fontWeight: 700, color: BRAND, margin: '4px 0 8px' }}>R {estimatedRevenuet.toLocaleString()}</p>
+          <p style={{ fontSize: '1.2rem', fontWeight: 700, color: BRAND, margin: '4px 0 8px' }}>R {estimatedRevenue.toLocaleString()}</p>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.7rem' }}>
             <input type="checkbox" checked={applyDiscount} onChange={(e) => setApplyDiscount(e.target.checked)} />
             Apply 10% discount
@@ -856,6 +855,7 @@ function VendorSuspendedScreen({ vendorName }) {
 
 // ============ MAIN VENDOR DASHBOARD ============
 export default function VendorDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('orders');
   const [activeFilter, setActiveFilter] = useState('All orders');
   const [orders, setOrders] = useState([]);
@@ -894,6 +894,7 @@ export default function VendorDashboard() {
     // Has a vendor row
     setVendorId(data.id);
     setVendorDisplayName(data.name || '');
+    console.log('VENDOR DATA:', data);
     if (data.status === 'suspended') setVendorStatus('suspended');
     else if (data.status === 'active') setVendorStatus('approved');
     else setVendorStatus('pending');
@@ -923,6 +924,69 @@ export default function VendorDashboard() {
   }, [vendorId]);// this would fetch the orders for the vendor when the dashboard loads
 
 
+  //  below we setup the weekly revenue and orders
+  const [analyticsData, setAnalyticsData] = useState({
+    weeklyRevenue: [],
+    weeklyOrders: [],
+    topSellingItems: [],
+  });
+// below we setup the ranges used for the graphs and dropdown menu interactions
+  const [selectedRange, setSelectedRange] = useState('week'); 
+
+  useEffect(() => {
+  if (!vendorId) return;
+
+  const fetchAnalytics = async () => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/analytics/graph/${vendorId}?range=${encodeURIComponent(selectedRange)}`
+      );
+
+      const json = await res.json();
+      const data = json.data || {};
+
+      setAnalyticsData({
+        weeklyRevenue: (data.revenue || []).map((r) => ({
+          x: new Date(r.period).getTime(),
+          y: Number(r.revenue),
+        })),
+
+        weeklyOrders: (data.orders || []).map((o) => ({
+          x: new Date(o.period).getTime(),
+          y: Number(o.orders),
+        })),
+
+        topSellingItems: (data.items || []).map((i) => ({
+          name: i.name,
+          weeklyOrders: Number(i.weeklyOrders),
+          monthlyOrders: Number(i.monthlyOrders),
+          weeklyRevenue: Number(i.weeklyRevenue),
+          monthlyRevenue: Number(i.monthlyRevenue),
+        })),
+      });
+
+    } catch (err) {
+      console.error("Failed to fetch analytics:", err);
+    }
+  };
+
+  fetchAnalytics();
+}, [vendorId, selectedRange]);
+
+const rangeLabelMap = {
+  day: 'Today',
+  week: 'This Week',
+  month: 'This Month',
+  '3 months': 'Last 3 Months',
+  '6 months': 'Last 6 Months',
+  year: 'This Year',
+};
+
+const currentRangeLabel = rangeLabelMap[selectedRange];
+
+
+
+
   if (vendorStatus === 'loading') {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -938,7 +1002,9 @@ export default function VendorDashboard() {
   if (vendorStatus === 'pending') {
     return <VendorPendingScreen vendorName={vendorDisplayName} />;
   }
-
+if (vendorStatus === 'suspended') {
+  return <VendorSuspendedScreen vendorName={vendorDisplayName} />;
+}
   const handleUpdateStatus = async (orderId) => {
   try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}/status`, {
@@ -983,14 +1049,148 @@ export default function VendorDashboard() {
     }
 
     itemSalesMap[name].quantity += 1;
-    itemSalesMap[name].revenue += item.price;
+    itemSalesMap[name].revenue += parseFloat(item.price);
   });
 });
-  const topSellingItems = Object.values(itemSalesMap).sort((a, b) => b.quantity - a.quantity);
+  // const topSellingItems = Object.values(itemSalesMap).sort((a, b) => b.quantity - a.quantity);
+  const weeklyRevenue = analyticsData.weeklyRevenue ?? [];
+  const weeklyOrders = analyticsData.weeklyOrders ?? [];
+  const topSellingItems = analyticsData.topSellingItems.map(i => ({
+    name: i.name,
+    quantity: i.weeklyOrders,
+    revenue: i.weeklyRevenue,
+  }));  
 
-  const weeklyRevenue = [18500, 22100, 19800, 24300, 26700, 28900, 31200];
-  const weeklyOrders = [42, 48, 45, 52, 58, 62, 68];
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const getChartInterval = (range) => {
+  switch (range) {
+    case 'day':
+      return 'hour';
+
+    case 'week':
+      return 'weekday';
+
+    case 'month':
+      return 'day';
+
+    case '3 months':
+      return 'week';
+
+    case '6 months':
+      return 'week';
+
+    case 'year':
+      return 'month';
+
+    default:
+      return 'day';
+  }
+};
+
+  const revenueChart = weeklyRevenue.map(p => p.y);
+  const orderChart = weeklyOrders.map(p => p.y);
+
+  const interval = getChartInterval(selectedRange);
+
+  const getLabelFormat = (range) => {
+    switch (range) {
+      case 'day':
+        return {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        };
+
+      case 'week':
+        return { weekday: 'short' }; // Mon, Tue
+
+      case 'month':
+        return { day: 'numeric' }; // 1, 2, 3...
+
+      case '3 months':
+      case '6 months':
+        return { month: 'short', day: 'numeric'};
+      case 'year':
+        return { month: 'short' }; // Jan, Feb, Mar
+
+      default:
+        return { month: 'short', day: 'numeric'};
+    }
+  };
+
+
+  const labelFormat = getLabelFormat(selectedRange);
+
+  const labels = weeklyRevenue.map(p =>
+    new Date(p.x).toLocaleDateString(undefined, labelFormat)
+  );
+
+  const totalRevenueChart = revenueChart.reduce((a, b) => a + b, 0);
+  const avgRevenueChart =
+    revenueChart.length > 0
+      ? totalRevenueChart / revenueChart.length
+      : 0;
+
+  const totalOrdersChart = orderChart.reduce((a, b) => a + b, 0);
+  const peakOrdersChart =
+    orderChart.length > 0
+      ? Math.max(...orderChart)
+      : 0;
+
+
+  const getRangeMs = (range) => {
+    const now = new Date().getTime();
+
+    switch (range) {
+      case 'day': return 24 * 60 * 60 * 1000;
+      case 'week': return 7 * 24 * 60 * 60 * 1000;
+      case 'month': return 30 * 24 * 60 * 60 * 1000;
+      case '3 months': return 90 * 24 * 60 * 60 * 1000;
+      case '6 months': return 180 * 24 * 60 * 60 * 1000;
+      case 'year': return 365 * 24 * 60 * 60 * 1000;
+      default: return 7 * 24 * 60 * 60 * 1000;
+    }
+  };
+
+  const now = Date.now();
+  const rangeMs = getRangeMs(selectedRange);
+
+  const currentStart = now - rangeMs;
+  const previousStart = now - (2 * rangeMs);
+  const previousEnd = currentStart;
+
+  const ordersCurrent = orders.filter(o => {
+    const t = new Date(o.created_at).getTime();
+    return t >= currentStart && t <= now;
+  });
+
+  const ordersPrevious = orders.filter(o => {
+    const t = new Date(o.created_at).getTime();
+    return t >= previousStart && t < previousEnd;
+  });
+
+
+
+
+  
+
+
+  const revenueCurrent = ordersCurrent.reduce(
+    (sum, o) => sum + Number(o.total_amount),
+    0
+  );
+
+  const ordersCountCurrent = ordersCurrent.length;
+
+  const revenuePrevious = ordersPrevious.reduce(
+    (sum, o) => sum + Number(o.total_amount),
+    0
+  );
+
+  const ordersCountPrevious = ordersPrevious.length;
+
+  const revenueVsLast = ((revenueCurrent - revenuePrevious)/revenuePrevious)*100;
+  const ordersVsLast = ((ordersCountCurrent - ordersCountPrevious)/ordersCountPrevious)*100;
+
 
   const likedDishesData = [
     { name: 'Classic Kota', percentage: 45, sales: 156, trend: '+12%' },
@@ -1021,16 +1221,28 @@ export default function VendorDashboard() {
     <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
       {/* Header */}
       <header style={{ backgroundColor: BRAND, padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
-          </div>
-          <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
-        </div>
-        <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <UserRound size={16} color="white" strokeWidth={2} />
-        </div>
-      </header>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <div style={{ width: '36px', height: '36px', backgroundColor: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <ShoppingCart size={18} color={BRAND} strokeWidth={2.5} />
+    </div>
+    <span style={{ color: 'white', fontSize: '1.2rem', fontWeight: 800 }}>OrderUp</span>
+  </div>
+  <div 
+    onClick={() => navigate('/vendor-settings')}
+    style={{ 
+      width: '34px', 
+      height: '34px', 
+      borderRadius: '50%', 
+      backgroundColor: 'rgba(255,255,255,0.2)', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      cursor: 'pointer' 
+    }}
+  >
+    <UserRound size={16} color="white" strokeWidth={2} />
+  </div>
+</header>
 
       {/* Hero Banner */}
       <section style={{ margin: '16px', background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, borderRadius: '18px', padding: '20px 24px' }}>
@@ -1081,24 +1293,86 @@ export default function VendorDashboard() {
         <section style={{ padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Analytics Dashboard</h2>
-            <select style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #E0E0E0', fontSize: '0.7rem' }}>
-              <option>This Week</option>
-              <option>This Month</option>
-              <option>Last 3 Months</option>
-            </select>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <select
+                value={selectedRange}
+                onChange={(e) => setSelectedRange(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #E0E0E0',
+                  fontSize: '0.7rem'
+                }}
+              >
+                <option value="day">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="3 months">Last 3 Months</option>
+                <option value="6 months">Last 6 Months</option>
+                <option value="year">This Year</option>
+              </select>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/analytics/${vendorId}/revenue/export/csv`);
+                    if (!res.ok) throw new Error('Export failed');
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `revenue-report-${new Date().toISOString().slice(0, 10)}.csv`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                  } catch (err) {
+                    alert('Could not export CSV. Please try again.');
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '6px 14px', borderRadius: '8px',
+                  backgroundColor: BRAND, color: 'white',
+                  border: 'none', fontSize: '0.75rem', fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                <Download size={13} />
+                Export CSV
+              </button>
+            </div>
           </div>
 
           {/* KPI Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '20px' }}>
             <div style={cardStyle}>
-              <div style={cardHeader}><DollarSign size={16} color={BRAND} /><span style={trendStyle}>+8%</span></div>
+              <div style={cardHeader}><DollarSign size={16} color={BRAND} /></div>
               <p style={labelStyle}>Total Revenue</p>
-              <h3 style={valueStyle}>R {totalRevenue}</h3>
+              <h3 style={valueStyle}>R {parseFloat(totalRevenue).toFixed(2)}</h3>
             </div>
             <div style={cardStyle}>
-              <div style={cardHeader}><TrendingUp size={16} color="#C26A1A" /><span style={{ fontSize: '0.65rem', color: BRAND }}>Last month: R 2,30,200</span></div>
-              <p style={labelStyle}>Profit (Last Month)</p>
-              <h3 style={valueStyle}>R 1,85,500</h3>
+              <div style={cardHeader}><TrendingUp size={16} color="#C26A1A" />
+              <span style={{ fontSize: '0.65rem', color: BRAND }}>  Previous period: R {revenuePrevious.toFixed(2)}</span></div>
+              <p style={labelStyle}>
+                Revenue ({currentRangeLabel})
+              </p>
+
+              <h3 style={valueStyle}>
+                R {revenueCurrent.toFixed(2)}
+              </h3>
+            </div>
+            <div style={cardStyle}>
+              <div style={cardHeader}>
+                <ShoppingCart size={16} color="#2A6DB5" />
+                <span style={{ fontSize: '0.65rem', color: BRAND }}>  Previous period: {ordersCountPrevious}</span>
+              </div>
+                
+
+              <p style={labelStyle}>
+                Orders ({currentRangeLabel})
+              </p>
+
+              <h3 style={valueStyle}>
+                {ordersCountCurrent}
+              </h3>
             </div>
             <div style={cardStyle}>
               <ShoppingBag size={16} color="#2A6DB5" />
@@ -1115,26 +1389,36 @@ export default function VendorDashboard() {
           {/* Revenue Chart */}
           <div style={{ ...cardStyle, marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📈 Revenue Trend (This Week)</h3>
-              <span style={{ fontSize: '0.7rem', color: '#2A7D2A' }}>↑ 12% vs last week</span>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📈Revenue Trend ({currentRangeLabel})</h3>
+              <span style={{ fontSize: '0.7rem', color: '#2A7D2A' }}> {revenueVsLast.toFixed(2)}% vs last period</span>
             </div>
-            <SimpleBarChart data={weeklyRevenue} labels={days} color={BRAND} height={140} />
+            <SimpleBarChart data={revenueChart} labels={labels} color={BRAND} height={140} />            
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-              <span style={{ fontSize: '0.65rem', color: '#888' }}>Total: R {weeklyRevenue.reduce((a, b) => a + b, 0).toLocaleString()}</span>
-              <span style={{ fontSize: '0.65rem', color: '#888' }}>Avg: R {(weeklyRevenue.reduce((a, b) => a + b, 0) / 7).toFixed(0)}</span>
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>
+                Total: R {totalRevenueChart.toLocaleString()}
+              </span>
+
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>
+                Avg: R {avgRevenueChart.toFixed(2)}
+              </span>
             </div>
           </div>
 
           {/* Orders Chart */}
           <div style={{ ...cardStyle, marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📊 Orders Trend (This Week)</h3>
-              <span style={{ fontSize: '0.7rem', color: '#2A7D2A' }}>↑ 8% vs last week</span>
-            </div>
-            <SimpleBarChart data={weeklyOrders} labels={days} color="#7B4FBF" height={120} />
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📊 Revenue Trend ({currentRangeLabel})</h3>
+              <span style={{ fontSize: '0.7rem', color: '#2A7D2A' }}> {ordersVsLast.toFixed(2)}% vs last period</span>
+            </div> 
+            <SimpleBarChart data={orderChart} labels={labels} color={'#7B4FBF'} height={140} />            
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-              <span style={{ fontSize: '0.65rem', color: '#888' }}>Total: {weeklyOrders.reduce((a, b) => a + b, 0)} orders</span>
-              <span style={{ fontSize: '0.65rem', color: '#888' }}>Peak: {Math.max(...weeklyOrders)} orders (Fri)</span>
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>
+                Total: {totalOrdersChart} orders
+              </span>
+
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>
+                Peak: {peakOrdersChart} orders
+              </span>
             </div>
           </div>
 
@@ -1180,9 +1464,9 @@ export default function VendorDashboard() {
             </div>
           </div>
 
-          {/* Profit Calculator */}
+          {/* Revenue Calculator */}
           <div style={{ marginBottom: '20px' }}>
-            <ProfitCalculator />
+            <RevenueCalculator vendorId={vendorId}/>
           </div>
 
           {/* Customer Reviews */}

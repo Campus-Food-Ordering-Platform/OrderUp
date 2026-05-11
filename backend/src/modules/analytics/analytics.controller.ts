@@ -24,21 +24,16 @@ export const exportRevenueCSV = async(req: Request, res: Response) => {
 };
 
 
-type Range =
-    | 'day'
-    | 'week'
-    | 'month'
-    | '3months'
-    | '6months'
-    | 'year';
+type Range = 'day' | 'week' | 'month' | '3 months' | '6 months' | 'year' | '2 days' | '14 days' | '2 months' | '12 months' | '2 years' | null;
+
 
 const isValidRange = (value: any): value is Range => {
     return [
         'day',
         'week',
         'month',
-        '3months',
-        '6months',
+        '3 months',
+        '6 months',
         'year'
     ].includes(value);
 };
@@ -101,7 +96,8 @@ export const getRevenueAnalytics = async (
             return res.status(400).json({
                 error: 'Invalid vendor_iddddd' 
             });
-        }        const { range } = req.query;
+        }        
+        const { range } = req.query;
 
         if (!vendor_id) {
             return res.status(400).json({
@@ -228,4 +224,82 @@ export const getItemAnalytics = async (
         });
     }
 };
+
+export const getVendorAnalytics = async (    
+    req: Request,
+    res: Response
+) => {
+        const vendor_id = req.params.vendor_id;
+        if (!vendor_id || Array.isArray(vendor_id)) {
+            return res.status(400).json({
+                error: 'Invalid vendor_iddddd' 
+            });
+        }        
+        const { range } = req.query;
+
+        if (!vendor_id) {
+            return res.status(400).json({
+                error: 'vendor_id is required'
+            });
+        }
+
+        if (range && !isValidRange(range)) {
+            return res.status(400).json({
+                error: 'Invalid range value'
+            });
+        }
+
+   
+    const rangeConfig = AnalyticsService.getRangeConfig(range as Range);
+    const previousWindow = AnalyticsService.getPreviousWindow(range as Range);
+
+    const [ordersSeries, revenueSeries, customersSeries, items] =
+    await Promise.all([
+        AnalyticsService.getOrderInRange(vendor_id, range as Range),
+        AnalyticsService.getRevenueInRange(vendor_id, range as Range),
+        AnalyticsService.getCustomerInRange(vendor_id, range as Range),
+        AnalyticsService.getItems(vendor_id),
+
+        // AnalyticsService.getRevenueSummary(vendor_id, previousWindow),
+        // AnalyticsService.getOrderSummary(vendor_id, previousWindow),
+        // AnalyticsService.getCustomerSummary(vendor_id, previousWindow),
+    ]);
+    const [
+        currRevenue,
+        currOrders,
+        currCustomers,
+        prevRevenue,
+        prevOrders,
+        prevCustomers
+    ] = await Promise.all([
+        AnalyticsService.getRevenueSummary(vendor_id, range as Range),
+        AnalyticsService.getOrderSummary(vendor_id, range as Range),
+        AnalyticsService.getCustomerSummary(vendor_id, range as Range),
+
+        AnalyticsService.getRevenueSummary(vendor_id, previousWindow),
+        AnalyticsService.getOrderSummary(vendor_id, previousWindow),
+        AnalyticsService.getCustomerSummary(vendor_id, previousWindow),
+    ]);
+
+
+
+    return res.json({
+    success: true,
+    data: {
+        orders: ordersSeries,
+        revenue: revenueSeries,
+        customers: customersSeries,
+        items,
+
+        kpis: {
+        revenue: { current: currRevenue, previous: prevRevenue },
+        orders: { current: currOrders, previous: prevOrders },
+        customers: { current: currCustomers, previous: prevCustomers },
+        }
+    }
+    });
+
+  
+};
+
 

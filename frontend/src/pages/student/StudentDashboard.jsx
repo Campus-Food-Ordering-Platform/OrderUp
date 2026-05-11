@@ -104,7 +104,7 @@ export default function StudentDashboard() {
     const [pushEnabled, setPushEnabled] = useState(false); // to track if push notifications are enabled for this user
     useEffect(() => {
 
-    if (!user?.sub) return;
+    if (!user?.sub) return;  // still need user to be loaded before we can read localStorage
 
     // Check if already subscribed so we don't show the button unnecessarily
     navigator.serviceWorker?.ready.then(reg =>
@@ -113,9 +113,13 @@ export default function StudentDashboard() {
       if (sub) setPushEnabled(true);
     });
 
+      const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
+      const localUser = raw?.user ?? raw;
+      const internalUserId = localUser?.id;
+
       const fetchActiveOrder = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/student/${user.sub}/active`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/student/${internalUserId}/active`);
         if (!res.ok) return;
           const data = await res.json();
           setActiveOrder(data);
@@ -128,7 +132,7 @@ export default function StudentDashboard() {
 
    // ── Called when student taps "Enable order notifications" ─────────────────
   const handleEnableNotifications = async () => {
-    if (!user?.sub) return;
+    if (!user?.sub) return;  // still need user to be loaded before we can read localStorage
     await subscribeToPush(user.sub);
     setPushEnabled(true);
   };// After fetching vendors, we apply both the category filter and the search query. The filter checks if the vendor's category matches the active filter (or if "All" is selected), while the search checks if the query is included in either the vendor's name or description. We also ensure that if name or description is missing, it doesn't break the search by defaulting to an empty string.

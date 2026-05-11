@@ -1,14 +1,15 @@
-import { createOrder, getOrdersByVendor, getOrderById, updateOrderStatus, getActiveOrderByStudent,getOrdersByStudent, getAllOrdersAdmin } from './order.repository';
+import { createOrder, getOrdersByVendor, getOrderById, updateOrderStatus, getActiveOrderByStudent, getOrdersByStudent, getAllOrdersAdmin } from './order.repository';
 import { CreateOrderDTO } from './order.model';
 import { OrderStatus, STATUS_TRANSITIONS } from './order.status';
 import pool from '../../config/db';
 import { sendPushNotification } from '../notifications/notification.service';
 
+// Place a new order (Auth0 ID resolution happens inside createOrder)
 export async function placeOrder(data: CreateOrderDTO) {
   return await createOrder(data);
 }
 
-// ── Push messages for each status the student cares about ───────────────────
+// Push notification messages for each status transition the student cares about
 const PUSH_MESSAGES: Record<string, { title: string; body: string }> = {
   [OrderStatus.Preparing]: {
     title: '👨‍🍳 Being prepared!',
@@ -24,16 +25,19 @@ const PUSH_MESSAGES: Record<string, { title: string; body: string }> = {
   },
 };
 
+// Fetch all orders for a vendor's dashboard
 export async function getVendorOrders(vendorId: string) {
   return await getOrdersByVendor(vendorId);
 }
 
+// Fetch a single order's status (used by student for polling)
 export async function getOrderStatus(orderId: string) {
   const order = await getOrderById(orderId);
   if (!order) throw new Error('Order not found');
   return order;
 }
 
+// Advance an order to the next status and send a push notification if ready
 export async function advanceOrderStatus(orderId: string) {
   const order = await getOrderById(orderId);
   if (!order) throw new Error('Order not found');
@@ -46,7 +50,7 @@ export async function advanceOrderStatus(orderId: string) {
 
   const updated = await updateOrderStatus(orderId, nextStatus);
 
-  // Send push notification when order is ready
+  // Notify the student when their order is ready for pickup
   if (nextStatus === OrderStatus.Ready) {
     try {
       const subResult = await pool.query(
@@ -68,13 +72,17 @@ export async function advanceOrderStatus(orderId: string) {
   return updated;
 }
 
+// Get the student's current active order (Auth0 ID passed in, resolved in repository)
 export async function getStudentActiveOrder(studentId: string) {
   return await getActiveOrderByStudent(studentId);
 }
-export async function getStudentHistory(studentId: string) { //this is for the order history page
+
+// Get full order history for a student (Auth0 ID passed in, resolved in repository)
+export async function getStudentHistory(studentId: string) {
   return getOrdersByStudent(studentId);
 }
 
+// Fetch all orders for the admin view
 export async function getAllOrdersForAdmin() {
   return await getAllOrdersAdmin();
 }

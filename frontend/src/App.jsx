@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import PrivateRoute from './components/PrivateRoute'
 
 import WelcomePage from './pages/WelcomePage.jsx';
 import RoleSelectionPage from './pages/auth/RoleSelectionPage.jsx';
@@ -11,6 +12,7 @@ import CheckoutPage from './pages/student/CheckoutPage.jsx';
 import OrderConfirmedPage from './pages/student/OrderConfirmedPage.jsx';
 import StudentHistoryPage from './pages/student/StudentHistoryPage.jsx';
 import AuthCallback from './components/auth/AuthCallback';
+import VendorSettings from './pages/vendor/VendorSettings';
 
 
 
@@ -41,6 +43,10 @@ function App() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/order-confirmed" element={<OrderConfirmedPage />} />
         <Route path="/student-history" element={<StudentHistoryPage />} />
+
+        <Route path="/vendor-settings" element={<VendorSettings />} />
+
+
 
         {/* Fallback - redirect unknown routes back to home */}
         <Route path="*" element={<Navigate to="/" replace />} />

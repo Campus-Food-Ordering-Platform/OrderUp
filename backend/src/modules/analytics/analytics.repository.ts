@@ -95,17 +95,95 @@ export const getCustomerTotal = async (
 }
 // thats it for now. db needs to be updated to call customer reveiws, and likes /dislikes for items
 export const getItems = async (
-    vendor_id : string
+    vendor_id: string
 ) => {
 
     const query = `
         SELECT
-             (name) from menu_items where vendor_id = $1;
+            item->>'name' AS name,
+
+            COALESCE(SUM(
+                CASE
+                    WHEN o.created_at >= NOW() - INTERVAL '7 days'
+                    THEN (item->>'quantity')::int
+                    ELSE 0
+                END
+            ), 0) AS "weeklyOrders",
+
+            COALESCE(SUM(
+                CASE
+                    WHEN o.created_at >= NOW() - INTERVAL '30 days'
+                    THEN (item->>'quantity')::int
+                    ELSE 0
+                END
+            ), 0) AS "monthlyOrders",
+
+            COALESCE(SUM(
+                CASE
+                    WHEN o.created_at >= NOW() - INTERVAL '7 days'
+                    THEN ((item->>'quantity')::int * (item->>'price')::numeric)
+                    ELSE 0
+                END
+            ), 0) AS "weeklyRevenue",
+
+            COALESCE(SUM(
+                CASE
+                    WHEN o.created_at >= NOW() - INTERVAL '30 days'
+                    THEN ((item->>'quantity')::int * (item->>'price')::numeric)
+                    ELSE 0
+                END
+            ), 0) AS "monthlyRevenue"
+
+        FROM orders o,
+
+        jsonb_array_elements(o.items) AS item
+
+        WHERE o.vendor_id = $1
+
+        GROUP BY item->>'name'
+
+        ORDER BY "monthlyRevenue" DESC;
     `;
 
     const result = await pool.query(query, [vendor_id]);
 
-    return result.rows
-
-    
+    return result.rows;
 }
+
+// below code is to calculate total of previous pareiods:
+export const getRevenueSummary = async (vendor_id: string, window: string) => {
+  const query = `
+    SELECT
+      SUM(total_amount) AS revenue
+    FROM orders
+    WHERE vendor_id = $1
+    AND created_at >= NOW() - INTERVAL '${window}'
+  `;
+
+  const result = await pool.query(query, [vendor_id]);
+  return Number(result.rows[0]?.revenue || 0);
+};
+export const getOrderSummary = async (vendor_id: string, window: string) => {
+  const query = `
+    SELECT
+      COUNT(total_amount) AS orders
+    FROM orders
+    WHERE vendor_id = $1
+    AND created_at >= NOW() - INTERVAL '${window}'
+  `;
+
+  const result = await pool.query(query, [vendor_id]);
+  return Number(result.rows[0]?.revenue || 0);
+};
+export const getCustomerSummary = async (vendor_id: string, window: string) => {
+  const query = `
+    SELECT
+      COUNT(DISTINCT customer_id) AS customers
+    FROM orders
+    WHERE vendor_id = $1
+    AND created_at >= NOW() - INTERVAL '${window}'
+  `;
+
+  const result = await pool.query(query, [vendor_id]);
+  return Number(result.rows[0]?.revenue || 0);
+};
