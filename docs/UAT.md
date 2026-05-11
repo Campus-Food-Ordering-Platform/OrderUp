@@ -279,7 +279,7 @@ so that I can identify and resolve student or vendor complaints efficiently.
 
 ## US016 - Student Track Active Order from Dashboard
 
-**User Story:** As a student, I want to see my active order directly on the dashboard, so that I can quickly check its status without navigating away.
+**User Story:** As a student, I want to see my active order directly on the Order History Page, so that I can quickly check its status without navigating away.
 
 | # | Given | When | Then | Status |
 |---|---|---|---|---|
