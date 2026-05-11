@@ -149,3 +149,41 @@ export const getItems = async (
 
     return result.rows;
 }
+
+// below code is to calculate total of previous pareiods:
+export const getRevenueSummary = async (vendor_id: string, window: string) => {
+  const query = `
+    SELECT
+      SUM(total_amount) AS revenue
+    FROM orders
+    WHERE vendor_id = $1
+    AND created_at >= NOW() - INTERVAL '${window}'
+  `;
+
+  const result = await pool.query(query, [vendor_id]);
+  return Number(result.rows[0]?.revenue || 0);
+};
+export const getOrderSummary = async (vendor_id: string, window: string) => {
+  const query = `
+    SELECT
+      COUNT(total_amount) AS orders
+    FROM orders
+    WHERE vendor_id = $1
+    AND created_at >= NOW() - INTERVAL '${window}'
+  `;
+
+  const result = await pool.query(query, [vendor_id]);
+  return Number(result.rows[0]?.revenue || 0);
+};
+export const getCustomerSummary = async (vendor_id: string, window: string) => {
+  const query = `
+    SELECT
+      COUNT(DISTINCT customer_id) AS customers
+    FROM orders
+    WHERE vendor_id = $1
+    AND created_at >= NOW() - INTERVAL '${window}'
+  `;
+
+  const result = await pool.query(query, [vendor_id]);
+  return Number(result.rows[0]?.revenue || 0);
+};

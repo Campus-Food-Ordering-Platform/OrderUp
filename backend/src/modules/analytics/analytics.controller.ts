@@ -24,13 +24,8 @@ export const exportRevenueCSV = async(req: Request, res: Response) => {
 };
 
 
-type Range =
-    | 'day'
-    | 'week'
-    | 'month'
-    | '3 months'
-    | '6 months'
-    | 'year';
+type Range = 'day' | 'week' | 'month' | '3 months' | '6 months' | 'year' | '2 days' | '14 days' | '2 months' | '12 months' | '2 years' | null;
+
 
 const isValidRange = (value: any): value is Range => {
     return [
@@ -255,19 +250,56 @@ export const getVendorAnalytics = async (
         }
 
    
-    const [orders, revenue, customers, items] = await Promise.all([
-    AnalyticsService.getOrderInRange(vendor_id, (range as Range) || null),
-    AnalyticsService.getRevenueInRange(vendor_id, (range as Range) || null),
-    AnalyticsService.getCustomerInRange(vendor_id, (range as Range) || null),
-    AnalyticsService.getItems(vendor_id),
-  ]);
-  return res.json({
+    const rangeConfig = AnalyticsService.getRangeConfig(range as Range);
+    const previousWindow = AnalyticsService.getPreviousWindow(range as Range);
+
+    const [ordersSeries, revenueSeries, customersSeries, items] =
+    await Promise.all([
+        AnalyticsService.getOrderInRange(vendor_id, range as Range),
+        AnalyticsService.getRevenueInRange(vendor_id, range as Range),
+        AnalyticsService.getCustomerInRange(vendor_id, range as Range),
+        AnalyticsService.getItems(vendor_id),
+
+        // AnalyticsService.getRevenueSummary(vendor_id, previousWindow),
+        // AnalyticsService.getOrderSummary(vendor_id, previousWindow),
+        // AnalyticsService.getCustomerSummary(vendor_id, previousWindow),
+    ]);
+    const [
+        currRevenue,
+        currOrders,
+        currCustomers,
+        prevRevenue,
+        prevOrders,
+        prevCustomers
+    ] = await Promise.all([
+        AnalyticsService.getRevenueSummary(vendor_id, range as Range),
+        AnalyticsService.getOrderSummary(vendor_id, range as Range),
+        AnalyticsService.getCustomerSummary(vendor_id, range as Range),
+
+        AnalyticsService.getRevenueSummary(vendor_id, previousWindow),
+        AnalyticsService.getOrderSummary(vendor_id, previousWindow),
+        AnalyticsService.getCustomerSummary(vendor_id, previousWindow),
+    ]);
+
+
+
+    return res.json({
     success: true,
     data: {
-      orders,
-      revenue,
-      customers,
-      items,
+        orders: ordersSeries,
+        revenue: revenueSeries,
+        customers: customersSeries,
+        items,
+
+        kpis: {
+        revenue: { current: currRevenue, previous: prevRevenue },
+        orders: { current: currOrders, previous: prevOrders },
+        customers: { current: currCustomers, previous: prevCustomers },
+        }
     }
-  });
+    });
+
+  
 };
+
+

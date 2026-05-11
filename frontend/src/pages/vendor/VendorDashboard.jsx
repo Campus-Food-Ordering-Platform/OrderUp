@@ -924,47 +924,62 @@ export default function VendorDashboard() {
     weeklyOrders: [],
     topSellingItems: [],
   });
-
+// below we setup the ranges used for the graphs and dropdown menu interactions
+  const [selectedRange, setSelectedRange] = useState('week'); 
 
   useEffect(() => {
-    if (!vendorId) return;
+  if (!vendorId) return;
 
-    const fetchAnalytics = async () => {
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/analytics/graph/${vendorId}`
-        );
+  const fetchAnalytics = async () => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/analytics/graph/${vendorId}?range=${encodeURIComponent(selectedRange)}`
+      );
 
-        const json = await res.json();
-        const data = json.data || {};
+      const json = await res.json();
+      const data = json.data || {};
 
-        setAnalyticsData({
-          weeklyRevenue: (data.revenue || []).map((r) => ({
-            x: new Date(r.period).getTime(),
-            y: Number(r.revenue),
-          })),
+      setAnalyticsData({
+        weeklyRevenue: (data.revenue || []).map((r) => ({
+          x: new Date(r.period).getTime(),
+          y: Number(r.revenue),
+        })),
 
-          weeklyOrders: (data.orders || []).map((o) => ({
-            x: new Date(o.period).getTime(),
-            y: Number(o.orders),
-          })),
+        weeklyOrders: (data.orders || []).map((o) => ({
+          x: new Date(o.period).getTime(),
+          y: Number(o.orders),
+        })),
 
-          topSellingItems: (data.items || []).map((i) => ({
-            name: i.name,
-            weeklyOrders: Number(i.weeklyOrders),
-            monthlyOrders: Number(i.monthlyOrders),
-            weeklyRevenue: Number(i.weeklyRevenue),
-            monthlyRevenue: Number(i.monthlyRevenue),
-          })),
-        });
+        topSellingItems: (data.items || []).map((i) => ({
+          name: i.name,
+          weeklyOrders: Number(i.weeklyOrders),
+          monthlyOrders: Number(i.monthlyOrders),
+          weeklyRevenue: Number(i.weeklyRevenue),
+          monthlyRevenue: Number(i.monthlyRevenue),
+        })),
+      });
 
-      } catch (err) {
-        console.error("Failed to fetch analytics:", err);
-      }
-    };
+    } catch (err) {
+      console.error("Failed to fetch analytics:", err);
+    }
+  };
 
-    fetchAnalytics();
-  }, [vendorId]);
+  fetchAnalytics();
+}, [vendorId, selectedRange]);
+
+const rangeLabelMap = {
+  day: 'Today',
+  week: 'This Week',
+  month: 'This Month',
+  '3 months': 'Last 3 Months',
+  '6 months': 'Last 6 Months',
+  year: 'This Year',
+};
+
+const currentRangeLabel = rangeLabelMap[selectedRange];
+
+
+
 
   if (vendorStatus === 'loading') {
     return (
@@ -1039,14 +1054,137 @@ if (vendorStatus === 'suspended') {
     quantity: i.weeklyOrders,
     revenue: i.weeklyRevenue,
   }));  
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+const getChartInterval = (range) => {
+  switch (range) {
+    case 'day':
+      return 'hour';
+
+    case 'week':
+      return 'weekday';
+
+    case 'month':
+      return 'day';
+
+    case '3 months':
+      return 'week';
+
+    case '6 months':
+      return 'week';
+
+    case 'year':
+      return 'month';
+
+    default:
+      return 'day';
+  }
+};
 
   const revenueChart = weeklyRevenue.map(p => p.y);
   const orderChart = weeklyOrders.map(p => p.y);
+
+  const interval = getChartInterval(selectedRange);
+
+  const getLabelFormat = (range) => {
+    switch (range) {
+      case 'day':
+        return {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        };
+
+      case 'week':
+        return { weekday: 'short' }; // Mon, Tue
+
+      case 'month':
+        return { day: 'numeric' }; // 1, 2, 3...
+
+      case '3 months':
+      case '6 months':
+        return { month: 'short', day: 'numeric'};
+      case 'year':
+        return { month: 'short' }; // Jan, Feb, Mar
+
+      default:
+        return { month: 'short', day: 'numeric'};
+    }
+  };
+
+
+  const labelFormat = getLabelFormat(selectedRange);
+
   const labels = weeklyRevenue.map(p =>
-    new Date(p.x).toLocaleDateString(undefined, { weekday: 'short' })
+    new Date(p.x).toLocaleDateString(undefined, labelFormat)
   );
+
+  const totalRevenueChart = revenueChart.reduce((a, b) => a + b, 0);
+  const avgRevenueChart =
+    revenueChart.length > 0
+      ? totalRevenueChart / revenueChart.length
+      : 0;
+
+  const totalOrdersChart = orderChart.reduce((a, b) => a + b, 0);
+  const peakOrdersChart =
+    orderChart.length > 0
+      ? Math.max(...orderChart)
+      : 0;
+
+
+  const getRangeMs = (range) => {
+    const now = new Date().getTime();
+
+    switch (range) {
+      case 'day': return 24 * 60 * 60 * 1000;
+      case 'week': return 7 * 24 * 60 * 60 * 1000;
+      case 'month': return 30 * 24 * 60 * 60 * 1000;
+      case '3 months': return 90 * 24 * 60 * 60 * 1000;
+      case '6 months': return 180 * 24 * 60 * 60 * 1000;
+      case 'year': return 365 * 24 * 60 * 60 * 1000;
+      default: return 7 * 24 * 60 * 60 * 1000;
+    }
+  };
+
+  const now = Date.now();
+  const rangeMs = getRangeMs(selectedRange);
+
+  const currentStart = now - rangeMs;
+  const previousStart = now - (2 * rangeMs);
+  const previousEnd = currentStart;
+
+  const ordersCurrent = orders.filter(o => {
+    const t = new Date(o.created_at).getTime();
+    return t >= currentStart && t <= now;
+  });
+
+  const ordersPrevious = orders.filter(o => {
+    const t = new Date(o.created_at).getTime();
+    return t >= previousStart && t < previousEnd;
+  });
+
+
+
+
+  
+
+
+  const revenueCurrent = ordersCurrent.reduce(
+    (sum, o) => sum + Number(o.total_amount),
+    0
+  );
+
+  const ordersCountCurrent = ordersCurrent.length;
+
+  const revenuePrevious = ordersPrevious.reduce(
+    (sum, o) => sum + Number(o.total_amount),
+    0
+  );
+
+  const ordersCountPrevious = ordersPrevious.length;
+
+  const revenueVsLast = ((revenueCurrent - revenuePrevious)/revenuePrevious)*100;
+  const ordersVsLast = ((ordersCountCurrent - ordersCountPrevious)/ordersCountPrevious)*100;
+
 
   const likedDishesData = [
     { name: 'Classic Kota', percentage: 45, sales: 156, trend: '+12%' },
@@ -1138,10 +1276,22 @@ if (vendorStatus === 'suspended') {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Analytics Dashboard</h2>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <select style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #E0E0E0', fontSize: '0.7rem' }}>
-                <option>This Week</option>
-                <option>This Month</option>
-                <option>Last 3 Months</option>
+              <select
+                value={selectedRange}
+                onChange={(e) => setSelectedRange(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #E0E0E0',
+                  fontSize: '0.7rem'
+                }}
+              >
+                <option value="day">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="3 months">Last 3 Months</option>
+                <option value="6 months">Last 6 Months</option>
+                <option value="year">This Year</option>
               </select>
               <button
                 onClick={async () => {
@@ -1174,16 +1324,37 @@ if (vendorStatus === 'suspended') {
           </div>
 
           {/* KPI Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '20px' }}>
             <div style={cardStyle}>
               <div style={cardHeader}><DollarSign size={16} color={BRAND} /><span style={trendStyle}>+8%</span></div>
               <p style={labelStyle}>Total Revenue</p>
               <h3 style={valueStyle}>R {parseFloat(totalRevenue).toFixed(2)}</h3>
             </div>
             <div style={cardStyle}>
-              <div style={cardHeader}><TrendingUp size={16} color="#C26A1A" /><span style={{ fontSize: '0.65rem', color: BRAND }}>Last month: R 2,30,200</span></div>
-              <p style={labelStyle}>Revenue (Last Month)</p>
-              <h3 style={valueStyle}>R 1,85,500</h3>
+              <div style={cardHeader}><TrendingUp size={16} color="#C26A1A" />
+              <span style={{ fontSize: '0.65rem', color: BRAND }}>  Previous period: R {revenuePrevious.toFixed(2)}</span></div>
+              <p style={labelStyle}>
+                Revenue ({currentRangeLabel})
+              </p>
+
+              <h3 style={valueStyle}>
+                R {revenueCurrent.toFixed(2)}
+              </h3>
+            </div>
+            <div style={cardStyle}>
+              <div style={cardHeader}>
+                <ShoppingCart size={16} color="#2A6DB5" />
+                <span style={{ fontSize: '0.65rem', color: BRAND }}>  Previous period: {ordersCountPrevious}</span>
+              </div>
+                
+
+              <p style={labelStyle}>
+                Orders ({currentRangeLabel})
+              </p>
+
+              <h3 style={valueStyle}>
+                {ordersCountCurrent}
+              </h3>
             </div>
             <div style={cardStyle}>
               <ShoppingBag size={16} color="#2A6DB5" />
@@ -1200,26 +1371,36 @@ if (vendorStatus === 'suspended') {
           {/* Revenue Chart */}
           <div style={{ ...cardStyle, marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📈 Revenue Trend (This Week)</h3>
-              <span style={{ fontSize: '0.7rem', color: '#2A7D2A' }}>↑ 12% vs last week</span>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📈Revenue Trend ({currentRangeLabel})</h3>
+              <span style={{ fontSize: '0.7rem', color: '#2A7D2A' }}> {revenueVsLast.toFixed(2)}% vs last period</span>
             </div>
             <SimpleBarChart data={revenueChart} labels={labels} color={BRAND} height={140} />            
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-              <span style={{ fontSize: '0.65rem', color: '#888' }}>Total: R {weeklyRevenue.reduce((a, b) => a + b, 0).toLocaleString()}</span>
-              <span style={{ fontSize: '0.65rem', color: '#888' }}>Avg: R {(weeklyRevenue.reduce((a, b) => a + b, 0) / 7).toFixed(0)}</span>
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>
+                Total: R {totalRevenueChart.toLocaleString()}
+              </span>
+
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>
+                Avg: R {avgRevenueChart.toFixed(2)}
+              </span>
             </div>
           </div>
 
           {/* Orders Chart */}
           <div style={{ ...cardStyle, marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📊 Orders Trend (This Week)</h3>
-              <span style={{ fontSize: '0.7rem', color: '#2A7D2A' }}>↑ 8% vs last week</span>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📊 Revenue Trend ({currentRangeLabel})</h3>
+              <span style={{ fontSize: '0.7rem', color: '#2A7D2A' }}> {ordersVsLast.toFixed(2)}% vs last period</span>
             </div> 
             <SimpleBarChart data={orderChart} labels={labels} color={'#7B4FBF'} height={140} />            
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-              <span style={{ fontSize: '0.65rem', color: '#888' }}>Total: {weeklyOrders.reduce((a, b) => a + b, 0)} orders</span>
-              <span style={{ fontSize: '0.65rem', color: '#888' }}>Peak: {Math.max(...weeklyOrders)} orders (Fri)</span>
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>
+                Total: {totalOrdersChart} orders
+              </span>
+
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>
+                Peak: {peakOrdersChart} orders
+              </span>
             </div>
           </div>
 
