@@ -50,37 +50,20 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus): P
 
 // Get the student's most recent non-collected order
 // Accepts the raw Auth0 ID — resolves to internal UUID via profiles table
-export async function getActiveOrderByStudent(auth0Id: string): Promise<Order | null> {
-  const profileResult = await pool.query(
-    `SELECT id FROM profiles WHERE auth0_id = $1`,
-    [auth0Id]
-  );
-
-  const internalUserId = profileResult.rows[0]?.id;
-  if (!internalUserId) return null; // no profile found, return empty gracefully
-
+export async function getActiveOrderByStudent(userId: string): Promise<Order | null> {
   const result = await pool.query(
     `SELECT * FROM orders 
      WHERE customer_id = $1 
      AND status NOT IN ('collected')
      ORDER BY created_at DESC 
      LIMIT 1`,
-    [internalUserId]
+    [userId]
   );
   return result.rows[0] ?? null;
 }
 
 // Get full order history for a student (order history page)
-// Accepts the raw Auth0 ID — resolves to internal UUID via profiles table
-export async function getOrdersByStudent(auth0Id: string): Promise<Order[]> {
-  const profileResult = await pool.query(
-    `SELECT id FROM profiles WHERE auth0_id = $1`,
-    [auth0Id]
-  );
-
-  const internalUserId = profileResult.rows[0]?.id;
-  if (!internalUserId) return []; // no profile found, return empty array gracefully
-
+export async function getOrdersByStudent(userId: string): Promise<Order[]> {
   const result = await pool.query(
     `SELECT o.*, p.name as vendor_name 
      FROM orders o
@@ -88,7 +71,7 @@ export async function getOrdersByStudent(auth0Id: string): Promise<Order[]> {
      JOIN profiles p ON v.profile_id = p.id
      WHERE o.customer_id = $1 
      ORDER BY o.created_at DESC`,
-    [internalUserId]
+    [userId]
   );
   return result.rows;
 }

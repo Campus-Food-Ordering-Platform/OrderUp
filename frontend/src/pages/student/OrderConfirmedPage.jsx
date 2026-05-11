@@ -91,11 +91,15 @@ export default function OrderConfirmedPage() {
   const params = new URLSearchParams(window.location.search);
   const reference = params.get('reference');
 
-  if (!reference && !orderData?.id && user?.sub) {
+  const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
+  const localUser = raw?.user ?? raw;
+  const internalUserId = localUser?.id;
+
+  if (!reference && !orderData?.id && internalUserId) {
     const fetchActiveOrder = async () => {
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/orders/student/${user.sub}/active`
+          `${import.meta.env.VITE_API_URL}/api/orders/student/${internalUserId}/active`
         );
         if (res.ok) {
           const order = await res.json();
@@ -107,7 +111,7 @@ export default function OrderConfirmedPage() {
     };
     fetchActiveOrder();
   }
-}, [user?.sub, orderData?.id]);
+}, [orderData?.id]);
 
   useEffect(() => {
     if (!orderData?.id) return;
