@@ -234,16 +234,16 @@ so that I can identify and resolve student or vendor complaints efficiently.
 
 ## US013 - Student Rate a Vendor
 
-**User Story:** As a student, I want to rate a vendor after my order is completed, so that I can share my experience and help other students make informed choices.
+**User Story:** As a vendor, I want to export my analytics as a CSV, so that I can create business reports for investors in other software apps.
 
 | # | Given | When | Then | Status |
 |---|---|---|---|---|
-| 1 | I am on the Order History page | I view a completed order | I can see a "Rate" button on the order card | Pass |
-| 2 | I have already rated a vendor | I view that order | The "Rate" button is no longer visible for that order | Pass |
-| 3 | I am on the Order History page | I click "Rate" on a completed order | A rating modal opens with 5 stars and a comment box | Pass |
-| 4 | The rating modal is open | I click on a star | The stars highlight up to my selection | Pass |
-| 5 | I have selected a rating | I click "Submit Review" | The modal closes and the "Rate" button disappears for that order | Pass |
-| 6 | I try to rate an order that is not completed | I view the order card | No "Rate" button is shown | Pass |
+| 1 |I am on the vendor dashboard | I click the Analytics tab | I can see an "Export CSV" button next to the time period dropdown | Pass |
+| 2 |I am on the Analytics tab | I click "Export CSV" |A CSV file is automatically downloaded to my device | Pass |
+| 3 | I have downloaded the CSV file | I open it |I can see my revenue data organised by date| Pass |
+| 4 | I am on the Analytics tab | The download is in progress | The button remains visible and does not disappear | Pass |
+| 5 | The backend is unavailable | I click "Export CSV"| I see a clear error message telling me the export failed | Pass |
+| 6 |I click "Export CSV" |The file downloads | The file is named with the current date for easy reference | Pass |
 
 ---
 
