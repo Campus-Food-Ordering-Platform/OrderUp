@@ -6,7 +6,10 @@ import {
   advanceOrderStatusHandler,
   getStudentActiveOrderHandler,
   getStudentHistoryHandler,
-  getAllOrdersAdminHandler
+  getAllOrdersAdminHandler,
+  rateOrderHandler,           
+  getOrderRatingHandler,      
+  getVendorRatingsHandler 
 } from './order.controller';
 
 const router = Router();
@@ -18,5 +21,11 @@ router.get('/student/:studentId/active', getStudentActiveOrderHandler);
 router.get('/:orderId/status', getOrderStatusHandler);
 router.patch('/:orderId/status', advanceOrderStatusHandler);
 router.get('/student-history/:studentId', getStudentHistoryHandler);
+
+
+
+router.post('/:orderId/rating', rateOrderHandler);           // Submit rating
+router.get('/:orderId/rating', getOrderRatingHandler);       // Get rating
+router.get('/vendor/:vendorId/ratings', getVendorRatingsHandler); // Get vendor stats
 
 export default router;
