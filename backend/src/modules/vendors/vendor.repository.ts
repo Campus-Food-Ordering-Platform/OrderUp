@@ -5,11 +5,13 @@ import pool from '../../config/db';
 // Fetch all valid vendors with their profile name (used on student dashboard)
 export const getAllVendors = async () => {
   const result = await pool.query(`
-    SELECT v.id, v.description, v.is_active, v.logo_url, p.name
+    SELECT 
+      v.id, v.vendor_name AS name, v.description, v.category,
+      v.location, v.operating_hours, v.logo_url, v.banner_url,
+      v.status, v.is_active
     FROM vendors v
-    JOIN profiles p ON v.profile_id = p.id
     WHERE v.status = 'active'
-    ORDER BY v.id ASC
+    ORDER BY v.vendor_name ASC
   `);
   return result.rows;
 };
@@ -300,6 +302,34 @@ export const rejectApplication = async (applicationId: string, rejectionReason?:
      WHERE id = $1 
      RETURNING *`,
     [applicationId, rejectionReason ?? null]
+  );
+  return result.rows[0];
+};
+
+// for the 
+export const updateVendor = async (vendorId: string, body: any) => {
+  const result = await pool.query(
+    `UPDATE vendors
+     SET 
+       vendor_name      = COALESCE($1, vendor_name),
+       description      = COALESCE($2, description),
+       category         = COALESCE($3, category),
+       location         = COALESCE($4, location),
+       operating_hours  = COALESCE($5, operating_hours),
+       logo_url         = COALESCE($6, logo_url),
+       banner_url       = COALESCE($7, banner_url)
+     WHERE id = $8
+     RETURNING *`,
+    [
+      body.vendor_name      ?? null,
+      body.description      ?? null,
+      body.category         ?? null,
+      body.location         ?? null,
+      body.operating_hours  ?? null,
+      body.logo_url         ?? null,
+      body.banner_url       ?? null,
+      vendorId,
+    ]
   );
   return result.rows[0];
 };

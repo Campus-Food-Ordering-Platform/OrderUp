@@ -170,42 +170,44 @@ export default function VendorMenuPage() {
       </header>
 
       {/* ── Vendor Info Strip ── */}
-      <div
-        style={{
-          backgroundColor: 'white',
-          padding: '16px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          borderBottom: '1px solid #EBEBEB',
-        }}
-      >
-        <div
-          style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '14px',
-            background: `linear-gradient(135deg, ${vendor.bgFrom}, ${vendor.bgTo})`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.8rem',
-            flexShrink: 0,
-          }}
-        >
-          {vendor.emoji}
-        </div>
-        <div>
-          <h1 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1a1a2e', margin: '0 0 4px' }}>
-            {vendor.name}
-          </h1>
-          <p style={{ fontSize: '0.8rem', color: '#888', margin: '0 0 6px' }}>{vendor.description}</p>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <span style={{ fontSize: '0.75rem', color: '#F59E0B', fontWeight: 600 }}>⭐ {vendor.rating}</span>
-            <span style={{ fontSize: '0.75rem', color: '#888' }}>🕐 {vendor.wait} min wait</span>
-          </div>
+    <div style={{
+      backgroundColor: 'white',
+      padding: '16px 20px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '14px',
+      borderBottom: '1px solid #EBEBEB',
+    }}>
+      {/* Logo or fallback */}
+      <div style={{
+        width: '56px', height: '56px', borderRadius: '14px',
+        overflow: 'hidden', flexShrink: 0,
+        backgroundColor: '#F5F0E8',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      }}>
+        {vendor.logo_url ? (
+          <img src={vendor.logo_url} alt={vendor.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <span style={{ fontSize: '1.8rem' }}>🍽️</span>
+        )}
+      </div>
+
+      <div>
+        <h1 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1a1a2e', margin: '0 0 4px' }}>
+          {vendor.name}
+        </h1>
+        <p style={{ fontSize: '0.8rem', color: '#888', margin: '0 0 6px' }}>{vendor.description}</p>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {vendor.location && (
+            <span style={{ fontSize: '0.75rem', color: '#888' }}>📍 {vendor.location}</span>
+          )}
+          {vendor.operating_hours?.hours && (
+            <span style={{ fontSize: '0.75rem', color: '#888' }}>🕐 {vendor.operating_hours.hours}</span>
+          )}
         </div>
       </div>
+    </div>
 
       {/* ── Category Filter Chips ── */}
       <div

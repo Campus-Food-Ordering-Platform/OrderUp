@@ -6,7 +6,8 @@ import {
   advanceOrderStatusHandler,
   getStudentActiveOrderHandler,
   getStudentHistoryHandler,
-  getAllOrdersAdminHandler
+  getAllOrdersAdminHandler,
+  getStudentActiveOrdersHandler
 } from './order.controller';
 
 const router = Router();
@@ -18,5 +19,6 @@ router.get('/student/:studentId/active', getStudentActiveOrderHandler);
 router.get('/:orderId/status', getOrderStatusHandler);
 router.patch('/:orderId/status', advanceOrderStatusHandler);
 router.get('/student-history/:studentId', getStudentHistoryHandler);
+router.get('/student/:studentId/active-all', getStudentActiveOrdersHandler);
 
 export default router;

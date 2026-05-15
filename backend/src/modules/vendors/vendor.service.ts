@@ -112,3 +112,8 @@ export const rejectApplication = (applicationId: string, rejectionReason?: strin
 export const getPendingApplications = () => {
   return vendorRepo.getPendingApplications();
 };
+
+export const updateVendor = (vendorId: string, body: any) => {
+  if (!vendorId) throw new ValidationError('Vendor ID is required');
+  return vendorRepo.updateVendor(vendorId, body);
+};
