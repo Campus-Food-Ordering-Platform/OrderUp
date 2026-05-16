@@ -118,6 +118,25 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleReject = async (vendor) => {
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/vendors/applications/${vendor.id}/reject`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Application rejected by admin.' }),
+      }
+    );
+    if (res.ok) {
+      setVendors(prev => prev.filter(v => v.id !== vendor.id));
+      setReviewingVendor(null);
+    }
+  } catch (err) {
+    console.error('Failed to reject vendor:', err);
+  }
+};
+
   //  effectiveStatus uses vendor_status first, falls back to application_status
   const filteredVendors = vendors.filter(vendor => {
     const effectiveStatus = vendor.vendor_status || vendor.application_status;
@@ -511,7 +530,7 @@ export default function AdminDashboard() {
                         </button>
                       )}
                       {/* Suspend — hide for already suspended vendors */}
-                      {!isSuspended && (
+                      {!isSuspended && !isPending &&(
                         <button
                           onClick={() => handleSuspend(vendor)}
                           style={{
@@ -758,10 +777,10 @@ export default function AdminDashboard() {
                 <CheckCircle size={20} /> Approve Vendor
               </button>
               <button
-                onClick={() => handleSuspend(reviewingVendor)}
+                onClick={() => handleReject(reviewingVendor)}
                 style={{ flex: 1, padding: '14px', backgroundColor: '#FFE8E8', color: '#C0474A', border: '1.5px solid #C0474A', borderRadius: '14px', fontSize: '0.95rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
-                <XCircle size={18} /> Suspend
+                <XCircle size={18} /> Reject
               </button>
             </div>
           </div>
