@@ -447,96 +447,332 @@ function SimpleBarChart({ data, labels, color, height = 120 }) {
   );
 }
 
-function RevenueCalculator({vendorId}) {
+function RevenueCalculator({ vendorId }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [duration, setDuration] = useState('week');
+  const [growthRate, setGrowthRate] = useState(0);
   const [applyDiscount, setApplyDiscount] = useState(false);
+  const [discountPct, setDiscountPct] = useState(10);
+  const [items, setItems] = useState([]);
+  const [timeSeries, setTimeSeries] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showChart, setShowChart] = useState(false);
 
+  const DURATIONS = [
+    { key: 'week',    label: 'Next Week',    weeks: 1    },
+    { key: '2weeks',  label: '2 Weeks',      weeks: 2    },
+    { key: '3weeks',  label: '3 Weeks',      weeks: 3    },
+    { key: 'month',   label: 'Next Month',   weeks: 4.33 },
+    { key: '2months', label: '2 Months',     weeks: 8.66 },
+  ];
 
-
-  const [items, setItems] = useState([]); 
-
+  const linearRegression = (points) => {
+    const n = points.length;
+    if (n === 0) return { m: 0, b: 0 };
+    if (n === 1) return { m: 0, b: points[0].y };
+    const sumX  = points.reduce((s, p) => s + p.x, 0);
+    const sumY  = points.reduce((s, p) => s + p.y, 0);
+    const sumXY = points.reduce((s, p) => s + p.x * p.y, 0);
+    const sumX2 = points.reduce((s, p) => s + p.x * p.x, 0);
+    const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX || 1);
+    const b = (sumY - m * sumX) / n;
+    return { m, b };
+  };
 
   useEffect(() => {
-    // wait for vendorId to exist
     if (!vendorId) return;
-
-    const fetchItemAnalytics = async () => {
+    setLoading(true);
+    const fetchData = async () => {
       try {
-        const res = await fetch(
-          // `${import.meta.env.VITE_API_URL}/api/analytics/items/${vendor_id}?range=month`
-
-          `${import.meta.env.VITE_API_URL}/api/analytics/items/${vendorId}?range=month`//using siya's vendor for development purposes
-        );
-
-        const json = await res.json();
-        // expects backend to return:
-        // [{ name, weeklyRevenue, monthlyRevenue, weeklyOrders, monthlyOrders }]
-        setItems(json.data);
+        const [itemsRes, tsRes] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL}/api/analytics/items/${vendorId}?range=month`),
+          fetch(`${import.meta.env.VITE_API_URL}/api/analytics/items/${vendorId}/timeseries`),
+        ]);
+        const itemsJson = await itemsRes.json();
+        const tsJson    = await tsRes.json();
+        setItems(Array.isArray(itemsJson.data) ? itemsJson.data : []);
+        setTimeSeries(Array.isArray(tsJson.data) ? tsJson.data : []);
       } catch (err) {
-        console.error("Failed to load item analytics:", err);
+        console.error('RevenueCalculator fetch failed:', err);
+      } finally {
+        setLoading(false);
       }
     };
-
-    fetchItemAnalytics();
+    fetchData();
   }, [vendorId]);
 
-
-  const filteredItems = items.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // ── fix: clear selected item when user edits search ────────
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setSelectedItem(null);
+    setShowChart(false);
+  };
 
   const handleSelectItem = (item) => {
     setSelectedItem(item);
     setSearchTerm(item.name);
+    setShowChart(false);
   };
 
+  const filteredItems = items.filter(i =>
+    i.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-const estimatedRevenue = selectedItem
-  ? (duration === 'week'
-      ? selectedItem.weeklyRevenue
-      : selectedItem.monthlyRevenue)
-  : null;
+  const selectedDuration = DURATIONS.find(d => d.key === duration) || DURATIONS[0];
+
+  const { projection, chartData } = (() => {
+    if (!selectedItem) return { projection: null, chartData: null };
+
+    const rows = timeSeries
+      .filter(r => r.name === selectedItem.name)
+      .sort((a, b) => new Date(a.week) - new Date(b.week))
+      .map((r, i) => ({ x: i, y: Number(r.quantity), week: r.week }));
+
+    const totalQty = Number(selectedItem.monthlyOrders) || 1;
+    const totalRev = Number(selectedItem.monthlyRevenue) || 0;
+    const avgPrice = totalRev / totalQty;
+
+    const { m, b } = linearRegression(rows);
+
+    // how many future weekly bars to show
+    const futureBarsCount = Math.ceil(selectedDuration.weeks);
+
+    const pastBars = rows.map((r, i) => ({
+      label: `W${i + 1}`,
+      value: r.y,
+      projected: false,
+    }));
+
+    const futureBars = Array.from({ length: futureBarsCount }, (_, i) => {
+      const x = rows.length + i;
+      const raw = Math.max(0, m * x + b) * (1 + growthRate / 100);
+      return {
+        label: `+W${i + 1}`,
+        value: raw,
+        projected: true,
+      };
+    });
+
+    const allBars = [...pastBars, ...futureBars];
+    const maxVal  = Math.max(...allBars.map(b => b.value), 1);
+
+    // total projected orders over the duration
+    const projectedOrders = futureBars.reduce((s, b) => s + b.value, 0);
+    let projectedRevenue = projectedOrders * avgPrice;
+    if (applyDiscount) projectedRevenue *= (1 - discountPct / 100);
+
+    const confidence = Math.min(100, Math.round((rows.length / 12) * 100));
+    const trend = rows.length >= 2
+      ? rows[rows.length - 1].y - rows[rows.length - 2].y
+      : 0;
+
+    return {
+      projection: {
+        projectedRevenue,
+        projectedOrders: Math.round(projectedOrders),
+        avgPrice,
+        confidence,
+        trend,
+        dataPoints: rows.length,
+      },
+      chartData: { allBars, maxVal },
+    };
+  })();
+
+  const scenarioLabel = (() => {
+    if (growthRate === 0)   return { text: 'Model prediction (no adjustment)',      color: '#888' };
+    if (growthRate <= -30)  return { text: 'Slow period / low demand expected',     color: BRAND };
+    if (growthRate < 0)     return { text: 'Slightly below expected demand',        color: '#C26A1A' };
+    if (growthRate >= 50)   return { text: 'Major promo or event expected 🎉',      color: '#2A7D2A' };
+    if (growthRate >= 20)   return { text: 'Running a promotion',                   color: '#2A7D2A' };
+    return                         { text: 'Slightly above expected demand',        color: '#2A6DB5' };
+  })();
 
   return (
     <div style={{ background: 'white', borderRadius: '14px', padding: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
-      <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px' }}>💰 Revenue Calculator</h3>
-      <p style={{ fontSize: '0.7rem', color: '#888', marginBottom: '12px' }}>Calculate estimated Revenue for any menu item</p>
+
+      {/* Header */}
+      <div style={{ marginBottom: '12px' }}>
+        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '0 0 4px' }}>📈 Revenue Projection</h3>
+        <p style={{ fontSize: '0.7rem', color: '#888', margin: 0 }}>
+          ML-powered forecast using linear regression on your order history
+        </p>
+      </div>
+
+      {/* Item search */}
       <div style={{ position: 'relative', marginBottom: '12px' }}>
         <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
-        <input type="text" placeholder="Search menu item..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); if (!e.target.value) setSelectedItem(null); }} style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }} />
-        {searchTerm && filteredItems.length > 0 && !selectedItem && (
+        <input
+          type="text"
+          placeholder="Search menu item..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+          style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+        />
+        {/* show dropdown when typing and no item selected yet */}
+        {searchTerm && !selectedItem && filteredItems.length > 0 && (
           <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #EBEBEB', borderRadius: '10px', maxHeight: '150px', overflowY: 'auto', zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
             {filteredItems.map(item => (
-              <div key={item.id} onClick={() => handleSelectItem(item)} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.8rem', borderBottom: '1px solid #F0F0F0' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F5F5'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                {item.name} - R{item.basePrice}
+              <div key={item.name} onClick={() => handleSelectItem(item)}
+                style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.8rem', borderBottom: '1px solid #F0F0F0' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#F5F5F5'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}>
+                {item.name}
+                <span style={{ color: '#aaa', marginLeft: '6px' }}>
+                  ~R{(Number(item.monthlyRevenue) / (Number(item.monthlyOrders) || 1)).toFixed(2)}/unit
+                </span>
               </div>
             ))}
           </div>
         )}
       </div>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-        <button onClick={() => setDuration('week')} style={{ flex: 1, padding: '6px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: duration === 'week' ? BRAND : '#F0F0F0', color: duration === 'week' ? 'white' : '#666' }}>Next Week</button>
-        <button onClick={() => setDuration('month')} style={{ flex: 1, padding: '6px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: duration === 'month' ? BRAND : '#F0F0F0', color: duration === 'month' ? 'white' : '#666' }}>Next Month</button>
+
+      {/* Duration buttons */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        {DURATIONS.map(d => (
+          <button key={d.key} onClick={() => { setDuration(d.key); setShowChart(false); }}
+            style={{ flex: '1 1 auto', padding: '6px 4px', borderRadius: '20px', fontSize: '0.65rem', fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: duration === d.key ? BRAND : '#F0F0F0', color: duration === d.key ? 'white' : '#666', whiteSpace: 'nowrap' }}>
+            {d.label}
+          </button>
+        ))}
       </div>
-      {estimatedRevenue && (
-        <div>
-          <p style={{ fontSize: '0.7rem', color: '#888' }}>Revenue contribution for "{selectedItem?.name}" {duration === 'week' ? 'next week' : 'next month'}:</p>
-          <p style={{ fontSize: '1.2rem', fontWeight: 700, color: BRAND, margin: '4px 0 8px' }}>R {estimatedRevenue.toLocaleString()}</p>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.7rem' }}>
-            <input type="checkbox" checked={applyDiscount} onChange={(e) => setApplyDiscount(e.target.checked)} />
-            Apply 10% discount
-          </label>
-          {applyDiscount && (<p style={{ fontSize: '0.7rem', color: '#2A7D2A', marginTop: '4px' }}>After discount: R {(estimatedRevenue * 0.9).toLocaleString()}</p>)}
+
+      {/* What-if slider */}
+      <div style={{ marginBottom: '14px', padding: '12px', backgroundColor: '#F9F9F9', borderRadius: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#555' }}>What-if adjustment</span>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: growthRate >= 0 ? '#2A7D2A' : BRAND }}>
+            {growthRate >= 0 ? '+' : ''}{growthRate}%
+          </span>
         </div>
+        <input type="range" min="-50" max="100" value={growthRate}
+          onChange={e => setGrowthRate(Number(e.target.value))}
+          style={{ width: '100%', accentColor: BRAND, marginBottom: '4px' }} />
+        <p style={{ fontSize: '0.65rem', color: scenarioLabel.color, margin: 0, fontStyle: 'italic' }}>
+          {scenarioLabel.text}
+        </p>
+        <p style={{ fontSize: '0.6rem', color: '#bbb', margin: '4px 0 0' }}>
+          Drag to model scenarios — e.g. +20% if running a promo, -20% for a slow week
+        </p>
+      </div>
+
+      {/* Discount */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+        <input type="checkbox" checked={applyDiscount} onChange={e => setApplyDiscount(e.target.checked)} style={{ accentColor: BRAND }} />
+        <span style={{ fontSize: '0.7rem' }}>Apply discount</span>
+        {applyDiscount && (
+          <>
+            <input type="number" min="1" max="99" value={discountPct}
+              onChange={e => setDiscountPct(Number(e.target.value))}
+              style={{ width: '48px', padding: '2px 6px', borderRadius: '6px', border: '1.5px solid #EBEBEB', fontSize: '0.7rem', outline: 'none' }} />
+            <span style={{ fontSize: '0.7rem', color: '#888' }}>%</span>
+          </>
+        )}
+      </div>
+
+      {loading && <p style={{ fontSize: '0.75rem', color: '#aaa', textAlign: 'center' }}>Loading data...</p>}
+
+      {/* Projection result */}
+      {projection && !loading && (
+        <div style={{ backgroundColor: '#F9F9F9', borderRadius: '12px', padding: '14px', marginBottom: '12px' }}>
+
+          {/* Confidence */}
+          <div style={{ marginBottom: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>Model confidence</span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: projection.confidence > 60 ? '#2A7D2A' : '#C26A1A' }}>
+                {projection.confidence}%
+              </span>
+            </div>
+            <div style={{ height: '4px', backgroundColor: '#E0E0E0', borderRadius: '2px' }}>
+              <div style={{ width: `${projection.confidence}%`, height: '100%', backgroundColor: projection.confidence > 60 ? '#2A7D2A' : '#C26A1A', borderRadius: '2px' }} />
+            </div>
+            <p style={{ fontSize: '0.6rem', color: '#bbb', margin: '4px 0 0' }}>
+              Based on {projection.dataPoints} week{projection.dataPoints !== 1 ? 's' : ''} of data
+              {projection.dataPoints < 4 && ' — more data improves accuracy'}
+            </p>
+          </div>
+
+          {/* Trend */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+            <span style={{ fontSize: '0.65rem', color: '#888' }}>Recent trend:</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 700, color: projection.trend > 0 ? '#2A7D2A' : projection.trend < 0 ? BRAND : '#888' }}>
+              {projection.trend > 0 ? '↑ Growing' : projection.trend < 0 ? '↓ Declining' : '→ Stable'}
+            </span>
+          </div>
+
+          {/* Revenue */}
+          <p style={{ fontSize: '0.7rem', color: '#888', margin: '0 0 2px' }}>
+            Projected revenue — {selectedDuration.label.toLowerCase()}
+          </p>
+          <p style={{ fontSize: '1.4rem', fontWeight: 800, color: BRAND, margin: '0 0 4px' }}>
+            R {projection.projectedRevenue.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p style={{ fontSize: '0.65rem', color: '#888', margin: '0 0 12px' }}>
+            ~{projection.projectedOrders} orders × R{projection.avgPrice.toFixed(2)}/unit
+            {applyDiscount ? ` after ${discountPct}% discount` : ''}
+            {growthRate !== 0 ? ` · ${growthRate > 0 ? '+' : ''}${growthRate}% what-if` : ''}
+          </p>
+
+          {/* Show projection button */}
+          <button onClick={() => setShowChart(v => !v)}
+            style={{ width: '100%', padding: '8px', borderRadius: '10px', border: `1.5px solid ${BRAND}`, backgroundColor: showChart ? BRAND : 'white', color: showChart ? 'white' : BRAND, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+            {showChart ? 'Hide Chart' : '📊 Show Projection Chart'}
+          </button>
+        </div>
+      )}
+
+      {/* Chart — taller, shown on demand */}
+      {showChart && chartData && !loading && (
+        <div style={{ backgroundColor: '#F9F9F9', borderRadius: '12px', padding: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: BRAND }} />
+              <span style={{ fontSize: '0.6rem', color: '#888' }}>Past orders</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: 'rgba(232,114,106,0.5)', border: '1.5px dashed #E8726A' }} />
+              <span style={{ fontSize: '0.6rem', color: '#888' }}>Projected</span>
+            </div>
+          </div>
+
+          {/* Taller chart — 200px */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '200px', overflowX: 'auto', paddingBottom: '4px' }}>
+            {chartData.allBars.map((bar, i) => (
+              <div key={i} style={{ minWidth: '28px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                <span style={{ fontSize: '0.55rem', color: '#888', marginBottom: '2px' }}>
+                  {bar.value > 0 ? Math.round(bar.value) : ''}
+                </span>
+                <div style={{
+                  width: '100%',
+                  height: `${Math.round((bar.value / chartData.maxVal) * 85)}%`,
+                  backgroundColor: bar.projected ? 'rgba(232,114,106,0.45)' : BRAND,
+                  borderRadius: '4px 4px 0 0',
+                  border: bar.projected ? `1.5px dashed ${BRAND}` : 'none',
+                  minHeight: bar.value > 0 ? '4px' : '0',
+                  transition: 'height 0.3s ease',
+                }} />
+                <span style={{ fontSize: '0.55rem', color: bar.projected ? '#E8726A' : '#888', marginTop: '4px', whiteSpace: 'nowrap' }}>
+                  {bar.label}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: '0.6rem', color: '#bbb', textAlign: 'center', margin: '8px 0 0' }}>
+            Dashed bars = ML projection · Solid bars = actual order history
+          </p>
+        </div>
+      )}
+
+      {!selectedItem && !loading && (
+        <p style={{ fontSize: '0.75rem', color: '#bbb', textAlign: 'center', padding: '12px 0' }}>
+          Search and select a menu item to see its projection
+        </p>
       )}
     </div>
   );
 }
-
 // ============ VENDOR APPLICATION FORM ============
 const VENDOR_CATEGORIES = ['Fast Food', 'Cafe', 'Asian', 'Pizza', 'Healthy', 'Indian', 'Mains'];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];// for refined operating hours
@@ -1464,21 +1700,6 @@ const getChartInterval = (range) => {
   const revenueVsLast = ((revenueCurrent - revenuePrevious)/revenuePrevious)*100;
   const ordersVsLast = ((ordersCountCurrent - ordersCountPrevious)/ordersCountPrevious)*100;
 
-
-  const likedDishesData = [
-    { name: 'Classic Kota', percentage: 45, sales: 156, trend: '+12%' },
-    { name: 'Chicken Burger', percentage: 30, sales: 98, trend: '+8%' },
-    { name: 'Mini Chips', percentage: 25, sales: 87, trend: '+5%' },
-  ];
-
-  const popularTimes = [
-    { hour: '12pm - 1pm', traffic: 'Busy', level: 80, orders: 24 },
-    { hour: '1pm - 2pm', traffic: 'Very Busy', level: 95, orders: 32 },
-    { hour: '7pm - 8pm', traffic: 'Peak Hour', level: 100, orders: 45 },
-    { hour: '8pm - 9pm', traffic: 'Little Busy', level: 65, orders: 18 },
-  ];
-
-
   const cardStyle = { background: 'white', padding: '16px', borderRadius: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' };
   const labelStyle = { fontSize: '0.75rem', color: '#888', margin: 0 };
   const valueStyle = { fontSize: '1.2rem', fontWeight: 700, margin: '6px 0 0', color: BRAND };
@@ -1690,46 +1911,46 @@ const getChartInterval = (range) => {
             </div>
           </div>
 
-          {/* Liked Dishes & Popular Times */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-            <div style={cardStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <ThumbsUp size={16} color={BRAND} />
-                <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Liked Dishes</h3>
-              </div>
-              {likedDishesData.map(dish => (
-                <div key={dish.name} style={{ marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>{dish.name}</span>
-                    <span style={{ fontSize: '0.7rem', color: BRAND }}>{dish.percentage}%</span>
-                  </div>
-                  <div style={{ height: '6px', backgroundColor: '#F0F0F0', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{ width: `${dish.percentage}%`, height: '100%', backgroundColor: BRAND, borderRadius: '3px' }} />
-                  </div>
-                  <p style={{ fontSize: '0.65rem', color: '#999', margin: '4px 0 0' }}>{dish.sales} orders • {dish.trend}</p>
-                </div>
-              ))}
+          {/* Popular Times */}
+          <div style={{ ...cardStyle, marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <Clock size={16} color={BRAND} />
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Popular Times</h3>
             </div>
-
-            <div style={cardStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <Clock size={16} color={BRAND} />
-                <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Popular Times</h3>
-              </div>
-              <div style={{ backgroundColor: '#FFF0F0', borderRadius: '10px', padding: '10px', marginBottom: '12px' }}>
-                <p style={{ fontSize: '0.65rem', color: BRAND, margin: '0 0 2px' }}>🔴 Peak Hour (7pm - 8pm)</p>
-                <p style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>45 orders/hour</p>
-              </div>
-              {popularTimes.map(time => (
-                <div key={time.hour} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '0.7rem', width: '70px' }}>{time.hour}</span>
-                  <div style={{ flex: 1, height: '4px', backgroundColor: '#F0F0F0', borderRadius: '2px' }}>
-                    <div style={{ width: `${time.level}%`, height: '100%', backgroundColor: time.level > 80 ? BRAND : '#E8726A', borderRadius: '2px' }} />
-                  </div>
-                  <span style={{ fontSize: '0.65rem', color: '#666' }}>{time.orders} orders</span>
-                </div>
-              ))}
-            </div>
+            {(() => {
+              const hourCounts = {};
+              orders.forEach(o => {
+                const date = new Date(o.created_at);
+                const hour = date.getHours();
+                const label = `${hour % 12 || 12}${hour < 12 ? 'am' : 'pm'} - ${(hour + 1) % 12 || 12}${(hour + 1) < 12 ? 'am' : 'pm'}`;
+                hourCounts[label] = (hourCounts[label] || 0) + 1;
+              });
+              const sorted = Object.entries(hourCounts)
+                .map(([hour, count]) => ({ hour, orders: count }))
+                .sort((a, b) => b.orders - a.orders);
+              const peak = sorted[0];
+              const max = peak?.orders || 1;
+              return (
+                <>
+                  {peak && (
+                    <div style={{ backgroundColor: '#FFF0F0', borderRadius: '10px', padding: '10px', marginBottom: '12px' }}>
+                      <p style={{ fontSize: '0.65rem', color: BRAND, margin: '0 0 2px' }}>🔴 Peak Hour ({peak.hour})</p>
+                      <p style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>{peak.orders} orders</p>
+                    </div>
+                  )}
+                  {sorted.slice(0, 6).map(time => (
+                    <div key={time.hour} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.7rem', width: '100px' }}>{time.hour}</span>
+                      <div style={{ flex: 1, height: '4px', backgroundColor: '#F0F0F0', borderRadius: '2px' }}>
+                        <div style={{ width: `${(time.orders / max) * 100}%`, height: '100%', backgroundColor: time.orders === max ? BRAND : '#E8726A', borderRadius: '2px' }} />
+                      </div>
+                      <span style={{ fontSize: '0.65rem', color: '#666' }}>{time.orders} orders</span>
+                    </div>
+                  ))}
+                  {sorted.length === 0 && <p style={{ color: '#aaa', fontSize: '0.8rem', textAlign: 'center', padding: '20px 0' }}>No order data yet</p>}
+                </>
+              );
+            })()}
           </div>
 
           {/* Revenue Calculator */}

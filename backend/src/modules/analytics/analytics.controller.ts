@@ -303,3 +303,13 @@ export const getVendorAnalytics = async (
 };
 
 
+export const getItemTimeSeries = async (req: Request, res: Response) => {
+  try {
+    const vendor_id = req.params.vendor_id as string;
+    if (!vendor_id) return res.status(400).json({ error: 'Invalid vendor_id' });
+    const data = await AnalyticsService.getItemTimeSeries(vendor_id);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to fetch item time series' });
+  }
+};
