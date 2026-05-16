@@ -1896,7 +1896,7 @@ const getChartInterval = (range) => {
           {/* Orders Chart */}
           <div style={{ ...cardStyle, marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📊 Revenue Trend ({currentRangeLabel})</h3>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📊 Order Trend ({currentRangeLabel})</h3>
               <span style={{ fontSize: '0.7rem', color: '#2A7D2A' }}> {ordersVsLast.toFixed(2)}% vs last period</span>
             </div> 
             <SimpleBarChart data={orderChart} labels={labels} color={'#7B4FBF'} height={140} />            
