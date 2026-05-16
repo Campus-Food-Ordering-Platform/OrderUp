@@ -65,17 +65,15 @@ export async function getActiveOrderByStudent(userId: string): Promise<Order | n
 // Get full order history for a student (order history page)
 export async function getOrdersByStudent(userId: string): Promise<Order[]> {
   const result = await pool.query(
-    `SELECT o.*, p.name as vendor_name 
+    `SELECT o.*, v.vendor_name, v.logo_url, v.banner_url
      FROM orders o
      JOIN vendors v ON o.vendor_id = v.id
-     JOIN profiles p ON v.profile_id = p.id
      WHERE o.customer_id = $1 
      ORDER BY o.created_at DESC`,
     [userId]
   );
   return result.rows;
 }
-
 // Get all orders across all vendors (admin view)
 export async function getAllOrdersAdmin(): Promise<Order[]> {
   const result = await pool.query(

@@ -424,7 +424,9 @@ export default function AdminDashboard() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0,
                       }}>
-                        {vendor.category === 'Asian' || vendor.category === 'Fast Food' || vendor.category === 'Pizza'
+                        {vendor.logo_url
+                          ? <img src={vendor.logo_url} alt={vendor.vendor_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : vendor.category === 'Asian' || vendor.category === 'Fast Food' || vendor.category === 'Pizza'
                           ? <Utensils size={24} color="#C0474A" />
                           : vendor.category === 'Cafe'
                           ? <Coffee size={24} color="#C0474A" />
@@ -481,7 +483,8 @@ export default function AdminDashboard() {
                       {/* Review Forms — only for pending applications */}
                       {isPending && (
                         <button
-                          onClick={() => setReviewingVendor(vendor)}
+                          onClick={() =>{ console.log('RECIEWING VENDOR:', vendor),setReviewingVendor(vendor)}}
+    
                           style={{
                             flex: 1, padding: '8px', backgroundColor: 'transparent', color: '#555',
                             border: '1.5px solid #EBEBEB', borderRadius: '2rem', fontSize: '0.82rem',
@@ -646,9 +649,16 @@ export default function AdminDashboard() {
             </div>
 
             <div style={{ padding: '32px' }}>
+              {reviewingVendor.banner_url && (
+                <div style={{ width: '100%', height: '160px', borderRadius: '14px', overflow: 'hidden', marginBottom: '24px' }}>
+                  <img src={reviewingVendor.banner_url} alt="Stall banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              )}
               <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', marginBottom: '32px' }}>
-                <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'linear-gradient(135deg, #FFE5D0, #FFBFA0)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Store size={30} color={BRAND} />
+                <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'linear-gradient(135deg, #FFE5D0, #FFBFA0)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                  {reviewingVendor.logo_url
+                    ? <img src={reviewingVendor.logo_url} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <Store size={30} color={BRAND} />}
                 </div>
                 <div>
                   <h3 style={{ margin: '0 0 4px', fontSize: '1.4rem', fontWeight: 800, color: '#1a1a2e' }}>
@@ -657,7 +667,7 @@ export default function AdminDashboard() {
                   <span style={{ backgroundColor: '#E8F4FD', color: '#2A6DB5', padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
                     {Array.isArray(reviewingVendor.category)
                       ? reviewingVendor.category.join(', ')
-                      : reviewingVendor.category || 'N/A'}
+                      : (reviewingVendor.category || '').replace(/[{}"]/g, '') || 'N/A'}
                   </span>
                 </div>
               </div>
@@ -677,7 +687,7 @@ export default function AdminDashboard() {
                     <strong>Hours:</strong>{' '}
                     {reviewingVendor.operating_hours
                       ? typeof reviewingVendor.operating_hours === 'object'
-                        ? JSON.stringify(reviewingVendor.operating_hours)
+                        ? reviewingVendor.operating_hours.hours || JSON.stringify(reviewingVendor.operating_hours)
                         : reviewingVendor.operating_hours
                       : 'N/A'}
                   </p>

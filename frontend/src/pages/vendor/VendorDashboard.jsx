@@ -539,10 +539,65 @@ const estimatedRevenue = selectedItem
 
 // ============ VENDOR APPLICATION FORM ============
 const VENDOR_CATEGORIES = ['Fast Food', 'Cafe', 'Asian', 'Pizza', 'Healthy', 'Indian', 'Mains'];
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];// for refined operating hours
+
+const TIME_OPTIONS = [];
+for (let h = 0; h < 24; h++) {
+  for (let m = 0; m < 60; m += 30) {
+    const hh = String(h).padStart(2, '0');
+    const mm = String(m).padStart(2, '0');
+    TIME_OPTIONS.push(`${hh}:${mm}`);
+  }
+}
+
+const DEFAULT_HOURS = {
+  Mon: { open: true, from: '08:00', to: '17:00' },
+  Tue: { open: true, from: '08:00', to: '17:00' },
+  Wed: { open: true, from: '08:00', to: '17:00' },
+  Thu: { open: true, from: '08:00', to: '17:00' },
+  Fri: { open: true, from: '08:00', to: '17:00' },
+  Sat: { open: false, from: '09:00', to: '14:00' },
+  Sun: { open: false, from: '09:00', to: '14:00' },
+};
+
+function parseHoursString(str) {
+  if (!str || typeof str !== 'string') return DEFAULT_HOURS;
+  try {
+    const parsed = JSON.parse(str);
+    if (parsed && typeof parsed === 'object' && parsed.Mon) return parsed;
+  } catch (_) {}
+  return DEFAULT_HOURS;
+}
+
+function serializeHours(hoursObj) {
+  const openDays = DAYS.filter(d => hoursObj[d]?.open);
+  if (!openDays.length) return 'Closed';
+  const groups = [];
+  let i = 0;
+  while (i < openDays.length) {
+    const cur = hoursObj[openDays[i]];
+    let j = i + 1;
+    while (
+      j < openDays.length &&
+      hoursObj[openDays[j]].from === cur.from &&
+      hoursObj[openDays[j]].to === cur.to &&
+      DAYS.indexOf(openDays[j]) === DAYS.indexOf(openDays[j - 1]) + 1
+    ) j++;
+    const label = j - i > 1 ? `${openDays[i]}-${openDays[j - 1]}` : openDays[i];
+    groups.push(`${label} ${cur.from}–${cur.to}`);
+    i = j;
+  }
+  return groups.join(', ');
+}
+
+
 
 function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
   const [submitting, setSubmitting] = useState(false);
   const [sampleItem, setSampleItem] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [structuredHours, setStructuredHours] = useState(DEFAULT_HOURS);
   const [form, setForm] = useState({
     stall_name: vendorName || '',
     category: 'Fast Food',
@@ -550,16 +605,85 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
     owner_email: '',
     phone: '',
     location: '',
-    hours: '',
     description: '',
     health_cert_file: null,
     health_cert_name: '',
     bank_name: '',
     bank_account_number: '',
     sample_items: [],
+    image_url: null,
+    logo_url: null,
   });
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+
+  const handleImageFile = async (file) => {
+  if (!file || !file.type.startsWith('image/')) return;
+  setUploadingImage(true);
+  try {
+    const signRes = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/sign`);
+    const { timestamp, signature, apiKey, cloudName } = await signRes.json();
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('timestamp', timestamp);
+    formData.append('signature', signature);
+    formData.append('api_key', apiKey);
+    formData.append('folder', 'orderup/menu-items');
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      { method: 'POST', body: formData }
+    );
+    const data = await uploadRes.json();
+    if (data.secure_url) update('image_url', data.secure_url);
+    else throw new Error('No URL returned');
+  } catch (err) {
+    console.error('Image upload failed:', err);
+    alert('Image upload failed. Please try again.');
+  } finally {
+    setUploadingImage(false);
+  }
+};
+
+const handleLogoFile = async (file) => {
+  if (!file || !file.type.startsWith('image/')) return;
+  setUploadingLogo(true);
+  try {
+    const signRes = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/sign`);
+    const { timestamp, signature, apiKey, cloudName } = await signRes.json();
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('timestamp', timestamp);
+    formData.append('signature', signature);
+    formData.append('api_key', apiKey);
+    formData.append('folder', 'orderup/menu-items');
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      { method: 'POST', body: formData }
+    );
+    const data = await uploadRes.json();
+    if (data.secure_url) update('logo_url', data.secure_url);
+    else throw new Error('No URL returned');
+  } catch (err) {
+    console.error('Logo upload failed:', err);
+    alert('Logo upload failed. Please try again.');
+  } finally {
+    setUploadingLogo(false);
+  }
+};
+
+const toggleDay = (day) => {
+  setStructuredHours(prev => ({
+    ...prev,
+    [day]: { ...prev[day], open: !prev[day].open },
+  }));
+};
+
+const updateDayHours = (day, field, value) => {
+  setStructuredHours(prev => ({
+    ...prev,
+    [day]: { ...prev[day], [field]: value },
+  }));
+};
 
   const addSampleItem = () => {
     if (sampleItem.trim() && form.sample_items.length < 6) {
@@ -590,11 +714,16 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
         profile_id: user.id,
         name: form.stall_name,
         description: form.description,
-        category: form.category ? [form.category] : [],  // wrap string in array
+        category: form.category ? [form.category] : [],
         location: form.location,
-        operating_hours: form.hours ? { hours: form.hours } : null,
+        operating_hours: {
+          hours: serializeHours(structuredHours),
+          structured: JSON.stringify(structuredHours),
+        },
         sample_items: form.sample_items.join(', ') || null,
-        health_certificate_url: null, // upload separately if needed
+        health_certificate_url: null,
+        banner_url: form.image_url,
+        logo_url: form.logo_url,
       }),
     });
     if (!res.ok) throw new Error('Failed to submit');
@@ -626,6 +755,76 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
       </section>
 
       <div style={{ padding: '0 16px 32px' }}>
+
+        {/* Stall Photo */}
+<div style={sectionStyle}>
+  <label style={labelStyle}>Stall Photo</label>
+  <div
+    onClick={() => !uploadingImage && document.getElementById('vendor-banner-input').click()}
+    onDragOver={e => e.preventDefault()}
+    onDrop={e => { e.preventDefault(); handleImageFile(e.dataTransfer.files[0]); }}
+    style={{ width: '100%', height: '160px', borderRadius: '12px', border: form.image_url ? 'none' : '2px dashed #E0E0E0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: uploadingImage ? 'wait' : 'pointer', overflow: 'hidden', position: 'relative', backgroundColor: form.image_url ? 'transparent' : '#FAFAFA' }}
+  >
+    {uploadingImage ? (
+      <p style={{ fontSize: '0.8rem', color: '#888' }}>Uploading...</p>
+    ) : form.image_url ? (
+      <>
+        <img src={form.image_url} alt="Stall" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ color: 'white', fontSize: '0.8rem', fontWeight: 600 }}>Click to change photo</span>
+        </div>
+      </>
+    ) : (
+      <>
+        <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#888', margin: '0 0 4px' }}>Upload stall photo</p>
+        <p style={{ fontSize: '0.75rem', color: '#bbb', margin: 0 }}>Click to browse or drag & drop</p>
+      </>
+    )}
+    <input id="vendor-banner-input" type="file" accept="image/*" style={{ display: 'none' }}
+      onChange={e => handleImageFile(e.target.files[0])} />
+  </div>
+  {form.image_url && (
+    <button onClick={() => update('image_url', null)}
+      style={{ marginTop: '6px', fontSize: '0.72rem', color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+      Remove photo
+    </button>
+  )}
+</div>
+
+{/* Stall Logo */}
+<div style={sectionStyle}>
+  <label style={labelStyle}>Stall Logo <span style={{ fontSize: '0.65rem', color: '#aaa', fontWeight: 400 }}>(circular icon shown on card)</span></label>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+    <div
+      onClick={() => !uploadingLogo && document.getElementById('vendor-logo-input').click()}
+      onDragOver={e => e.preventDefault()}
+      onDrop={e => { e.preventDefault(); handleLogoFile(e.dataTransfer.files[0]); }}
+      style={{ width: '80px', height: '80px', borderRadius: '50%', border: form.logo_url ? 'none' : '2px dashed #E0E0E0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: uploadingLogo ? 'wait' : 'pointer', overflow: 'hidden', flexShrink: 0, backgroundColor: form.logo_url ? 'transparent' : '#FAFAFA', boxShadow: form.logo_url ? '0 2px 8px rgba(0,0,0,0.15)' : 'none' }}
+    >
+      {uploadingLogo ? (
+        <p style={{ fontSize: '0.65rem', color: '#888', textAlign: 'center', padding: '4px' }}>Uploading...</p>
+      ) : form.logo_url ? (
+        <img src={form.logo_url} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <p style={{ fontSize: '0.65rem', color: '#bbb', textAlign: 'center', padding: '4px' }}>Click to upload</p>
+      )}
+      <input id="vendor-logo-input" type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={e => handleLogoFile(e.target.files[0])} />
+    </div>
+    <div>
+      <p style={{ fontSize: '0.8rem', color: '#555', margin: '0 0 4px', fontWeight: 600 }}>
+        {form.logo_url ? 'Click circle to change' : 'Click circle to upload'}
+      </p>
+      <p style={{ fontSize: '0.72rem', color: '#aaa', margin: 0 }}>Square images work best. Will be shown as a circle.</p>
+      {form.logo_url && (
+        <button onClick={() => update('logo_url', null)}
+          style={{ marginTop: '6px', fontSize: '0.72rem', color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+          Remove logo
+        </button>
+      )}
+    </div>
+  </div>
+</div>
 
         {/* Business Info */}
         <div style={sectionStyle}>
@@ -667,9 +866,44 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
             <input style={inputStyle} value={form.location} onChange={e => update('location', e.target.value)} placeholder="e.g. Matrix Food Court, Stall 4" />
           </div>
           <div>
-            <label style={labelStyle}>Operating Hours</label>
-            <input style={inputStyle} value={form.hours} onChange={e => update('hours', e.target.value)} placeholder="e.g. 07:00 - 17:00" />
+          {/* operating hours is more refined */}
+          <label style={labelStyle}>Operating Hours</label>
+          <div style={{ border: '1.5px solid #EBEBEB', borderRadius: '12px', overflow: 'hidden' }}>
+            {DAYS.map((day, idx) => {
+              const d = structuredHours[day];
+              return (
+                <div key={day} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderBottom: idx < DAYS.length - 1 ? '1px solid #F0F0F0' : 'none', backgroundColor: 'white' }}>
+                  <div onClick={() => toggleDay(day)}
+                    style={{ width: '34px', height: '19px', borderRadius: '10px', position: 'relative', cursor: 'pointer', flexShrink: 0, backgroundColor: d.open ? '#C0474A' : '#E0E0E0', transition: 'background 0.2s' }}>
+                    <div style={{ position: 'absolute', top: '2px', left: d.open ? '17px' : '2px', width: '15px', height: '15px', borderRadius: '50%', backgroundColor: 'white', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                  </div>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: d.open ? '#1a1a2e' : '#bbb', width: '32px', flexShrink: 0 }}>{day}</span>
+                  {d.open ? (
+                    <>
+                      <select value={d.from} onChange={e => updateDayHours(day, 'from', e.target.value)}
+                        style={{ padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #EBEBEB', fontSize: '0.8rem', outline: 'none', backgroundColor: 'white', cursor: 'pointer' }}>
+                        {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      <span style={{ fontSize: '0.75rem', color: '#aaa', flexShrink: 0 }}>to</span>
+                      <select value={d.to} onChange={e => updateDayHours(day, 'to', e.target.value)}
+                        style={{ padding: '8px 10px', borderRadius: '8px', border: `1.5px solid ${d.from >= d.to ? '#C0474A' : '#EBEBEB'}`, fontSize: '0.8rem', outline: 'none', backgroundColor: 'white', cursor: 'pointer' }}>
+                        {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      {d.from >= d.to && <span style={{ fontSize: '0.65rem', color: '#C0474A', flexShrink: 0 }}>⚠ invalid</span>}
+                    </>
+                  ) : (
+                    <span style={{ fontSize: '0.78rem', color: '#bbb', fontStyle: 'italic' }}>Closed</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
+          {serializeHours(structuredHours) !== 'Closed' && (
+            <p style={{ fontSize: '0.7rem', color: '#888', marginTop: '8px' }}>
+              Preview: <span style={{ color: '#444', fontWeight: 600 }}>{serializeHours(structuredHours)}</span>
+            </p>
+          )}
+        </div>
         </div>
 
         {/* Business Description */}

@@ -221,11 +221,15 @@ export default function StudentHistoryPage() {
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <div style={{
                     width: '48px', height: '48px', borderRadius: '14px',
-                    background: 'linear-gradient(135deg, #FFE5D0, #FFBFA0)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0
-                  }}>
-                    🍽️
-                  </div>
+                    overflow: 'hidden', flexShrink: 0, backgroundColor: '#F5F0E8',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+              {order.logo_url ? (
+              <img src={order.logo_url} alt={order.vendor_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <span style={{ fontSize: '1.5rem' }}>🍽️</span>
+                )}
+              </div>
                   <div>
                     <h3 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 800, color: '#1a1a2e' }}>
                       {order.vendor_name || 'Vendor'}
@@ -343,11 +347,15 @@ export default function StudentHistoryPage() {
 
             <div style={{
               width: '64px', height: '64px', borderRadius: '20px', margin: '0 auto 16px',
-              background: 'linear-gradient(135deg, #FFE5D0, #FFBFA0)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem'
+              overflow: 'hidden', backgroundColor: '#F5F0E8',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              🍽️
-            </div>
+            {selectedOrder?.logo_url ? (
+              <img src={selectedOrder.logo_url} alt={selectedOrder?.vendor_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ fontSize: '2rem' }}>🍽️</span>
+              )}
+          </div>
 
             <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1a1a2e', margin: '0 0 8px' }}>
               How was your food?

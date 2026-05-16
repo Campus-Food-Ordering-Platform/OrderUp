@@ -133,9 +133,9 @@ export const submitVendorApplication = async (body: any) => {
   const result = await pool.query(
     `INSERT INTO vendor_applications 
       (profile_id, name, description, category, location, operating_hours, 
-       health_certificate_url, sample_items)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     RETURNING *`,
+      health_certificate_url, sample_items)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING *`,
     [
       body.profile_id,
       body.name,
@@ -186,6 +186,8 @@ export const getAllVendorsAdmin = async () => {
       v.operating_hours,
       v.status                  AS vendor_status,
       v.is_active,
+      v.logo_url,
+      v.banner_url,
       v.application_id,
       p.name                    AS owner_name,
       p.created_at              AS join_date,
@@ -206,7 +208,7 @@ export const getAllVendorsAdmin = async () => {
     LEFT JOIN orders o ON o.vendor_id = v.id
     GROUP BY
       v.id, v.vendor_name, v.description, v.category, v.location,
-      v.operating_hours, v.status, v.is_active, v.application_id,
+      v.operating_hours, v.status, v.is_active, v.application_id, v.logo_url, v.banner_url,
       p.name, p.created_at,
       va.id, va.status, va.health_certificate_url, va.sample_items,
       va.submitted_at, va.rejection_reason, va.description,
@@ -238,6 +240,8 @@ export const getPendingApplications = async () => {
       p.name                    AS owner_name,
       p.created_at              AS join_date,
       va.id                     AS application_id,
+      NULL AS banner_url,
+      NULL AS logo_url,
       0                         AS revenue,
       0                         AS orders
     FROM vendor_applications va
