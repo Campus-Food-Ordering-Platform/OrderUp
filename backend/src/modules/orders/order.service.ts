@@ -1,5 +1,6 @@
 import * as orderRepo from './order.repository';
-import { CreateOrderDTO, RateOrderDTO } from './order.model';
+import { CreateOrderDTO, RateOrderDTO, Order } from './order.model';
+
 import { OrderStatus, STATUS_TRANSITIONS } from './order.status';
 import pool from '../../config/db';
 import { sendPushNotification } from '../notifications/notification.service';
@@ -75,6 +76,20 @@ export async function advanceOrderStatus(orderId: string) {
 // Get the student's current active order (Auth0 ID passed in, resolved in repository)
 export async function getStudentActiveOrder(studentId: string) {
   return await orderRepo.getActiveOrderByStudent(studentId);
+}
+// get all the vendors (it allows us to show all active orders)
+export async function getAllActiveOrdersByStudent(userId: string): Promise<Order[]> {
+  const result = await pool.query(
+    `SELECT o.*, p.name as vendor_name
+     FROM orders o
+     JOIN vendors v ON o.vendor_id = v.id
+     JOIN profiles p ON v.profile_id = p.id
+     WHERE o.customer_id = $1
+     AND o.status NOT IN ('collected')
+     ORDER BY o.created_at ASC`,
+    [userId]
+  );
+  return result.rows;
 }
 
 // Get full order history for a student (Auth0 ID passed in, resolved in repository)

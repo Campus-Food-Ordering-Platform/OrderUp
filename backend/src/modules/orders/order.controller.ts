@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
+
 import * as orderService  from './order.service';
+
 
 export async function createOrderHandler(req: Request, res: Response) {
   try {
@@ -74,6 +76,18 @@ export async function getStudentHistoryHandler(req: Request, res: Response) {
     res.status(500).json({ error: 'Failed to fetch order history' });
   }
 }
+export async function getStudentActiveOrdersHandler(req: Request, res: Response) {
+  try {
+    const studentId = req.params.studentId as string;
+    if (!studentId) return res.status(400).json({ error: 'Invalid student ID' });
+    const orders = await orderService.getAllActiveOrdersByStudent(studentId);
+    res.json(orders);
+  } catch (err) {
+    console.error('getStudentActiveOrders error:', err);
+    res.status(500).json({ error: 'Failed to fetch active orders' });
+  }
+}
+
 export async function getAllOrdersAdminHandler(req: Request, res: Response) {
   try {
     const orders = await orderService.getAllOrdersForAdmin();

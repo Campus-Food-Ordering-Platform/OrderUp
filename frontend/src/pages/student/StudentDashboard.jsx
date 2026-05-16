@@ -29,27 +29,53 @@ function VendorCard({ vendor, onPress }) {
         e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.07)';
       }}
     >
-      <div
-        style={{
-          height: '100px',
-          background: `linear-gradient(135deg, ${vendor.bg_from || '#FFE5D0'}, ${vendor.bg_to || '#FFBFA0'})`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '2.5rem',
-        }}
-        aria-hidden="true"
-      >
-        {vendor.emoji || '🍽️'}
+      {/* Photo / banner */}
+      <div style={{ height: '100px', position: 'relative', overflow: 'hidden', backgroundColor: '#F5F0E8' }}>
+        {vendor.banner_url ? (
+          <img
+            src={vendor.banner_url}
+            alt={vendor.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <div style={{
+            width: '100%', height: '100%',
+            background: 'linear-gradient(135deg, #FFE5D0, #FFBFA0)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '2.5rem',
+          }}>
+            🍽️
+          </div>
+        )}
+
+        {/* Category badge overlaid on image
+        {vendor.category?.[0] && (
+          <span style={{
+            position: 'absolute', top: '8px', left: '8px',
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            color: 'white', fontSize: '0.6rem', fontWeight: 700,
+            padding: '3px 8px', borderRadius: '20px',
+            backdropFilter: 'blur(4px)',
+          }}>
+            {vendor.category[0]}
+          </span>
+        )} */}
       </div>
 
       <div style={{ padding: '10px 12px' }}>
         <h3 style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1a1a2e', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
           {vendor.name || 'Unnamed Vendor'}
         </h3>
-        <p style={{ fontSize: '0.72rem', color: '#888', marginBottom: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <p style={{ fontSize: '0.72rem', color: '#888', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {vendor.description || 'No description available'}
         </p>
+
+        {/* Location */}
+        {vendor.location && (
+          <p style={{ fontSize: '0.68rem', color: '#aaa', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            📍 {vendor.location}
+          </p>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 600, color: '#F59E0B' }}>
@@ -58,7 +84,9 @@ function VendorCard({ vendor, onPress }) {
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', color: '#888' }}>
             <Clock size={11} strokeWidth={2} />
-            {vendor.wait || '?'} min
+            {vendor.operating_hours.hours || '?'} min
+            {/* Hours */}
+       
           </span>
           <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#FFF0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: BRAND, fontWeight: 700, fontSize: '0.85rem' }}>
             ›
@@ -140,7 +168,12 @@ export default function StudentDashboard() {
 
   // ── Null-safe filter ───────────────────────────────────────────────────────
   const filteredVendors = vendors.filter((vendor) => {
-    const matchesFilter = activeFilter === 'All' || vendor.category === activeFilter;
+    //const matchesFilter = activeFilter === 'All' || vendor.category === activeFilter; this was wrong
+    const matchesFilter = activeFilter === 'All' || (
+  Array.isArray(vendor.category)
+    ? vendor.category.includes(activeFilter)
+    : (vendor.category || '').includes(activeFilter)  // handles "{Fast Food}" string format
+    );
     const matchesSearch =
       (vendor.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (vendor.description || '').toLowerCase().includes(searchQuery.toLowerCase());

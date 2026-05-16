@@ -16,12 +16,13 @@ router.get('/admin/all', vendorController.getAllVendorsAdmin);
 router.patch('/:id/status', vendorController.updateVendorStatus);
 
 // Vendors
-
 router.get('/', vendorController.getAllVendors);
-router.get('/:id', vendorController.getVendorById);
 router.post('/applications', vendorController.submitVendorApplication);
 router.post('/register', vendorController.registerVendor);
 router.post('/status', vendorController.checkVendorStatus);
+router.get('/:id', vendorController.getVendorById);       // ← wildcard routes last
+router.put('/:id', vendorController.updateVendor);        // ← wildcard routes last
+
 
 // Menu
 router.get('/:id/menu', vendorController.getVendorMenu);
