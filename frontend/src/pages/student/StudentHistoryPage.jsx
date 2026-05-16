@@ -23,35 +23,57 @@ export default function StudentHistoryPage() {
   const [showLogout, setShowLogout] = useState(false);
 
   const [ratedVendors, setRatedVendors] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('rated_vendors')) || []; }
+    try { return JSON.parse(localStorage.getItem('rated_orders')) || []; }
     catch { return []; }
   });
+    
+  const [reviewText, setReviewText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [ratingValue, setRatingValue] = useState(0);
   const [hoverValue, setHoverValue] = useState(0);
+  const { getAccessTokenSilently } = useAuth0();
 
   useEffect(() => {
+    const fetchOrders = async () => {
     const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
     const user = raw?.user ?? raw;
+
     if (!user?.id) { setLoading(false); return; }
 
-    fetch(`${import.meta.env.VITE_API_URL}/api/orders/student-history/${user.id}`)
-      .then(res => res.json())
-      .then(data => {
-        setPastOrders(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(err => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/student-history/${user.id}`);
+        const data = await response.json();
+        const orders = Array.isArray(data) ? data : [];
+        setPastOrders(orders);
+        
+        // Check which orders already have ratings from backend
+        const ratedOrderIds = orders
+          .filter(order => order.rating !== null && order.rating !== undefined)
+          .map(order => order.id);
+        
+        // Use backend as source of truth
+        setRatedVendors(ratedOrderIds);
+        localStorage.setItem('rated_orders', JSON.stringify(ratedOrderIds));
+        
+      } catch (err) {
         console.error('Failed to fetch history:', err);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+    
+    fetchOrders();
   }, []);
 
   const handleOpenRating = (order) => {
     setSelectedOrder(order);
     setRatingValue(0);
     setHoverValue(0);
+    setReviewText('');  // Reset review text
+    setSubmitting(false);
     setRatingModalOpen(true);
   };
 
@@ -59,15 +81,63 @@ export default function StudentHistoryPage() {
     setRatingModalOpen(false);
     setTimeout(() => setSelectedOrder(null), 300);
   };
+  
+const handleSubmitRating = async () => {
 
-  const handleSubmitRating = () => {
-    if (ratingValue === 0 || !selectedOrder) return;
-    const vendorId = selectedOrder.vendor_id;
-    const newRated = [...ratedVendors, vendorId];
+  const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
+const user = raw?.user ?? raw;
+console.log('👤 Full user object:', user);
+console.log('👤 user.id:', user.id);
+console.log('🛒 order.customer_id:', selectedOrder.customer_id);
+
+
+
+  if (ratingValue === 0 || !selectedOrder) return;
+  setSubmitting(true);
+
+  try {
+    const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
+    const user = raw?.user ?? raw;
+
+    if (!user?.id) {
+      alert('Session expired. Please log in again.');
+      return;
+    }
+
+    const url = `${import.meta.env.VITE_API_URL}/api/orders/${selectedOrder.id}/rating`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        rating: ratingValue, 
+        review: reviewText,
+        studentId: user.id
+      })
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      const error = JSON.parse(text);
+      throw new Error(error.error || 'Failed to submit rating');
+    }
+
+    const newRated = [...ratedVendors, selectedOrder.id];
     setRatedVendors(newRated);
-    localStorage.setItem('rated_vendors', JSON.stringify(newRated));
+    localStorage.setItem('rated_orders', JSON.stringify(newRated));
+    setPastOrders(prev => prev.map(o =>
+      o.id === selectedOrder.id ? { ...o, rating: ratingValue, review: reviewText } : o
+    ));
     handleCloseRating();
-  };
+    alert('Thank you for your rating!');
+
+  } catch (error) {
+    console.error('Rating submission failed:', error);
+    alert(error.message);
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const filteredOrders = pastOrders.filter(order => {
     const displayStatus = STATUS_LABELS[order.status] || order.status;
@@ -300,7 +370,7 @@ export default function StudentHistoryPage() {
   }}>
   <MessageSquare size={14} /> Reorder
 </button>
-                {isCompleted && !ratedVendors.includes(order.vendor_id) && (
+                {isCompleted && !ratedVendors.includes(order.id) && (
                   <button
                     onClick={() => handleOpenRating(order)}
                     style={{
@@ -375,17 +445,37 @@ export default function StudentHistoryPage() {
               ))}
             </div>
 
+            <div style={{ marginBottom: '24px' }}>
+              <textarea
+                placeholder="Share your experience (optional)..."
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1.5px solid #EBEBEB',
+                  fontSize: '0.9rem',
+                  fontFamily: 'inherit',
+                  resize: 'vertical',
+                  minHeight: '80px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
             <button
               onClick={handleSubmitRating}
-              disabled={ratingValue === 0}
+              disabled={ratingValue === 0 || submitting}
               style={{
                 width: '100%', padding: '14px', borderRadius: '16px', border: 'none',
-                backgroundColor: ratingValue > 0 ? BRAND : '#E0E0E0',
-                color: 'white', fontSize: '1rem', fontWeight: 700, cursor: ratingValue > 0 ? 'pointer' : 'not-allowed',
+                backgroundColor: ratingValue > 0 && !submitting ? BRAND : '#E0E0E0',
+                color: 'white', fontSize: '1rem', fontWeight: 700, 
+                cursor: ratingValue > 0 && !submitting ? 'pointer' : 'not-allowed',
                 transition: 'background-color 0.2s'
               }}
             >
-              Submit Review
+              {submitting ? 'Submitting...' : 'Submit Review'}
             </button>
             <button
               onClick={handleCloseRating}

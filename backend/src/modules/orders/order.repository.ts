@@ -117,11 +117,13 @@ export async function getOrderRatingStatus(orderId: string): Promise<{ rating?: 
 }
 
 // Optional: Get all rated orders for a product/vendor (for analytics)
-export async function getRatingsByVendor(vendorId: string): Promise<{ rating: number; review: string }[]> {
+export async function getRatingsByVendor(vendorId: string) {
   const result = await pool.query(
-    `SELECT rating, review FROM orders 
-     WHERE vendor_id = $1 
-     AND rating IS NOT NULL`,
+    `SELECT o.rating, o.review, o.created_at, p.name AS customer_name
+     FROM orders o
+     JOIN profiles p ON o.customer_id = p.id
+     WHERE o.vendor_id = $1
+     AND o.rating IS NOT NULL`,
     [vendorId]
   );
   return result.rows;

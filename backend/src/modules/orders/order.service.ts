@@ -91,13 +91,13 @@ export async function getAllOrdersForAdmin() {
 
 // Rate an order (submit rating and review)
 export async function rateOrder(orderId: string, customerId: string, ratingData: RateOrderDTO) {
-  // 1. Get the order
   const order = await orderRepo.getOrderById(orderId);
-  
-  if (!order) {
-    throw new Error('Order not found');
-  }
-  
+  if (!order) throw new Error('Order not found');
+
+  console.log('🔍 order.customer_id from DB:', order.customer_id);
+  console.log('🔍 customerId sent from frontend:', customerId);
+  console.log('🔍 match?', order.customer_id === customerId);
+  // ...
   // 2. Verify this customer owns the order
   if (order.customer_id !== customerId) {
     throw new Error('Unauthorized: You can only rate your own orders');

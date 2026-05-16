@@ -924,6 +924,11 @@ export default function VendorDashboard() {
   }, [vendorId]);// this would fetch the orders for the vendor when the dashboard loads
 
 
+// rating variables:
+  const [ratingsData, setRatingsData] = useState({ averageRating: null, totalRatings: 0, distribution: {5:0,4:0,3:0,2:0,1:0} });
+  const [recentReviews, setRecentReviews] = useState([]);
+
+
   //  below we setup the weekly revenue and orders
   const [analyticsData, setAnalyticsData] = useState({
     weeklyRevenue: [],
@@ -970,7 +975,41 @@ export default function VendorDashboard() {
     }
   };
 
+  const fetchRatings = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/vendor/${vendorId}/ratings`);
+      const data = await res.json();
+      setRatingsData(data);
+    } catch (err) {
+      console.error('Failed to fetch ratings:', err);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/vendor/${vendorId}`);
+      const data = await res.json();
+      const reviews = (Array.isArray(data) ? data : [])
+        .filter(o => o.rating && o.review)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 5)
+        .map(o => ({
+          name: o.customer_name || 'Anonymous',
+          rating: o.rating,
+          comment: o.review,
+          date: new Date(o.created_at).toLocaleDateString('en-ZA'),
+        }));
+      setRecentReviews(reviews);
+    } catch (err) {
+      console.error('Failed to fetch reviews:', err);
+    }
+  };
+
   fetchAnalytics();
+  fetchRatings();
+  fetchReviews();
+
+
 }, [vendorId, selectedRange]);
 
 const rangeLabelMap = {
@@ -1205,11 +1244,6 @@ const getChartInterval = (range) => {
     { hour: '8pm - 9pm', traffic: 'Little Busy', level: 65, orders: 18 },
   ];
 
-  const recentReviews = [
-    { name: 'Tanvi Yadav', rating: 5, comment: 'Amazing food! The Classic Kota is absolutely delicious. Will order again soon!', source: 'Google', date: '2 days ago' },
-    { name: "Karel D'Costa", rating: 4, comment: 'Good quality and fast delivery. Chicken burger was tasty but could be bigger.', source: 'Zomato', date: '5 days ago' },
-    { name: 'Vishwajeet Gokar', rating: 5, comment: 'Best kota in town! The portion size is great and prices are reasonable.', source: 'Zomato', date: '1 week ago' },
-  ];
 
   const cardStyle = { background: 'white', padding: '16px', borderRadius: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' };
   const labelStyle = { fontSize: '0.75rem', color: '#888', margin: 0 };
@@ -1471,25 +1505,54 @@ const getChartInterval = (range) => {
 
           {/* Customer Reviews */}
           <div style={{ ...cardStyle, marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <MessageSquare size={16} color={BRAND} />
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Customer Reviews</h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MessageSquare size={16} color={BRAND} />
+                <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Customer Reviews</h3>
+              </div>
+              {ratingsData.averageRating && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Star size={14} fill="#FFB800" color="#FFB800" />
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a2e' }}>{ratingsData.averageRating}</span>
+                  <span style={{ fontSize: '0.7rem', color: '#888' }}>({ratingsData.totalRatings} reviews)</span>
+                </div>
+              )}
             </div>
-            {recentReviews.map((review, idx) => (
-              <div key={idx} style={{ borderBottom: idx !== recentReviews.length - 1 ? '1px solid #F0F0F0' : 'none', paddingBottom: idx !== recentReviews.length - 1 ? '12px' : 0, marginBottom: idx !== recentReviews.length - 1 ? '12px' : 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <div>
-                    <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{review.name}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
-                      {[...Array(5)].map((_, i) => (<Star key={i} size={10} fill={i < review.rating ? '#FFB800' : 'none'} color={i < review.rating ? '#FFB800' : '#DDD'} />))}
+
+            {/* Star distribution */}
+            {ratingsData.totalRatings > 0 && (
+              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#F9F9F9', borderRadius: '10px' }}>
+                {[5,4,3,2,1].map(star => (
+                  <div key={star} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.65rem', color: '#888', width: '8px' }}>{star}</span>
+                    <Star size={10} fill="#FFB800" color="#FFB800" />
+                    <div style={{ flex: 1, height: '6px', backgroundColor: '#E0E0E0', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: `${ratingsData.totalRatings > 0 ? (ratingsData.distribution[star] / ratingsData.totalRatings) * 100 : 0}%`, height: '100%', backgroundColor: BRAND, borderRadius: '3px' }} />
+                    </div>
+                    <span style={{ fontSize: '0.65rem', color: '#888', width: '16px' }}>{ratingsData.distribution[star]}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {recentReviews.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#aaa', fontSize: '0.8rem', padding: '20px 0' }}>No reviews yet</p>
+            ) : (
+              recentReviews.map((review, idx) => (
+                <div key={idx} style={{ borderBottom: idx !== recentReviews.length - 1 ? '1px solid #F0F0F0' : 'none', paddingBottom: idx !== recentReviews.length - 1 ? '12px' : 0, marginBottom: idx !== recentReviews.length - 1 ? '12px' : 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{review.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
+                        {[...Array(5)].map((_, i) => (<Star key={i} size={10} fill={i < review.rating ? '#FFB800' : 'none'} color={i < review.rating ? '#FFB800' : '#DDD'} />))}
+                      </div>
                     </div>
                   </div>
-                  <span style={{ fontSize: '0.6rem', padding: '2px 8px', backgroundColor: '#F0F0F0', borderRadius: '12px' }}>{review.source}</span>
+                  <p style={{ fontSize: '0.7rem', color: '#666', lineHeight: 1.4, margin: '6px 0 0' }}>{review.comment}</p>
+                  <p style={{ fontSize: '0.6rem', color: '#999', marginTop: '4px' }}>{review.date}</p>
                 </div>
-                <p style={{ fontSize: '0.7rem', color: '#666', lineHeight: 1.4, margin: '6px 0 0' }}>{review.comment}</p>
-                <p style={{ fontSize: '0.6rem', color: '#999', marginTop: '4px' }}>{review.date}</p>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           {/* Top Selling Items */}
