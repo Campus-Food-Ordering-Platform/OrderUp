@@ -6,13 +6,13 @@ import {
   Package, Banknote, Calendar, Utensils, Coffee, Leaf, FileText
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
 
 const BRAND = '#C0474A';
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: BarChart2 },
   { id: 'vendors', label: 'Vendors', icon: Store },
-  { id: 'orders', label: 'Disputes', icon: Search },
 ];
 
 //  Keys match actual DB enum values: 'active' | 'suspended' | 'pending' | 'rejected'
@@ -23,25 +23,18 @@ const statusConfig = {
   suspended:{ bg: '#FFE8E8', color: '#C0474A', label: 'Suspended' },
 };
 
-const orderStatusConfig = {
-  received:  { bg: '#E8F4FD', color: '#2A6DB5' },
-  preparing: { bg: '#F0E8FF', color: '#7B4FBF' },
-  ready:     { bg: '#E8F8E8', color: '#2A7D2A' },
-  collected: { bg: '#F0F0F0', color: '#888' },
-};
-
 const formatDate = (d) => d ? new Date(d).toLocaleDateString() : 'N/A';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { logout } = useAuth0();
+  const [showLogout, setShowLogout] = useState(false);
 
   const [vendors, setVendors]                   = useState([]);
-  const [orders, setOrders]                     = useState([]);
   const [loading, setLoading]                   = useState(true);
   const [activeTab, setActiveTab]               = useState('overview');
   const [vendorFilter, setVendorFilter]         = useState('all');
   const [searchQuery, setSearchQuery]           = useState('');
-  const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [selectedVendor, setSelectedVendor]     = useState(null);
   const [reviewingVendor, setReviewingVendor]   = useState(null);
 
@@ -64,13 +57,6 @@ export default function AdminDashboard() {
       setLoading(false);
     });
 }, []);
-
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/orders/admin/all`)
-      .then(res => res.json())
-      .then(data => setOrders(Array.isArray(data) ? data : []))
-      .catch(err => console.error('Failed to fetch orders:', err));
-  }, []);
 
   //  Takes whole vendor object, uses vendor_status for existing vendors
   const handleApprove = async (vendor) => {
@@ -153,15 +139,8 @@ export default function AdminDashboard() {
     active:       vendors.filter(v => v.vendor_status === 'active').length,
     pending:      vendors.filter(v => v.application_status === 'pending').length,
     suspended:    vendors.filter(v => v.vendor_status === 'suspended').length,
-    totalOrders:  orders.length,
     totalRevenue: vendors.reduce((sum, v) => sum + (Number(v.revenue) || 0), 0),
   };
-
-  const filteredOrders = orders.filter(o =>
-    String(o.id).includes(orderSearchQuery) ||
-    (o.customer_name || '').toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
-    (o.vendor_name || '').toLowerCase().includes(orderSearchQuery.toLowerCase())
-  );
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F7F5F2' }}>
@@ -191,8 +170,22 @@ export default function AdminDashboard() {
           >
             <Home size={16} color="white" strokeWidth={2} />
           </div>
-          <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <div
+            onMouseEnter={() => setShowLogout(true)}
+            onMouseLeave={() => setShowLogout(false)}
+            style={{ position: 'relative', width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
             <UserRound size={16} color="white" strokeWidth={2} />
+            {showLogout && (
+              <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '8px', zIndex: 100 }}>
+                <div
+                  onClick={(e) => { e.stopPropagation(); logout({ logoutParams: { returnTo: window.location.origin } }); }}
+                  style={{ backgroundColor: 'white', color: '#C0474A', padding: '8px 16px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', whiteSpace: 'nowrap' }}
+                >
+                  Sign Out
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -264,7 +257,6 @@ export default function AdminDashboard() {
             {[
               { label: 'Total Vendors', value: stats.totalVendors, icon: Store,         color: BRAND,      bg: '#FFF0F0' },
               { label: 'Pending',       value: stats.pending,      icon: Clock,         color: '#B8860B',  bg: '#FFF3CD' },
-              { label: 'Total Orders',  value: stats.totalOrders,  icon: ClipboardList, color: '#2A6DB5',  bg: '#E8F4FD' },
               { label: 'Active',        value: stats.active,       icon: CheckCircle,   color: '#2A7D2A',  bg: '#E8F8E8' },
               { label: 'Suspended',     value: stats.suspended,    icon: XCircle,       color: '#C0474A',  bg: '#FFE8E8' },
               { label: 'Revenue',       value: `R${stats.totalRevenue.toLocaleString()}`, icon: BarChart2, color: '#7B4FBF', bg: '#F0E8FF' },
@@ -503,7 +495,6 @@ export default function AdminDashboard() {
                       {isPending && (
                         <button
                           onClick={() =>{ console.log('RECIEWING VENDOR:', vendor),setReviewingVendor(vendor)}}
-    
                           style={{
                             flex: 1, padding: '8px', backgroundColor: 'transparent', color: '#555',
                             border: '1.5px solid #EBEBEB', borderRadius: '2rem', fontSize: '0.82rem',
@@ -554,91 +545,6 @@ export default function AdminDashboard() {
               })}
             </div>
           )}
-        </section>
-      )}
-
-      {/* ── Disputes / Orders Tab ── */}
-      {activeTab === 'orders' && (
-        <section style={{ padding: '0 16px 32px' }}>
-
-          <div style={{ marginBottom: '16px', backgroundColor: '#FFF0F0', padding: '16px', borderRadius: '16px', border: '1px solid #FFD0D0' }}>
-            <h2 style={{ margin: '0 0 6px', fontSize: '1rem', fontWeight: 800, color: '#C0474A' }}>Order Lookup & Disputes</h2>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
-              Search for orders to resolve student or vendor disputes.
-            </p>
-          </div>
-
-          <div style={{ position: 'relative', marginBottom: '20px' }}>
-            <Search size={18} color="#aaa" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              placeholder="Search by Order ID, customer, or vendor..."
-              value={orderSearchQuery}
-              onChange={(e) => setOrderSearchQuery(e.target.value)}
-              style={{
-                width: '100%', padding: '14px 16px 14px 46px', borderRadius: '14px',
-                border: '1.5px solid #EBEBEB', fontSize: '0.95rem', color: '#333',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)', boxSizing: 'border-box', outline: 'none',
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {orderSearchQuery.trim() === '' ? (
-              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#aaa' }}>
-                <Search size={40} color="#e0e0e0" style={{ marginBottom: '10px' }} />
-                <p style={{ margin: 0, fontSize: '0.95rem' }}>Enter a search term to find a specific order</p>
-              </div>
-            ) : filteredOrders.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#aaa', fontSize: '0.9rem' }}>
-                No orders match your search.
-              </div>
-            ) : filteredOrders.map((order) => (
-              <div key={order.id} style={{ backgroundColor: 'white', borderRadius: '14px', padding: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)', border: '1px solid #eee' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <div>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#1a1a2e', margin: '0 0 4px' }}>
-                      Order #{order.id}
-                    </h4>
-                    <span style={{
-                      backgroundColor: orderStatusConfig[order.status]?.bg,
-                      color: orderStatusConfig[order.status]?.color,
-                      fontSize: '0.7rem', fontWeight: 700, padding: '4px 10px', borderRadius: '20px',
-                    }}>
-                      {order.status}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: BRAND }}>
-                    R {Number(order.total_amount || 0).toLocaleString()}
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', backgroundColor: '#F9F9F9', padding: '12px', borderRadius: '10px' }}>
-                  <div>
-                    <span style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: '#aaa', fontWeight: 700, marginBottom: '2px' }}>Vendor</span>
-                    <span style={{ fontSize: '0.85rem', color: '#333', fontWeight: 600 }}>{order.vendor_name || 'N/A'}</span>
-                  </div>
-                  <div>
-                    <span style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: '#aaa', fontWeight: 700, marginBottom: '2px' }}>Customer</span>
-                    <span style={{ fontSize: '0.85rem', color: '#333', fontWeight: 600 }}>{order.customer_name || 'N/A'}</span>
-                  </div>
-                  <div>
-                    <span style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', color: '#aaa', fontWeight: 700, marginBottom: '2px' }}>Time</span>
-                    <span style={{ fontSize: '0.85rem', color: '#333', fontWeight: 600 }}>{formatDate(order.created_at)}</span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                  <button style={{ flex: 1, padding: '8px', backgroundColor: BRAND, color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
-                    Process Refund
-                  </button>
-                  <button style={{ flex: 1, padding: '8px', backgroundColor: 'transparent', color: '#333', border: '1.5px solid #ddd', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
-                    Contact Parties
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
         </section>
       )}
 

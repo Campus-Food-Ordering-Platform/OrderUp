@@ -1364,7 +1364,6 @@ export default function VendorDashboard() {
     // Has a vendor row
     setVendorId(data.id);
     setVendorDisplayName(data.name || '');
-    console.log('VENDOR DATA:', data);
     if (data.status === 'suspended') setVendorStatus('suspended');
     else if (data.status === 'active') setVendorStatus('approved');
     else setVendorStatus('pending');

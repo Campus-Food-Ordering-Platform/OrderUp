@@ -8,7 +8,7 @@ const BRAND = '#C0474A';
 const filters = ['All', 'Asian', 'Fast Food', 'Cafe', 'Healthy', 'Pizza'];
 
 
-function VendorCard({ vendor, onPress }) {
+function VendorCard({ vendor, averageRating, onPress }) {
   return (
     <article
       onClick={onPress}
@@ -78,9 +78,9 @@ function VendorCard({ vendor, onPress }) {
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 600, color: '#F59E0B' }}>
-            <Star size={11} fill="#F59E0B" strokeWidth={0} />
-            {vendor.rating || '—'}
+          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 600, color: averageRating !== null ? '#F59E0B' : '#ccc' }}>
+            <Star size={11} fill={averageRating !== null ? '#F59E0B' : '#ccc'} strokeWidth={0} />
+            {averageRating !== null ? averageRating.toFixed(1) : '—'}
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', color: '#888' }}>
             <Clock size={11} strokeWidth={2} />
@@ -104,6 +104,7 @@ export default function StudentDashboard() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeOrder, setActiveOrder] = useState(null);//this will hold the active order details, if any
+  const [vendorRatings, setVendorRatings] = useState({}); // { [vendorId]: averageRating }
 
 
   const navigate = useNavigate();
@@ -119,9 +120,23 @@ export default function StudentDashboard() {
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         return res.json();
       })
-      .then((data) => {
+      .then(async (data) => {
         setVendors(data);
         setLoading(false);
+        // Fetch average ratings for all vendors in parallel
+        const ratingEntries = await Promise.all(
+          data.map(async (vendor) => {
+            try {
+              const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/vendor/${vendor.id}/ratings`);
+              if (!res.ok) return [vendor.id, null];
+              const r = await res.json();
+              return [vendor.id, r.totalRatings > 0 ? r.averageRating : null];
+            } catch {
+              return [vendor.id, null];
+            }
+          })
+        );
+        setVendorRatings(Object.fromEntries(ratingEntries));
       })
       .catch((err) => {
         console.error('Failed to fetch vendors:', err);
@@ -214,12 +229,7 @@ export default function StudentDashboard() {
         >
           <Package size={16} color="white" strokeWidth={2} />
         </div>
-        <div
-          onClick={() => navigate('/checkout')}
-          style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-        >
-          <ShoppingCart size={16} color="white" strokeWidth={2} />
-        </div>
+
         <div
           onMouseEnter={() => setShowLogout(true)}
           onMouseLeave={() => setShowLogout(false)}
@@ -331,7 +341,7 @@ export default function StudentDashboard() {
               </div>
             ) : (
               filteredVendors.map((vendor) => (
-                <VendorCard key={vendor.id} vendor={vendor} onPress={() => handleVendorPress(vendor)} />
+                <VendorCard key={vendor.id} vendor={vendor} averageRating={vendorRatings[vendor.id] ?? null} onPress={() => handleVendorPress(vendor)} />
               ))
             )}
           </div>
