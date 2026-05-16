@@ -86,3 +86,73 @@ export async function getAllOrdersAdmin(): Promise<Order[]> {
   );
   return result.rows;
 }
+
+
+
+// Add this new function to update rating and review
+export async function updateOrderRating(
+  orderId: string, 
+  rating: number, 
+  review?: string
+): Promise<Order> {
+  const result = await pool.query(
+    `UPDATE orders 
+     SET rating = $1, review = $2 
+     WHERE id = $3 
+     RETURNING *`,
+    [rating, review || null, orderId]
+  );
+  return result.rows[0];
+}
+
+// Optional: Check if order is already rated
+export async function getOrderRatingStatus(orderId: string): Promise<{ rating?: number; review?: string }> {
+  const result = await pool.query(
+    `SELECT rating, review FROM orders WHERE id = $1`,
+    [orderId]
+  );
+  return result.rows[0] || {};
+}
+
+// Optional: Get all rated orders for a product/vendor (for analytics)
+export async function getRatingsByVendor(vendorId: string) {
+  const result = await pool.query(
+    `SELECT o.rating, o.review, o.created_at, p.name AS customer_name
+     FROM orders o
+     JOIN profiles p ON o.customer_id = p.id
+     WHERE o.vendor_id = $1
+     AND o.rating IS NOT NULL`,
+    [vendorId]
+  );
+  return result.rows;
+}
+
+// Optional: Get average rating for a vendor
+export async function getAverageRatingForVendor(vendorId: string) {
+  const result = await pool.query(
+    `SELECT 
+       ROUND(AVG(rating)::numeric, 1) as average_rating,
+       COUNT(rating) as total_ratings,
+       COUNT(CASE WHEN rating = 5 THEN 1 END) as five_star,
+       COUNT(CASE WHEN rating = 4 THEN 1 END) as four_star,
+       COUNT(CASE WHEN rating = 3 THEN 1 END) as three_star,
+       COUNT(CASE WHEN rating = 2 THEN 1 END) as two_star,
+       COUNT(CASE WHEN rating = 1 THEN 1 END) as one_star
+     FROM orders 
+     WHERE vendor_id = $1 
+     AND rating IS NOT NULL`,
+    [vendorId]
+  );
+  const stats = result.rows[0];
+
+  return { averageRating: stats.average_rating ? parseFloat(stats.average_rating) : null,
+    totalRatings: parseInt(stats.total_ratings) || 0,
+    distribution: {
+      5: parseInt(stats.five_star) || 0,
+      4: parseInt(stats.four_star) || 0,
+      3: parseInt(stats.three_star) || 0,
+      2: parseInt(stats.two_star) || 0,
+      1: parseInt(stats.one_star) || 0
+    }
+  };
+}

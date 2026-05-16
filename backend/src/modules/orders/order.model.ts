@@ -10,6 +10,8 @@ export interface Order {
   note: string | null;
   status: OrderStatus;
   created_at: Date;
+  rating?: number;     // 1-5 stars
+  review?: string;     // text review
 }
 export interface CreateOrderDTO {
   vendor_id: string;
@@ -18,4 +20,10 @@ export interface CreateOrderDTO {
   items: { name: string; price: number; quantity: number }[];
   total_amount: number;
   note?: string;
+}
+
+// Add this new DTO for rating
+export interface RateOrderDTO {
+  rating: number;      // 1-5
+  review?: string;     // optional text
 }
