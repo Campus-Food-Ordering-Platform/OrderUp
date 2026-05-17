@@ -632,11 +632,47 @@ export default function AdminDashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', backgroundColor: reviewingVendor.health_certificate_url ? '#E8F8E8' : '#FFF3CD', borderRadius: '10px' }}>
                     <FileText size={18} color={reviewingVendor.health_certificate_url ? '#2A7D2A' : '#B8860B'} />
                     {reviewingVendor.health_certificate_url ? (
-                      <a href={reviewingVendor.health_certificate_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.9rem', fontWeight: 600, color: '#2A7D2A' }}>
-                        View Health Certificate
-                      </a>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                        }}
+                      >
+                        <a
+                          href={reviewingVendor.health_certificate_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontSize: '0.9rem',
+                            fontWeight: 600,
+                            color: '#2A7D2A',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          View Health Certificate
+                        </a>
+
+                        <a
+                          href={reviewingVendor.health_certificate_url.replace(
+                            '/upload/',
+                            '/upload/fl_attachment/'
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontSize: '0.78rem',
+                            color: '#888',
+                            textDecoration: 'none',
+                          }}
+                       >
+                          Download instead
+                        </a>
+                      </div>
                     ) : (
-                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#B8860B' }}>No certificate uploaded</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#B8860B' }}>
+                        No certificate uploaded
+                      </span>
                     )}
                   </div>
                 </div>

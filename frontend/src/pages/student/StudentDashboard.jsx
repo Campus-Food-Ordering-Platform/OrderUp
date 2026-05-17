@@ -84,7 +84,7 @@ function VendorCard({ vendor, averageRating, onPress }) {
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', color: '#888' }}>
             <Clock size={11} strokeWidth={2} />
-            {vendor.operating_hours.hours || '?'} min
+            {vendor.operating_hours.hours || '?'}
             {/* Hours */}
        
           </span>

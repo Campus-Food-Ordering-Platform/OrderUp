@@ -129,26 +129,34 @@ export const registerVendor = async (body: any) => {
   );
   return result.rows[0];
 };
+
+//So this adds the vendor details to the database after theey press submit 
 export const submitVendorApplication = async (body: any) => {
   const result = await pool.query(
     `INSERT INTO vendor_applications 
-      (profile_id, name, description, category, location, operating_hours, 
-      health_certificate_url, sample_items)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      (profile_id, name, owner_name, owner_email, description, category, location, operating_hours, 
+      health_certificate_url, sample_items, logo_url, banner_url)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     RETURNING *`,
     [
       body.profile_id,
       body.name,
+      body.owner_name ?? null,
+      body.owner_email ?? null,
       body.description ?? null,
-      body.category ?? null,        
+      body.category ?? null,
       body.location ?? null,
       body.operating_hours ? JSON.stringify(body.operating_hours) : null,
       body.health_certificate_url ?? null,
       body.sample_items ?? null,
+      body.logo_url ?? null,
+      body.banner_url ?? null,
     ]
   );
   return result.rows[0];
 };
+
+
 export const getVendorStatusByProfileId = async (profileId: string) => {
   // First check if they have an approved vendor row
   const vendorResult = await pool.query(
@@ -167,6 +175,7 @@ export const getVendorStatusByProfileId = async (profileId: string) => {
   return null;
 };
 // ───────────── admin ─────────────
+
 export const updateVendorStatus = async (vendorId: string, status: 'active' | 'suspended') => {//for admin to change a vendor's status
   const result = await pool.query(
     `UPDATE vendors SET status = $1 WHERE id = $2 RETURNING *`,
@@ -222,6 +231,8 @@ export const getAllVendorsAdmin = async () => {
   `);
   return result.rows;
 };
+
+//again this gets the info mation from the vendor application in that it allows us to see the information in screen
 export const getPendingApplications = async () => {
   const result = await pool.query(`
     SELECT
@@ -237,11 +248,12 @@ export const getPendingApplications = async () => {
       va.rejection_reason,
       va.status                 AS application_status,
       NULL                      AS vendor_status,
-      p.name                    AS owner_name,
+      va.owner_name             AS owner_name,
+      va.owner_email            AS email,
       p.created_at              AS join_date,
       va.id                     AS application_id,
-      NULL AS banner_url,
-      NULL AS logo_url,
+      va.banner_url,
+      va.logo_url,
       0                         AS revenue,
       0                         AS orders
     FROM vendor_applications va
@@ -274,9 +286,9 @@ export const approveApplication = async (applicationId: string) => {
     const vendorResult = await client.query(
       `INSERT INTO vendors 
         (id, profile_id, application_id, vendor_name, description, category, 
-         location, operating_hours, status, is_active)
+         location, operating_hours, status, is_active, logo_url, banner_url)
        VALUES 
-        (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, 'active', true)
+        (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, 'active', true, $8, $9)
        RETURNING *`,
       [
         app.profile_id,
@@ -286,6 +298,8 @@ export const approveApplication = async (applicationId: string) => {
         app.category,
         app.location,
         app.operating_hours,
+        app.logo_url ?? null,
+        app.banner_url ?? null,                                                             
       ]
     );
 
@@ -310,7 +324,7 @@ export const rejectApplication = async (applicationId: string, rejectionReason?:
   return result.rows[0];
 };
 
-// for the 
+// for the settings page this allows us to alter the vendor profile 
 export const updateVendor = async (vendorId: string, body: any) => {
   const result = await pool.query(
     `UPDATE vendors

@@ -200,7 +200,8 @@ useEffect(() => {
   const handleImageFile = async (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     try {
-      const signRes = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/sign`);
+      const signRes = await fetch(
+  `${import.meta.env.VITE_API_URL}/api/upload/sign?folder=orderup/menu-items&resource_type=image`);
       const { timestamp, signature, apiKey, cloudName } = await signRes.json();
       const formData = new FormData();
       formData.append('file', file);
@@ -320,7 +321,7 @@ const handleEdit = (item) => {
               onDragOver={e => e.preventDefault()}
               onDrop={e => { e.preventDefault(); handleImageFile(e.dataTransfer.files[0]); }}
               onClick={() => document.getElementById('food-img-input').click()}
-              style={{ width: '100%', height: '160px', borderRadius: '12px', border: '2px dashed #E0E0E0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative', backgroundColor: form.image_url ? 'transparent' : '#FAFAFA' }}
+              style={{ width: '100%', height: '160px', borderRadius: '12px', border: '2px dashed #E0E0E0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative', backgroundColor: form.banner_url ? 'transparent' : '#FAFAFA' }}
             >
               {form.image_url ? (
                 <>
@@ -918,33 +919,36 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
     description: '',
     health_cert_file: null,
     health_cert_name: '',
+    health_certificate_url: null,
     bank_name: '',
     bank_account_number: '',
     sample_items: [],
-    image_url: null,
+    banner_url: null,
     logo_url: null,
   });
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
-  const handleImageFile = async (file) => {
+ const handleImageFile = async (file) => {
   if (!file || !file.type.startsWith('image/')) return;
   setUploadingImage(true);
   try {
-    const signRes = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/sign`);
-    const { timestamp, signature, apiKey, cloudName } = await signRes.json();
+    const signRes = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/upload/sign?folder=orderup/menu-items&resource_type=image`
+    );
+    const { timestamp, signature, apiKey, cloudName, folder } = await signRes.json();
     const formData = new FormData();
     formData.append('file', file);
     formData.append('timestamp', timestamp);
     formData.append('signature', signature);
     formData.append('api_key', apiKey);
-    formData.append('folder', 'orderup/menu-items');
+    formData.append('folder', folder);
     const uploadRes = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
       { method: 'POST', body: formData }
     );
     const data = await uploadRes.json();
-    if (data.secure_url) update('image_url', data.secure_url);
+    if (data.secure_url) update('banner_url', data.secure_url);
     else throw new Error('No URL returned');
   } catch (err) {
     console.error('Image upload failed:', err);
@@ -958,14 +962,16 @@ const handleLogoFile = async (file) => {
   if (!file || !file.type.startsWith('image/')) return;
   setUploadingLogo(true);
   try {
-    const signRes = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/sign`);
-    const { timestamp, signature, apiKey, cloudName } = await signRes.json();
+    const signRes = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/upload/sign?folder=orderup/menu-items&resource_type=image`
+    );
+    const { timestamp, signature, apiKey, cloudName, folder } = await signRes.json();
     const formData = new FormData();
     formData.append('file', file);
     formData.append('timestamp', timestamp);
     formData.append('signature', signature);
     formData.append('api_key', apiKey);
-    formData.append('folder', 'orderup/menu-items');
+    formData.append('folder', folder);
     const uploadRes = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
       { method: 'POST', body: formData }
@@ -978,6 +984,48 @@ const handleLogoFile = async (file) => {
     alert('Logo upload failed. Please try again.');
   } finally {
     setUploadingLogo(false);
+  }
+};
+
+//allows us to post on cloudinary 
+const handleCertFile = async (file) => {
+  if (!file) return;
+  try {
+    const signRes = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/upload/sign?folder=orderup/certificates&resource_type=auto`
+    );
+    if (!signRes.ok) throw new Error('Failed to get upload signature');
+    const { timestamp, signature, apiKey, cloudName, folder, resource_type } = await signRes.json();
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('timestamp', timestamp);
+    formData.append('signature', signature);
+    formData.append('api_key', apiKey);
+    formData.append('folder', folder);
+    formData.append('resource_type', resource_type);
+
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+      { method: 'POST', body: formData }
+    );
+
+    if (!uploadRes.ok) {
+      const errBody = await uploadRes.json();
+      console.error('Cloudinary error:', errBody);
+      throw new Error(errBody?.error?.message || 'Cloudinary upload failed');
+    }
+
+    const data = await uploadRes.json();
+    if (data.secure_url) {
+      update('health_certificate_url', data.secure_url);
+      update('health_cert_name', file.name);
+    } else {
+      throw new Error('No URL returned from Cloudinary');
+    }
+  } catch (err) {
+    console.error('Certificate upload failed:', err);
+    alert(`Certificate upload failed: ${err.message}`);
   }
 };
 
@@ -995,6 +1043,7 @@ const updateDayHours = (day, field, value) => {
   }));
 };
 
+ 
   const addSampleItem = () => {
     if (sampleItem.trim() && form.sample_items.length < 6) {
       update('sample_items', [...form.sample_items, sampleItem.trim()]);
@@ -1015,6 +1064,8 @@ const updateDayHours = (day, field, value) => {
   const user = raw?.user ?? raw;
   if (!user?.id) { alert('Not logged in'); return; }
 
+ 
+
   setSubmitting(true);
   try {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/applications`, {
@@ -1023,6 +1074,8 @@ const updateDayHours = (day, field, value) => {
       body: JSON.stringify({
         profile_id: user.id,
         name: form.stall_name,
+        owner_name: form.owner_name,
+        owner_email: form.owner_email,
         description: form.description,
         category: form.category ? [form.category] : [],
         location: form.location,
@@ -1031,8 +1084,8 @@ const updateDayHours = (day, field, value) => {
           structured: JSON.stringify(structuredHours),
         },
         sample_items: form.sample_items.join(', ') || null,
-        health_certificate_url: null,
-        banner_url: form.image_url,
+        health_certificate_url: form.health_certificate_url,
+        banner_url: form.banner_url,
         logo_url: form.logo_url,
       }),
     });
@@ -1073,13 +1126,13 @@ const updateDayHours = (day, field, value) => {
     onClick={() => !uploadingImage && document.getElementById('vendor-banner-input').click()}
     onDragOver={e => e.preventDefault()}
     onDrop={e => { e.preventDefault(); handleImageFile(e.dataTransfer.files[0]); }}
-    style={{ width: '100%', height: '160px', borderRadius: '12px', border: form.image_url ? 'none' : '2px dashed #E0E0E0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: uploadingImage ? 'wait' : 'pointer', overflow: 'hidden', position: 'relative', backgroundColor: form.image_url ? 'transparent' : '#FAFAFA' }}
+    style={{ width: '100%', height: '160px', borderRadius: '12px', border: form.banner_url ? 'none' : '2px dashed #E0E0E0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: uploadingImage ? 'wait' : 'pointer', overflow: 'hidden', position: 'relative', backgroundColor: form.image_url ? 'transparent' : '#FAFAFA' }}
   >
     {uploadingImage ? (
       <p style={{ fontSize: '0.8rem', color: '#888' }}>Uploading...</p>
-    ) : form.image_url ? (
+    ) : form.banner_url ? (
       <>
-        <img src={form.image_url} alt="Stall" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src={form.banner_url} alt="Stall" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ color: 'white', fontSize: '0.8rem', fontWeight: 600 }}>Click to change photo</span>
         </div>
@@ -1093,8 +1146,8 @@ const updateDayHours = (day, field, value) => {
     <input id="vendor-banner-input" type="file" accept="image/*" style={{ display: 'none' }}
       onChange={e => handleImageFile(e.target.files[0])} />
   </div>
-  {form.image_url && (
-    <button onClick={() => update('image_url', null)}
+  {form.banner_url && (
+    <button onClick={() => update('banner_url', null)}
       style={{ marginTop: '6px', fontSize: '0.72rem', color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
       Remove photo
     </button>
@@ -1228,9 +1281,12 @@ const updateDayHours = (day, field, value) => {
           <label style={labelStyle}>Health Certificate (Document Upload)</label>
           <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '12px', border: '1.5px dashed #EBEBEB', backgroundColor: '#FAFAFA', cursor: 'pointer' }}>
             <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={e => {
-              const file = e.target.files[0];
-              if (file) { update('health_cert_file', file); update('health_cert_name', file.name); }
-            }} />
+            const file = e.target.files[0];
+            if (file) {
+            update('health_cert_name', file.name);
+            handleCertFile(file);
+            }
+          }} />
             <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <span style={{ fontSize: '1rem' }}>📄</span>
             </div>

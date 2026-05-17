@@ -10,12 +10,17 @@ cloudinary.config({
 });
 
 // GET /api/upload/sign
-// Returns a signed upload signature for direct frontend → Cloudinary uploads
 router.get('/sign', (req: Request, res: Response) => {
   const timestamp = Math.round(Date.now() / 1000);
+  const folder = (req.query.folder as string) || 'orderup/menu-items';
+  const resource_type = (req.query.resource_type as string) || 'image';
+
+  // resource_type is NEVER included in the signature params
+  // it only goes in the upload URL and FormData
+  const signParams: Record<string, any> = { timestamp, folder };
 
   const signature = cloudinary.utils.api_sign_request(
-    { timestamp, folder: 'orderup/menu-items' },
+    signParams,
     process.env.CLOUDINARY_API_SECRET!
   );
 
@@ -24,10 +29,13 @@ router.get('/sign', (req: Request, res: Response) => {
     signature,
     apiKey: process.env.CLOUDINARY_API_KEY,
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    folder,
+    resource_type,
   });
 });
 
-// POST /api/upload  ← keeping this for now, can delete later
+// POST /api/upload
+// Legacy server-side upload using base64 — kept for backwards compatibility
 router.post('/', async (req: Request, res: Response) => {
   const { base64 } = req.body;
   if (!base64) return res.status(400).json({ error: 'base64 image is required' });
