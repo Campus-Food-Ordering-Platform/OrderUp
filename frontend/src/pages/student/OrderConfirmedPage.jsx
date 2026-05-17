@@ -404,7 +404,7 @@ export default function OrderConfirmedPage() {
         {[
           { icon: <Home size={16} color="white" />,    action: () => navigate('/student-dashboard') },
           { icon: <History size={16} color="white" />, action: () => navigate('/student-history')   },
-          { icon: <ShoppingCart size={16} color="white" strokeWidth={2} />, action: () => navigate('/checkout') },
+         // { icon: <ShoppingCart size={16} color="white" strokeWidth={2} />, action: () => navigate('/checkout') },
         ].map((btn, i) => (
           <div key={i} onClick={btn.action} style={{ width: 34, height: 34, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             {btn.icon}

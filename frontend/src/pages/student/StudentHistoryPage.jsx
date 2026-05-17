@@ -195,12 +195,7 @@ console.log('🛒 order.customer_id:', selectedOrder.customer_id);
           >
             <Package size={16} color="white" strokeWidth={2} />
           </div>
-          <div 
-            onClick={() => navigate('/checkout')}
-            style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          >
-            <ShoppingCart size={16} color="white" strokeWidth={2} />
-          </div>
+          
           <div 
             onMouseEnter={() => setShowLogout(true)}
             onMouseLeave={() => setShowLogout(false)}
