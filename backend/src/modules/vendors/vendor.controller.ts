@@ -162,6 +162,21 @@ export const approveApplicationHandler = async (req: Request<{ id: string }>, re
   }
 };
 
+export const updateVendor = async (req: Request<{ id: string }>, res: Response) => {
+  try {
+    const data = await vendorService.updateVendor(req.params.id, req.body);
+    if (!data) return res.status(404).json({ error: 'Vendor not found' });
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    if (err instanceof ValidationError) {
+      res.status(400).json({ error: err.message });
+    } else {
+      res.status(500).json({ error: 'Failed to update vendor' });
+    }
+  }
+};
+
 export const rejectApplicationHandler = async (req: Request<{ id: string }>, res: Response) => {
   try {
     const { rejection_reason } = req.body;

@@ -37,5 +37,9 @@ router.get("/graph/:vendor_id", analyticsController.getVendorAnalytics);
 router.get('/:vendor_id/revenue/export/csv', analyticsController.exportRevenueCSV);
 
 
+router.get('/items/:vendor_id/timeseries', analyticsController.getItemTimeSeries);
+
+router.get('/:vendor_id/orders/export/csv', analyticsController.exportOrdersCSV);
+router.get('/:vendor_id/items/export/csv', analyticsController.exportItemsCSV);
 
 export default router;

@@ -27,6 +27,11 @@ const statusConfig = {
   collected: { bg: '#F0F0F0', color: '#888',    action: null,                btnBg: null, btnColor: null },
 };
 
+
+
+
+
+
 // ============ ORDER CARD COMPONENT ============
 function OrderCard({ order, onUpdateStatus }) {
   const config = statusConfig[order.status] || statusConfig['received'];
@@ -82,8 +87,29 @@ function OrderCard({ order, onUpdateStatus }) {
 
 // ============ MENU MANAGER DATA ============
 const CATEGORIES_DEFAULT = ['Cafe', 'Fast Food', 'Asian', 'Pizza', 'Healthy', 'Indian','Mains'];
-const ALLERGENS = ["Cow's Milk", 'Peanuts', 'Tree Nuts', 'Soya', 'Gluten', 'Egg', 'Fish', 'Shellfish'];
-const DIETARY_TAGS = ['Halaal', 'Vegetarian', 'Vegan', 'Kosher', 'Nut-Free', 'Gluten-Free', 'Dairy-Free'];
+//const ALLERGENS = ["Cow's Milk", 'Peanuts', 'Tree Nuts', 'Soya', 'Gluten', 'Egg', 'Fish', 'Shellfish'];
+//const DIETARY_TAGS = ['Halaal', 'Vegetarian', 'Vegan', 'Kosher', 'Nut-Free', 'Gluten-Free', 'Dairy-Free'];
+
+const ALLERGENS = [
+  { id: "Cow's Milk", label: "Cow's Milk", definition: "Contains milk or milk-derived ingredients such as cheese, butter, cream or lactose." },
+  { id: "Peanuts", label: "Peanuts", definition: "Contains peanuts or peanut-derived ingredients." },
+  { id: "Tree Nuts", label: "Tree Nuts", definition: "Contains almonds, Brazil nuts, cashew nuts, hazelnuts, macadamia nuts, pecan nut, pistachio nuts or walnuts." },
+  { id: "Soya", label: "Soya", definition: "Contains soybeans or soy-derived ingredients." },
+  { id: "Gluten", label: "Gluten", definition: "Contains wheat, rye, barley, oats or crossbred hybrids. Regulated in South Africa as Significant Cereals under R146 of 2010." },
+  { id: "Egg", label: "Egg", definition: "Contains egg or egg-derived ingredients." },
+  { id: "Fish", label: "Fish", definition: "Contains fish or fish-derived ingredients." },
+  { id: "Shellfish", label: "Shellfish", definition: "Contains prawns, crab, lobster, crayfish, mussels, oysters or similar seafood. Regulated in South Africa as Crustaceans and Molluscs under R146 of 2010." },
+];
+
+const DIETARY_TAGS = [
+  { id: "Halaal", label: "Halaal", definition: "Contains no pork or pork by-products and no alcohol. Prepared according to Islamic dietary law as defined by SANHA." },
+  { id: "Vegetarian", label: "Vegetarian", definition: "Contains no meat or fish but may contain dairy and eggs." },
+  { id: "Vegan", label: "Vegan", definition: "Contains no animal products including meat, fish, dairy, eggs or honey." },
+  { id: "Kosher", label: "Kosher", definition: "Prepared according to Jewish dietary law. Meat and dairy are not mixed." },
+  { id: "Nut-Free", label: "Nut-Free", definition: "Contains no tree nuts or peanuts. Suitable for people with nut allergies." },
+  { id: "Gluten-Free", label: "Gluten-Free", definition: "Contains no wheat, rye, barley, oats or crossbred hybrids. Suitable for people with coeliac disease or gluten intolerance." },
+  { id: "Dairy-Free", label: "Dairy-Free", definition: "Contains no milk or milk-derived ingredients. Suitable for people with lactose intolerance or a dairy allergy." },
+];
 
 const tagColors = {
   Halaal: { bg: '#E0F7EF', color: '#2A9D6A' },
@@ -110,6 +136,7 @@ function MenuManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState(makeEmptyForm());
+  const [activeTooltip, setActiveTooltip] = useState(null);
 
   const emptyForm = makeEmptyForm();
 
@@ -180,7 +207,8 @@ useEffect(() => {
   const handleImageFile = async (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     try {
-      const signRes = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/sign`);
+      const signRes = await fetch(
+  `${import.meta.env.VITE_API_URL}/api/upload/sign?folder=orderup/menu-items&resource_type=image`);
       const { timestamp, signature, apiKey, cloudName } = await signRes.json();
       const formData = new FormData();
       formData.append('file', file);
@@ -188,6 +216,7 @@ useEffect(() => {
       formData.append('signature', signature);
       formData.append('api_key', apiKey);
       formData.append('folder', 'orderup/menu-items');
+      formData.append('type', 'upload');
       const uploadRes = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         { method: 'POST', body: formData }
@@ -300,7 +329,7 @@ const handleEdit = (item) => {
               onDragOver={e => e.preventDefault()}
               onDrop={e => { e.preventDefault(); handleImageFile(e.dataTransfer.files[0]); }}
               onClick={() => document.getElementById('food-img-input').click()}
-              style={{ width: '100%', height: '160px', borderRadius: '12px', border: '2px dashed #E0E0E0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative', backgroundColor: form.image_url ? 'transparent' : '#FAFAFA' }}
+              style={{ width: '100%', height: '160px', borderRadius: '12px', border: '2px dashed #E0E0E0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative', backgroundColor: form.banner_url ? 'transparent' : '#FAFAFA' }}
             >
               {form.image_url ? (
                 <>
@@ -338,41 +367,93 @@ const handleEdit = (item) => {
               </select>
             </div>
               
-            <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', margin: '0 0 6px' }}>Allergens</p>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {ALLERGENS.map(allergen => {
-                  const selected = form.allergens.includes(allergen);
-                  return (
-                    <button key={allergen} onClick={() => toggleAllergen(allergen)}
-                      style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', border: 'none',
+          <div>
+            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', margin: '0 0 6px' }}>Allergens</p>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {ALLERGENS.map(allergen => {
+                const selected = form.allergens.includes(allergen.id);
+                return (
+                  <div key={allergen.id} style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => toggleAllergen(allergen.id)}
+                      style={{
+                        padding: '4px 8px 4px 12px', borderRadius: '20px',
+                        fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
+                        border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
                         backgroundColor: selected ? '#FFE8E8' : '#F5F5F5',
                         color: selected ? '#C0474A' : '#999',
-                        outline: selected ? '1.5px solid #C0474A' : '1.5px solid transparent' }}>
-                      {allergen}
+                        outline: selected ? '1.5px solid #C0474A' : '1.5px solid transparent',
+                      }}>
+                      {allergen.label}
+                      <span
+                        onMouseEnter={() => setActiveTooltip(allergen.id)}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                        onClick={e => { e.stopPropagation(); setActiveTooltip(activeTooltip === allergen.id ? null : allergen.id); }}
+                        style={{ fontSize: '0.65rem', color: selected ? '#C0474A' : '#bbb', cursor: 'help', fontWeight: 700 }}>
+                        ⓘ
+                      </span>
                     </button>
-                  );
-                })}
-              </div>
+                    {activeTooltip === allergen.id && (
+                      <div style={{
+                        position: 'absolute', bottom: '110%', left: '0',
+                        transform: 'none', backgroundColor: '#1a1a2e',
+                        color: 'white', fontSize: '0.68rem', padding: '8px 10px',
+                        borderRadius: '8px', width: '180px', zIndex: 100,
+                        lineHeight: 1.5, boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                        pointerEvents: 'none',
+                      }}>
+                        {allergen.definition}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
-            <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', margin: '6px 0 6px' }}>Dietary Tags</p>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {DIETARY_TAGS.map(tag => {
-                  const selected = form.tags.includes(tag);
-                  return (
-                    <button key={tag} onClick={() => toggleTag(tag)}
-                      style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', border: 'none',
-                        backgroundColor: selected ? (tagColors[tag]?.bg || '#eee') : '#F5F5F5',
-                        color: selected ? (tagColors[tag]?.color || '#444') : '#999',
-                        outline: selected ? `1.5px solid ${tagColors[tag]?.color || '#ccc'}` : '1.5px solid transparent' }}>
-                      {tag}
+          <div>
+            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', margin: '6px 0 6px' }}>Dietary Tags</p>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {DIETARY_TAGS.map(tag => {
+                const selected = form.tags.includes(tag.id);
+                return (
+                  <div key={tag.id} style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => toggleTag(tag.id)}
+                      style={{
+                        padding: '4px 8px 4px 12px', borderRadius: '20px',
+                        fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
+                        border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
+                        backgroundColor: selected ? (tagColors[tag.id]?.bg || '#eee') : '#F5F5F5',
+                        color: selected ? (tagColors[tag.id]?.color || '#444') : '#999',
+                        outline: selected ? `1.5px solid ${tagColors[tag.id]?.color || '#ccc'}` : '1.5px solid transparent',
+                      }}>
+                      {tag.label}
+                      <span
+                        onMouseEnter={() => setActiveTooltip(tag.id)}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                        onClick={e => { e.stopPropagation(); setActiveTooltip(activeTooltip === tag.id ? null : activeTooltip); }}
+                        style={{ fontSize: '0.65rem', color: selected ? (tagColors[tag.id]?.color || '#444') : '#bbb', cursor: 'help', fontWeight: 700 }}>
+                        ⓘ
+                      </span>
                     </button>
-                  );
-                })}
-              </div>
+                    {activeTooltip === tag.id && (
+                     <div style={{
+                        position: 'absolute', bottom: '110%', left: '0',
+                        transform: 'none', backgroundColor: '#1a1a2e',
+                        color: 'white', fontSize: '0.68rem', padding: '8px 10px',
+                        borderRadius: '8px', width: '180px', zIndex: 100,
+                        lineHeight: 1.5, boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                        pointerEvents: 'none',
+                      }}>
+                        {tag.definition}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
               <button onClick={handleSave} style={{ flex: 1, padding: '10px', background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, color: 'white', border: 'none', borderRadius: '2rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem' }}>{editingItem ? 'Save Changes' : 'Add Item'}</button>
@@ -395,11 +476,15 @@ const handleEdit = (item) => {
             <div style={{ padding: '10px 12px' }}>
               <h3 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1a1a2e', margin: '0 0 2px' }}>{item.name}</h3>
               <p style={{ fontSize: '0.72rem', color: '#888', margin: '0 0 6px', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.description}</p>
-              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                {(item.tags || []).map(tag => (
-                  <span key={tag} style={{ backgroundColor: tagColors[tag]?.bg || '#F0F0F0', color: tagColors[tag]?.color || '#666', fontSize: '0.62rem', fontWeight: 600, padding: '2px 8px', borderRadius: '20px' }}>{tag}</span>
+              {/* 
+              Diplaying "tags" on menu_items card, now comdining allergens and d tags
+              */}
+             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                {[...(item.tags || []), ...(item.allergens || [])].map(tag => (
+                  <span key={tag} style={{ backgroundColor: tagColors[tag]?.bg || '#FFE8E8', color: tagColors[tag]?.color || '#C0474A', fontSize: '0.62rem', fontWeight: 600, padding: '2px 8px', borderRadius: '20px' }}>{tag}</span>
                 ))}
               </div>
+ 
               <p style={{ fontSize: '0.88rem', fontWeight: 700, color: BRAND, margin: '0 0 10px' }}>R {parseFloat(item.price).toFixed(2)}</p>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
@@ -445,102 +530,393 @@ function SimpleBarChart({ data, labels, color, height = 120 }) {
   );
 }
 
-function RevenueCalculator({vendorId}) {
+function RevenueCalculator({ vendorId }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [duration, setDuration] = useState('week');
+  const [growthRate, setGrowthRate] = useState(0);
   const [applyDiscount, setApplyDiscount] = useState(false);
+  const [discountPct, setDiscountPct] = useState(10);
+  const [items, setItems] = useState([]);
+  const [timeSeries, setTimeSeries] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showChart, setShowChart] = useState(false);
 
+  const DURATIONS = [
+    { key: 'week',    label: 'Next Week',    weeks: 1    },
+    { key: '2weeks',  label: '2 Weeks',      weeks: 2    },
+    { key: '3weeks',  label: '3 Weeks',      weeks: 3    },
+    { key: 'month',   label: 'Next Month',   weeks: 4.33 },
+    { key: '2months', label: '2 Months',     weeks: 8.66 },
+  ];
 
-
-  const [items, setItems] = useState([]); 
-
+  const linearRegression = (points) => {
+    const n = points.length;
+    if (n === 0) return { m: 0, b: 0 };
+    if (n === 1) return { m: 0, b: points[0].y };
+    const sumX  = points.reduce((s, p) => s + p.x, 0);
+    const sumY  = points.reduce((s, p) => s + p.y, 0);
+    const sumXY = points.reduce((s, p) => s + p.x * p.y, 0);
+    const sumX2 = points.reduce((s, p) => s + p.x * p.x, 0);
+    const m = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX || 1);
+    const b = (sumY - m * sumX) / n;
+    return { m, b };
+  };
 
   useEffect(() => {
-    // wait for vendorId to exist
     if (!vendorId) return;
-
-    const fetchItemAnalytics = async () => {
+    setLoading(true);
+    const fetchData = async () => {
       try {
-        const res = await fetch(
-          // `${import.meta.env.VITE_API_URL}/api/analytics/items/${vendor_id}?range=month`
-
-          `${import.meta.env.VITE_API_URL}/api/analytics/items/${vendorId}?range=month`//using siya's vendor for development purposes
-        );
-
-        const json = await res.json();
-        // expects backend to return:
-        // [{ name, weeklyRevenue, monthlyRevenue, weeklyOrders, monthlyOrders }]
-        setItems(json.data);
+        const [itemsRes, tsRes] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL}/api/analytics/items/${vendorId}?range=month`),
+          fetch(`${import.meta.env.VITE_API_URL}/api/analytics/items/${vendorId}/timeseries`),
+        ]);
+        const itemsJson = await itemsRes.json();
+        const tsJson    = await tsRes.json();
+        setItems(Array.isArray(itemsJson.data) ? itemsJson.data : []);
+        setTimeSeries(Array.isArray(tsJson.data) ? tsJson.data : []);
       } catch (err) {
-        console.error("Failed to load item analytics:", err);
+        console.error('RevenueCalculator fetch failed:', err);
+      } finally {
+        setLoading(false);
       }
     };
-
-    fetchItemAnalytics();
+    fetchData();
   }, [vendorId]);
 
-
-  const filteredItems = items.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // ── fix: clear selected item when user edits search ────────
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setSelectedItem(null);
+    setShowChart(false);
+  };
 
   const handleSelectItem = (item) => {
     setSelectedItem(item);
     setSearchTerm(item.name);
+    setShowChart(false);
   };
 
+  const filteredItems = items.filter(i =>
+    i.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-const estimatedRevenue = selectedItem
-  ? (duration === 'week'
-      ? selectedItem.weeklyRevenue
-      : selectedItem.monthlyRevenue)
-  : null;
+  const selectedDuration = DURATIONS.find(d => d.key === duration) || DURATIONS[0];
+
+  const { projection, chartData } = (() => {
+    if (!selectedItem) return { projection: null, chartData: null };
+
+    const rows = timeSeries
+      .filter(r => r.name === selectedItem.name)
+      .sort((a, b) => new Date(a.week) - new Date(b.week))
+      .map((r, i) => ({ x: i, y: Number(r.quantity), week: r.week }));
+
+    const totalQty = Number(selectedItem.monthlyOrders) || 1;
+    const totalRev = Number(selectedItem.monthlyRevenue) || 0;
+    const avgPrice = totalRev / totalQty;
+
+    const { m, b } = linearRegression(rows);
+
+    // how many future weekly bars to show
+    const futureBarsCount = Math.ceil(selectedDuration.weeks);
+
+    const pastBars = rows.map((r, i) => ({
+      label: `W${i + 1}`,
+      value: r.y,
+      projected: false,
+    }));
+
+    const futureBars = Array.from({ length: futureBarsCount }, (_, i) => {
+      const x = rows.length + i;
+      const raw = Math.max(0, m * x + b) * (1 + growthRate / 100);
+      return {
+        label: `+W${i + 1}`,
+        value: raw,
+        projected: true,
+      };
+    });
+
+    const allBars = [...pastBars, ...futureBars];
+    const maxVal  = Math.max(...allBars.map(b => b.value), 1);
+
+    // total projected orders over the duration
+    const projectedOrders = futureBars.reduce((s, b) => s + b.value, 0);
+    let projectedRevenue = projectedOrders * avgPrice;
+    if (applyDiscount) projectedRevenue *= (1 - discountPct / 100);
+
+    const confidence = Math.min(100, Math.round((rows.length / 12) * 100));
+    const trend = rows.length >= 2
+      ? rows[rows.length - 1].y - rows[rows.length - 2].y
+      : 0;
+
+    return {
+      projection: {
+        projectedRevenue,
+        projectedOrders: Math.round(projectedOrders),
+        avgPrice,
+        confidence,
+        trend,
+        dataPoints: rows.length,
+      },
+      chartData: { allBars, maxVal },
+    };
+  })();
+
+  const scenarioLabel = (() => {
+    if (growthRate === 0)   return { text: 'Model prediction (no adjustment)',      color: '#888' };
+    if (growthRate <= -30)  return { text: 'Slow period / low demand expected',     color: BRAND };
+    if (growthRate < 0)     return { text: 'Slightly below expected demand',        color: '#C26A1A' };
+    if (growthRate >= 50)   return { text: 'Major promo or event expected 🎉',      color: '#2A7D2A' };
+    if (growthRate >= 20)   return { text: 'Running a promotion',                   color: '#2A7D2A' };
+    return                         { text: 'Slightly above expected demand',        color: '#2A6DB5' };
+  })();
 
   return (
     <div style={{ background: 'white', borderRadius: '14px', padding: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
-      <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px' }}>💰 Revenue Calculator</h3>
-      <p style={{ fontSize: '0.7rem', color: '#888', marginBottom: '12px' }}>Calculate estimated Revenue for any menu item</p>
+
+      {/* Header */}
+      <div style={{ marginBottom: '12px' }}>
+        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '0 0 4px' }}>📈 Revenue Projection</h3>
+        <p style={{ fontSize: '0.7rem', color: '#888', margin: 0 }}>
+          ML-powered forecast using linear regression on your order history
+        </p>
+      </div>
+
+      {/* Item search */}
       <div style={{ position: 'relative', marginBottom: '12px' }}>
         <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
-        <input type="text" placeholder="Search menu item..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); if (!e.target.value) setSelectedItem(null); }} style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }} />
-        {searchTerm && filteredItems.length > 0 && !selectedItem && (
+        <input
+          type="text"
+          placeholder="Search menu item..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+          style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+        />
+        {/* show dropdown when typing and no item selected yet */}
+        {searchTerm && !selectedItem && filteredItems.length > 0 && (
           <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #EBEBEB', borderRadius: '10px', maxHeight: '150px', overflowY: 'auto', zIndex: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
             {filteredItems.map(item => (
-              <div key={item.id} onClick={() => handleSelectItem(item)} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.8rem', borderBottom: '1px solid #F0F0F0' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F5F5'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                {item.name} - R{item.basePrice}
+              <div key={item.name} onClick={() => handleSelectItem(item)}
+                style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.8rem', borderBottom: '1px solid #F0F0F0' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#F5F5F5'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}>
+                {item.name}
+                <span style={{ color: '#aaa', marginLeft: '6px' }}>
+                  ~R{(Number(item.monthlyRevenue) / (Number(item.monthlyOrders) || 1)).toFixed(2)}/unit
+                </span>
               </div>
             ))}
           </div>
         )}
       </div>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-        <button onClick={() => setDuration('week')} style={{ flex: 1, padding: '6px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: duration === 'week' ? BRAND : '#F0F0F0', color: duration === 'week' ? 'white' : '#666' }}>Next Week</button>
-        <button onClick={() => setDuration('month')} style={{ flex: 1, padding: '6px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: duration === 'month' ? BRAND : '#F0F0F0', color: duration === 'month' ? 'white' : '#666' }}>Next Month</button>
+
+      {/* Duration buttons */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        {DURATIONS.map(d => (
+          <button key={d.key} onClick={() => { setDuration(d.key); setShowChart(false); }}
+            style={{ flex: '1 1 auto', padding: '6px 4px', borderRadius: '20px', fontSize: '0.65rem', fontWeight: 600, border: 'none', cursor: 'pointer', backgroundColor: duration === d.key ? BRAND : '#F0F0F0', color: duration === d.key ? 'white' : '#666', whiteSpace: 'nowrap' }}>
+            {d.label}
+          </button>
+        ))}
       </div>
-      {estimatedRevenue && (
-        <div>
-          <p style={{ fontSize: '0.7rem', color: '#888' }}>Revenue contribution for "{selectedItem?.name}" {duration === 'week' ? 'next week' : 'next month'}:</p>
-          <p style={{ fontSize: '1.2rem', fontWeight: 700, color: BRAND, margin: '4px 0 8px' }}>R {estimatedRevenue.toLocaleString()}</p>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.7rem' }}>
-            <input type="checkbox" checked={applyDiscount} onChange={(e) => setApplyDiscount(e.target.checked)} />
-            Apply 10% discount
-          </label>
-          {applyDiscount && (<p style={{ fontSize: '0.7rem', color: '#2A7D2A', marginTop: '4px' }}>After discount: R {(estimatedRevenue * 0.9).toLocaleString()}</p>)}
+
+      {/* What-if slider */}
+      <div style={{ marginBottom: '14px', padding: '12px', backgroundColor: '#F9F9F9', borderRadius: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#555' }}>What-if adjustment</span>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: growthRate >= 0 ? '#2A7D2A' : BRAND }}>
+            {growthRate >= 0 ? '+' : ''}{growthRate}%
+          </span>
         </div>
+        <input type="range" min="-50" max="100" value={growthRate}
+          onChange={e => setGrowthRate(Number(e.target.value))}
+          style={{ width: '100%', accentColor: BRAND, marginBottom: '4px' }} />
+        <p style={{ fontSize: '0.65rem', color: scenarioLabel.color, margin: 0, fontStyle: 'italic' }}>
+          {scenarioLabel.text}
+        </p>
+        <p style={{ fontSize: '0.6rem', color: '#bbb', margin: '4px 0 0' }}>
+          Drag to model scenarios — e.g. +20% if running a promo, -20% for a slow week
+        </p>
+      </div>
+
+      {/* Discount */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+        <input type="checkbox" checked={applyDiscount} onChange={e => setApplyDiscount(e.target.checked)} style={{ accentColor: BRAND }} />
+        <span style={{ fontSize: '0.7rem' }}>Apply discount</span>
+        {applyDiscount && (
+          <>
+            <input type="number" min="1" max="99" value={discountPct}
+              onChange={e => setDiscountPct(Number(e.target.value))}
+              style={{ width: '48px', padding: '2px 6px', borderRadius: '6px', border: '1.5px solid #EBEBEB', fontSize: '0.7rem', outline: 'none' }} />
+            <span style={{ fontSize: '0.7rem', color: '#888' }}>%</span>
+          </>
+        )}
+      </div>
+
+      {loading && <p style={{ fontSize: '0.75rem', color: '#aaa', textAlign: 'center' }}>Loading data...</p>}
+
+      {/* Projection result */}
+      {projection && !loading && (
+        <div style={{ backgroundColor: '#F9F9F9', borderRadius: '12px', padding: '14px', marginBottom: '12px' }}>
+
+          {/* Confidence */}
+          <div style={{ marginBottom: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.65rem', color: '#888' }}>Model confidence</span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: projection.confidence > 60 ? '#2A7D2A' : '#C26A1A' }}>
+                {projection.confidence}%
+              </span>
+            </div>
+            <div style={{ height: '4px', backgroundColor: '#E0E0E0', borderRadius: '2px' }}>
+              <div style={{ width: `${projection.confidence}%`, height: '100%', backgroundColor: projection.confidence > 60 ? '#2A7D2A' : '#C26A1A', borderRadius: '2px' }} />
+            </div>
+            <p style={{ fontSize: '0.6rem', color: '#bbb', margin: '4px 0 0' }}>
+              Based on {projection.dataPoints} week{projection.dataPoints !== 1 ? 's' : ''} of data
+              {projection.dataPoints < 4 && ' — more data improves accuracy'}
+            </p>
+          </div>
+
+          {/* Trend */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+            <span style={{ fontSize: '0.65rem', color: '#888' }}>Recent trend:</span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 700, color: projection.trend > 0 ? '#2A7D2A' : projection.trend < 0 ? BRAND : '#888' }}>
+              {projection.trend > 0 ? '↑ Growing' : projection.trend < 0 ? '↓ Declining' : '→ Stable'}
+            </span>
+          </div>
+
+          {/* Revenue */}
+          <p style={{ fontSize: '0.7rem', color: '#888', margin: '0 0 2px' }}>
+            Projected revenue — {selectedDuration.label.toLowerCase()}
+          </p>
+          <p style={{ fontSize: '1.4rem', fontWeight: 800, color: BRAND, margin: '0 0 4px' }}>
+            R {projection.projectedRevenue.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p style={{ fontSize: '0.65rem', color: '#888', margin: '0 0 12px' }}>
+            ~{projection.projectedOrders} orders × R{projection.avgPrice.toFixed(2)}/unit
+            {applyDiscount ? ` after ${discountPct}% discount` : ''}
+            {growthRate !== 0 ? ` · ${growthRate > 0 ? '+' : ''}${growthRate}% what-if` : ''}
+          </p>
+
+          {/* Show projection button */}
+          <button onClick={() => setShowChart(v => !v)}
+            style={{ width: '100%', padding: '8px', borderRadius: '10px', border: `1.5px solid ${BRAND}`, backgroundColor: showChart ? BRAND : 'white', color: showChart ? 'white' : BRAND, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+            {showChart ? 'Hide Chart' : '📊 Show Projection Chart'}
+          </button>
+        </div>
+      )}
+
+      {/* Chart — taller, shown on demand */}
+      {showChart && chartData && !loading && (
+        <div style={{ backgroundColor: '#F9F9F9', borderRadius: '12px', padding: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: BRAND }} />
+              <span style={{ fontSize: '0.6rem', color: '#888' }}>Past orders</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', backgroundColor: 'rgba(232,114,106,0.5)', border: '1.5px dashed #E8726A' }} />
+              <span style={{ fontSize: '0.6rem', color: '#888' }}>Projected</span>
+            </div>
+          </div>
+
+          {/* Taller chart — 200px */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '200px', overflowX: 'auto', paddingBottom: '4px' }}>
+            {chartData.allBars.map((bar, i) => (
+              <div key={i} style={{ minWidth: '28px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
+                <span style={{ fontSize: '0.55rem', color: '#888', marginBottom: '2px' }}>
+                  {bar.value > 0 ? Math.round(bar.value) : ''}
+                </span>
+                <div style={{
+                  width: '100%',
+                  height: `${Math.round((bar.value / chartData.maxVal) * 85)}%`,
+                  backgroundColor: bar.projected ? 'rgba(232,114,106,0.45)' : BRAND,
+                  borderRadius: '4px 4px 0 0',
+                  border: bar.projected ? `1.5px dashed ${BRAND}` : 'none',
+                  minHeight: bar.value > 0 ? '4px' : '0',
+                  transition: 'height 0.3s ease',
+                }} />
+                <span style={{ fontSize: '0.55rem', color: bar.projected ? '#E8726A' : '#888', marginTop: '4px', whiteSpace: 'nowrap' }}>
+                  {bar.label}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: '0.6rem', color: '#bbb', textAlign: 'center', margin: '8px 0 0' }}>
+            Dashed bars = ML projection · Solid bars = actual order history
+          </p>
+        </div>
+      )}
+
+      {!selectedItem && !loading && (
+        <p style={{ fontSize: '0.75rem', color: '#bbb', textAlign: 'center', padding: '12px 0' }}>
+          Search and select a menu item to see its projection
+        </p>
       )}
     </div>
   );
 }
-
 // ============ VENDOR APPLICATION FORM ============
 const VENDOR_CATEGORIES = ['Fast Food', 'Cafe', 'Asian', 'Pizza', 'Healthy', 'Indian', 'Mains'];
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];// for refined operating hours
+
+const TIME_OPTIONS = [];
+for (let h = 0; h < 24; h++) {
+  for (let m = 0; m < 60; m += 30) {
+    const hh = String(h).padStart(2, '0');
+    const mm = String(m).padStart(2, '0');
+    TIME_OPTIONS.push(`${hh}:${mm}`);
+  }
+}
+
+const DEFAULT_HOURS = {
+  Mon: { open: true, from: '08:00', to: '17:00' },
+  Tue: { open: true, from: '08:00', to: '17:00' },
+  Wed: { open: true, from: '08:00', to: '17:00' },
+  Thu: { open: true, from: '08:00', to: '17:00' },
+  Fri: { open: true, from: '08:00', to: '17:00' },
+  Sat: { open: false, from: '09:00', to: '14:00' },
+  Sun: { open: false, from: '09:00', to: '14:00' },
+};
+
+function parseHoursString(str) {
+  if (!str || typeof str !== 'string') return DEFAULT_HOURS;
+  try {
+    const parsed = JSON.parse(str);
+    if (parsed && typeof parsed === 'object' && parsed.Mon) return parsed;
+  } catch (_) {}
+  return DEFAULT_HOURS;
+}
+
+function serializeHours(hoursObj) {
+  const openDays = DAYS.filter(d => hoursObj[d]?.open);
+  if (!openDays.length) return 'Closed';
+  const groups = [];
+  let i = 0;
+  while (i < openDays.length) {
+    const cur = hoursObj[openDays[i]];
+    let j = i + 1;
+    while (
+      j < openDays.length &&
+      hoursObj[openDays[j]].from === cur.from &&
+      hoursObj[openDays[j]].to === cur.to &&
+      DAYS.indexOf(openDays[j]) === DAYS.indexOf(openDays[j - 1]) + 1
+    ) j++;
+    const label = j - i > 1 ? `${openDays[i]}-${openDays[j - 1]}` : openDays[i];
+    groups.push(`${label} ${cur.from}–${cur.to}`);
+    i = j;
+  }
+  return groups.join(', ');
+}
+
+
 
 function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
   const [submitting, setSubmitting] = useState(false);
   const [sampleItem, setSampleItem] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [structuredHours, setStructuredHours] = useState(DEFAULT_HOURS);
   const [form, setForm] = useState({
     stall_name: vendorName || '',
     category: 'Fast Food',
@@ -548,17 +924,137 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
     owner_email: '',
     phone: '',
     location: '',
-    hours: '',
     description: '',
     health_cert_file: null,
     health_cert_name: '',
+    health_certificate_url: null,
     bank_name: '',
     bank_account_number: '',
     sample_items: [],
+    banner_url: null,
+    logo_url: null,
   });
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
+ const handleImageFile = async (file) => {
+  if (!file || !file.type.startsWith('image/')) return;
+  setUploadingImage(true);
+  try {
+    const signRes = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/upload/sign?folder=orderup/menu-items&resource_type=image`
+    );
+    const { timestamp, signature, apiKey, cloudName, folder } = await signRes.json();
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('timestamp', timestamp);
+    formData.append('signature', signature);
+    formData.append('api_key', apiKey);
+    formData.append('folder', folder);
+    formData.append('type', 'upload');
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      { method: 'POST', body: formData }
+    );
+    const data = await uploadRes.json();
+    if (data.secure_url) update('banner_url', data.secure_url);
+    else throw new Error('No URL returned');
+  } catch (err) {
+    console.error('Image upload failed:', err);
+    alert('Image upload failed. Please try again.');
+  } finally {
+    setUploadingImage(false);
+  }
+};
+
+const handleLogoFile = async (file) => {
+  if (!file || !file.type.startsWith('image/')) return;
+  setUploadingLogo(true);
+  try {
+    const signRes = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/upload/sign?folder=orderup/menu-items&resource_type=image`
+    );
+    const { timestamp, signature, apiKey, cloudName, folder } = await signRes.json();
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('timestamp', timestamp);
+    formData.append('signature', signature);
+    formData.append('api_key', apiKey);
+    formData.append('folder', folder);
+    formData.append('type', 'upload');
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      { method: 'POST', body: formData }
+    );
+    const data = await uploadRes.json();
+    if (data.secure_url) update('logo_url', data.secure_url);
+    else throw new Error('No URL returned');
+  } catch (err) {
+    console.error('Logo upload failed:', err);
+    alert('Logo upload failed. Please try again.');
+  } finally {
+    setUploadingLogo(false);
+  }
+};
+
+//allows us to post on cloudinary 
+const handleCertFile = async (file) => {
+  if (!file) return;
+  try {
+    const signRes = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/upload/sign?folder=orderup/certificates&resource_type=auto`
+    );
+    if (!signRes.ok) throw new Error('Failed to get upload signature');
+    const { timestamp, signature, apiKey, cloudName, folder, resource_type } = await signRes.json();
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('timestamp', timestamp);
+    formData.append('signature', signature);
+    formData.append('api_key', apiKey);
+    formData.append('folder', folder);
+    formData.append('resource_type', resource_type);
+    formData.append('type', 'upload');
+
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+      { method: 'POST', body: formData }
+    );
+
+    if (!uploadRes.ok) {
+      const errBody = await uploadRes.json();
+      console.error('Cloudinary error:', errBody);
+      throw new Error(errBody?.error?.message || 'Cloudinary upload failed');
+    }
+
+    const data = await uploadRes.json();
+    if (data.secure_url) {
+      update('health_certificate_url', data.secure_url);
+      update('health_cert_name', file.name);
+    } else {
+      throw new Error('No URL returned from Cloudinary');
+    }
+  } catch (err) {
+    console.error('Certificate upload failed:', err);
+    alert(`Certificate upload failed: ${err.message}`);
+  }
+};
+
+const toggleDay = (day) => {
+  setStructuredHours(prev => ({
+    ...prev,
+    [day]: { ...prev[day], open: !prev[day].open },
+  }));
+};
+
+const updateDayHours = (day, field, value) => {
+  setStructuredHours(prev => ({
+    ...prev,
+    [day]: { ...prev[day], [field]: value },
+  }));
+};
+
+ 
   const addSampleItem = () => {
     if (sampleItem.trim() && form.sample_items.length < 6) {
       update('sample_items', [...form.sample_items, sampleItem.trim()]);
@@ -579,6 +1075,8 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
   const user = raw?.user ?? raw;
   if (!user?.id) { alert('Not logged in'); return; }
 
+ 
+
   setSubmitting(true);
   try {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/vendors/applications`, {
@@ -587,12 +1085,19 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
       body: JSON.stringify({
         profile_id: user.id,
         name: form.stall_name,
+        owner_name: form.owner_name,
+        owner_email: form.owner_email,
         description: form.description,
-        category: form.category ? [form.category] : [],  // wrap string in array
+        category: form.category ? [form.category] : [],
         location: form.location,
-        operating_hours: form.hours ? { hours: form.hours } : null,
+        operating_hours: {
+          hours: serializeHours(structuredHours),
+          structured: JSON.stringify(structuredHours),
+        },
         sample_items: form.sample_items.join(', ') || null,
-        health_certificate_url: null, // upload separately if needed
+        health_certificate_url: form.health_certificate_url,
+        banner_url: form.banner_url,
+        logo_url: form.logo_url,
       }),
     });
     if (!res.ok) throw new Error('Failed to submit');
@@ -624,6 +1129,76 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
       </section>
 
       <div style={{ padding: '0 16px 32px' }}>
+
+        {/* Stall Photo */}
+<div style={sectionStyle}>
+  <label style={labelStyle}>Stall Photo</label>
+  <div
+    onClick={() => !uploadingImage && document.getElementById('vendor-banner-input').click()}
+    onDragOver={e => e.preventDefault()}
+    onDrop={e => { e.preventDefault(); handleImageFile(e.dataTransfer.files[0]); }}
+    style={{ width: '100%', height: '160px', borderRadius: '12px', border: form.banner_url ? 'none' : '2px dashed #E0E0E0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: uploadingImage ? 'wait' : 'pointer', overflow: 'hidden', position: 'relative', backgroundColor: form.image_url ? 'transparent' : '#FAFAFA' }}
+  >
+    {uploadingImage ? (
+      <p style={{ fontSize: '0.8rem', color: '#888' }}>Uploading...</p>
+    ) : form.banner_url ? (
+      <>
+        <img src={form.banner_url} alt="Stall" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ color: 'white', fontSize: '0.8rem', fontWeight: 600 }}>Click to change photo</span>
+        </div>
+      </>
+    ) : (
+      <>
+        <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#888', margin: '0 0 4px' }}>Upload stall photo</p>
+        <p style={{ fontSize: '0.75rem', color: '#bbb', margin: 0 }}>Click to browse or drag & drop</p>
+      </>
+    )}
+    <input id="vendor-banner-input" type="file" accept="image/*" style={{ display: 'none' }}
+      onChange={e => handleImageFile(e.target.files[0])} />
+  </div>
+  {form.banner_url && (
+    <button onClick={() => update('banner_url', null)}
+      style={{ marginTop: '6px', fontSize: '0.72rem', color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+      Remove photo
+    </button>
+  )}
+</div>
+
+{/* Stall Logo */}
+<div style={sectionStyle}>
+  <label style={labelStyle}>Stall Logo <span style={{ fontSize: '0.65rem', color: '#aaa', fontWeight: 400 }}>(circular icon shown on card)</span></label>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+    <div
+      onClick={() => !uploadingLogo && document.getElementById('vendor-logo-input').click()}
+      onDragOver={e => e.preventDefault()}
+      onDrop={e => { e.preventDefault(); handleLogoFile(e.dataTransfer.files[0]); }}
+      style={{ width: '80px', height: '80px', borderRadius: '50%', border: form.logo_url ? 'none' : '2px dashed #E0E0E0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: uploadingLogo ? 'wait' : 'pointer', overflow: 'hidden', flexShrink: 0, backgroundColor: form.logo_url ? 'transparent' : '#FAFAFA', boxShadow: form.logo_url ? '0 2px 8px rgba(0,0,0,0.15)' : 'none' }}
+    >
+      {uploadingLogo ? (
+        <p style={{ fontSize: '0.65rem', color: '#888', textAlign: 'center', padding: '4px' }}>Uploading...</p>
+      ) : form.logo_url ? (
+        <img src={form.logo_url} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <p style={{ fontSize: '0.65rem', color: '#bbb', textAlign: 'center', padding: '4px' }}>Click to upload</p>
+      )}
+      <input id="vendor-logo-input" type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={e => handleLogoFile(e.target.files[0])} />
+    </div>
+    <div>
+      <p style={{ fontSize: '0.8rem', color: '#555', margin: '0 0 4px', fontWeight: 600 }}>
+        {form.logo_url ? 'Click circle to change' : 'Click circle to upload'}
+      </p>
+      <p style={{ fontSize: '0.72rem', color: '#aaa', margin: 0 }}>Square images work best. Will be shown as a circle.</p>
+      {form.logo_url && (
+        <button onClick={() => update('logo_url', null)}
+          style={{ marginTop: '6px', fontSize: '0.72rem', color: '#aaa', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+          Remove logo
+        </button>
+      )}
+    </div>
+  </div>
+</div>
 
         {/* Business Info */}
         <div style={sectionStyle}>
@@ -665,9 +1240,44 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
             <input style={inputStyle} value={form.location} onChange={e => update('location', e.target.value)} placeholder="e.g. Matrix Food Court, Stall 4" />
           </div>
           <div>
-            <label style={labelStyle}>Operating Hours</label>
-            <input style={inputStyle} value={form.hours} onChange={e => update('hours', e.target.value)} placeholder="e.g. 07:00 - 17:00" />
+          {/* operating hours is more refined */}
+          <label style={labelStyle}>Operating Hours</label>
+          <div style={{ border: '1.5px solid #EBEBEB', borderRadius: '12px', overflow: 'hidden' }}>
+            {DAYS.map((day, idx) => {
+              const d = structuredHours[day];
+              return (
+                <div key={day} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderBottom: idx < DAYS.length - 1 ? '1px solid #F0F0F0' : 'none', backgroundColor: 'white' }}>
+                  <div onClick={() => toggleDay(day)}
+                    style={{ width: '34px', height: '19px', borderRadius: '10px', position: 'relative', cursor: 'pointer', flexShrink: 0, backgroundColor: d.open ? '#C0474A' : '#E0E0E0', transition: 'background 0.2s' }}>
+                    <div style={{ position: 'absolute', top: '2px', left: d.open ? '17px' : '2px', width: '15px', height: '15px', borderRadius: '50%', backgroundColor: 'white', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                  </div>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: d.open ? '#1a1a2e' : '#bbb', width: '32px', flexShrink: 0 }}>{day}</span>
+                  {d.open ? (
+                    <>
+                      <select value={d.from} onChange={e => updateDayHours(day, 'from', e.target.value)}
+                        style={{ padding: '8px 10px', borderRadius: '8px', border: '1.5px solid #EBEBEB', fontSize: '0.8rem', outline: 'none', backgroundColor: 'white', cursor: 'pointer' }}>
+                        {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      <span style={{ fontSize: '0.75rem', color: '#aaa', flexShrink: 0 }}>to</span>
+                      <select value={d.to} onChange={e => updateDayHours(day, 'to', e.target.value)}
+                        style={{ padding: '8px 10px', borderRadius: '8px', border: `1.5px solid ${d.from >= d.to ? '#C0474A' : '#EBEBEB'}`, fontSize: '0.8rem', outline: 'none', backgroundColor: 'white', cursor: 'pointer' }}>
+                        {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                      {d.from >= d.to && <span style={{ fontSize: '0.65rem', color: '#C0474A', flexShrink: 0 }}>⚠ invalid</span>}
+                    </>
+                  ) : (
+                    <span style={{ fontSize: '0.78rem', color: '#bbb', fontStyle: 'italic' }}>Closed</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
+          {serializeHours(structuredHours) !== 'Closed' && (
+            <p style={{ fontSize: '0.7rem', color: '#888', marginTop: '8px' }}>
+              Preview: <span style={{ color: '#444', fontWeight: 600 }}>{serializeHours(structuredHours)}</span>
+            </p>
+          )}
+        </div>
         </div>
 
         {/* Business Description */}
@@ -682,9 +1292,12 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
           <label style={labelStyle}>Health Certificate (Document Upload)</label>
           <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '12px', border: '1.5px dashed #EBEBEB', backgroundColor: '#FAFAFA', cursor: 'pointer' }}>
             <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={e => {
-              const file = e.target.files[0];
-              if (file) { update('health_cert_file', file); update('health_cert_name', file.name); }
-            }} />
+            const file = e.target.files[0];
+            if (file) {
+            update('health_cert_name', file.name);
+            handleCertFile(file);
+            }
+          }} />
             <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <span style={{ fontSize: '1rem' }}>📄</span>
             </div>
@@ -860,6 +1473,7 @@ export default function VendorDashboard() {
   const [vendorStatus, setVendorStatus] = useState('loading');
   const [vendorId, setVendorId] = useState(null);
   const [vendorDisplayName, setVendorDisplayName] = useState('');
+  const [activeReport, setActiveReport] = useState('sales');
   // so here we passing the vendor menu 
   useEffect(() => {
     const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
@@ -892,7 +1506,6 @@ export default function VendorDashboard() {
     // Has a vendor row
     setVendorId(data.id);
     setVendorDisplayName(data.name || '');
-    console.log('VENDOR DATA:', data);
     if (data.status === 'suspended') setVendorStatus('suspended');
     else if (data.status === 'active') setVendorStatus('approved');
     else setVendorStatus('pending');
@@ -920,6 +1533,11 @@ export default function VendorDashboard() {
     };
     fetchOrders();
   }, [vendorId]);// this would fetch the orders for the vendor when the dashboard loads
+
+
+// rating variables:
+  const [ratingsData, setRatingsData] = useState({ averageRating: null, totalRatings: 0, distribution: {5:0,4:0,3:0,2:0,1:0} });
+  const [recentReviews, setRecentReviews] = useState([]);
 
 
   //  below we setup the weekly revenue and orders
@@ -968,7 +1586,41 @@ export default function VendorDashboard() {
     }
   };
 
+  const fetchRatings = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/vendor/${vendorId}/ratings`);
+      const data = await res.json();
+      setRatingsData(data);
+    } catch (err) {
+      console.error('Failed to fetch ratings:', err);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/vendor/${vendorId}`);
+      const data = await res.json();
+      const reviews = (Array.isArray(data) ? data : [])
+        .filter(o => o.rating && o.review)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 5)
+        .map(o => ({
+          name: o.customer_name || 'Anonymous',
+          rating: o.rating,
+          comment: o.review,
+          date: new Date(o.created_at).toLocaleDateString('en-ZA'),
+        }));
+      setRecentReviews(reviews);
+    } catch (err) {
+      console.error('Failed to fetch reviews:', err);
+    }
+  };
+
   fetchAnalytics();
+  fetchRatings();
+  fetchReviews();
+
+
 }, [vendorId, selectedRange]);
 
 const rangeLabelMap = {
@@ -1189,26 +1841,6 @@ const getChartInterval = (range) => {
   const revenueVsLast = ((revenueCurrent - revenuePrevious)/revenuePrevious)*100;
   const ordersVsLast = ((ordersCountCurrent - ordersCountPrevious)/ordersCountPrevious)*100;
 
-
-  const likedDishesData = [
-    { name: 'Classic Kota', percentage: 45, sales: 156, trend: '+12%' },
-    { name: 'Chicken Burger', percentage: 30, sales: 98, trend: '+8%' },
-    { name: 'Mini Chips', percentage: 25, sales: 87, trend: '+5%' },
-  ];
-
-  const popularTimes = [
-    { hour: '12pm - 1pm', traffic: 'Busy', level: 80, orders: 24 },
-    { hour: '1pm - 2pm', traffic: 'Very Busy', level: 95, orders: 32 },
-    { hour: '7pm - 8pm', traffic: 'Peak Hour', level: 100, orders: 45 },
-    { hour: '8pm - 9pm', traffic: 'Little Busy', level: 65, orders: 18 },
-  ];
-
-  const recentReviews = [
-    { name: 'Tanvi Yadav', rating: 5, comment: 'Amazing food! The Classic Kota is absolutely delicious. Will order again soon!', source: 'Google', date: '2 days ago' },
-    { name: "Karel D'Costa", rating: 4, comment: 'Good quality and fast delivery. Chicken burger was tasty but could be bigger.', source: 'Zomato', date: '5 days ago' },
-    { name: 'Vishwajeet Gokar', rating: 5, comment: 'Best kota in town! The portion size is great and prices are reasonable.', source: 'Zomato', date: '1 week ago' },
-  ];
-
   const cardStyle = { background: 'white', padding: '16px', borderRadius: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' };
   const labelStyle = { fontSize: '0.75rem', color: '#888', margin: 0 };
   const valueStyle = { fontSize: '1.2rem', fontWeight: 700, margin: '6px 0 0', color: BRAND };
@@ -1335,10 +1967,14 @@ const getChartInterval = (range) => {
                 }}
               >
                 <Download size={13} />
-                Export CSV
+                Export Revenue CSV
               </button>
             </div>
           </div>
+
+
+          {/* ── Sales view (existing KPIs + charts) — only show when activeReport === 'sales' ── */}
+          {activeReport === 'sales' && (<>
 
           {/* KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '20px' }}>
@@ -1406,7 +2042,7 @@ const getChartInterval = (range) => {
           {/* Orders Chart */}
           <div style={{ ...cardStyle, marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📊 Revenue Trend ({currentRangeLabel})</h3>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>📊 Order Trend ({currentRangeLabel})</h3>
               <span style={{ fontSize: '0.7rem', color: '#2A7D2A' }}> {ordersVsLast.toFixed(2)}% vs last period</span>
             </div> 
             <SimpleBarChart data={orderChart} labels={labels} color={'#7B4FBF'} height={140} />            
@@ -1421,46 +2057,69 @@ const getChartInterval = (range) => {
             </div>
           </div>
 
-          {/* Liked Dishes & Popular Times */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-            <div style={cardStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <ThumbsUp size={16} color={BRAND} />
-                <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Liked Dishes</h3>
-              </div>
-              {likedDishesData.map(dish => (
-                <div key={dish.name} style={{ marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>{dish.name}</span>
-                    <span style={{ fontSize: '0.7rem', color: BRAND }}>{dish.percentage}%</span>
-                  </div>
-                  <div style={{ height: '6px', backgroundColor: '#F0F0F0', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{ width: `${dish.percentage}%`, height: '100%', backgroundColor: BRAND, borderRadius: '3px' }} />
-                  </div>
-                  <p style={{ fontSize: '0.65rem', color: '#999', margin: '4px 0 0' }}>{dish.sales} orders • {dish.trend}</p>
-                </div>
-              ))}
-            </div>
-
-            <div style={cardStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          {/* Popular Times */}
+          <div style={{ ...cardStyle, marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Clock size={16} color={BRAND} />
                 <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Popular Times</h3>
               </div>
-              <div style={{ backgroundColor: '#FFF0F0', borderRadius: '10px', padding: '10px', marginBottom: '12px' }}>
-                <p style={{ fontSize: '0.65rem', color: BRAND, margin: '0 0 2px' }}>🔴 Peak Hour (7pm - 8pm)</p>
-                <p style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>45 orders/hour</p>
-              </div>
-              {popularTimes.map(time => (
-                <div key={time.hour} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '0.7rem', width: '70px' }}>{time.hour}</span>
-                  <div style={{ flex: 1, height: '4px', backgroundColor: '#F0F0F0', borderRadius: '2px' }}>
-                    <div style={{ width: `${time.level}%`, height: '100%', backgroundColor: time.level > 80 ? BRAND : '#E8726A', borderRadius: '2px' }} />
-                  </div>
-                  <span style={{ fontSize: '0.65rem', color: '#666' }}>{time.orders} orders</span>
-                </div>
-              ))}
+              <button
+                onClick={() => {
+                  const hourCounts = {};
+                  orders.forEach(o => {
+                    const hour = new Date(o.created_at).getHours();
+                    const label = `${hour % 12 || 12}${hour < 12 ? 'am' : 'pm'} - ${(hour + 1) % 12 || 12}${(hour + 1) < 12 ? 'am' : 'pm'}`;
+                    hourCounts[label] = (hourCounts[label] || 0) + 1;
+                  });
+                  const rows = Object.entries(hourCounts)
+                    .map(([hour, count]) => ({ hour, orders: count }))
+                    .sort((a, b) => b.orders - a.orders);
+                  const csv = ['Hour,Orders', ...rows.map(r => `${r.hour},${r.orders}`)].join('\n');
+                  const a = document.createElement('a');
+                  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+                  a.download = `peak-hours-${new Date().toISOString().slice(0, 10)}.csv`;
+                  a.click();
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '8px', backgroundColor: BRAND, color: 'white', border: 'none', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                <Download size={12} /> Export CSV
+              </button>
             </div>
+            {(() => {
+              const hourCounts = {};
+              orders.forEach(o => {
+                const date = new Date(o.created_at);
+                const hour = date.getHours();
+                const label = `${hour % 12 || 12}${hour < 12 ? 'am' : 'pm'} - ${(hour + 1) % 12 || 12}${(hour + 1) < 12 ? 'am' : 'pm'}`;
+                hourCounts[label] = (hourCounts[label] || 0) + 1;
+              });
+              const sorted = Object.entries(hourCounts)
+                .map(([hour, count]) => ({ hour, orders: count }))
+                .sort((a, b) => b.orders - a.orders);
+              const peak = sorted[0];
+              const max = peak?.orders || 1;
+              return (
+                <>
+                  {peak && (
+                    <div style={{ backgroundColor: '#FFF0F0', borderRadius: '10px', padding: '10px', marginBottom: '12px' }}>
+                      <p style={{ fontSize: '0.65rem', color: BRAND, margin: '0 0 2px' }}>🔴 Peak Hour ({peak.hour})</p>
+                      <p style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>{peak.orders} orders</p>
+                    </div>
+                  )}
+                  {sorted.slice(0, 6).map(time => (
+                    <div key={time.hour} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.7rem', width: '100px' }}>{time.hour}</span>
+                      <div style={{ flex: 1, height: '4px', backgroundColor: '#F0F0F0', borderRadius: '2px' }}>
+                        <div style={{ width: `${(time.orders / max) * 100}%`, height: '100%', backgroundColor: time.orders === max ? BRAND : '#E8726A', borderRadius: '2px' }} />
+                      </div>
+                      <span style={{ fontSize: '0.65rem', color: '#666' }}>{time.orders} orders</span>
+                    </div>
+                  ))}
+                  {sorted.length === 0 && <p style={{ color: '#aaa', fontSize: '0.8rem', textAlign: 'center', padding: '20px 0' }}>No order data yet</p>}
+                </>
+              );
+            })()}
           </div>
 
           {/* Revenue Calculator */}
@@ -1470,30 +2129,74 @@ const getChartInterval = (range) => {
 
           {/* Customer Reviews */}
           <div style={{ ...cardStyle, marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <MessageSquare size={16} color={BRAND} />
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Customer Reviews</h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MessageSquare size={16} color={BRAND} />
+                <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Customer Reviews</h3>
+              </div>
+              {ratingsData.averageRating && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Star size={14} fill="#FFB800" color="#FFB800" />
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1a1a2e' }}>{ratingsData.averageRating}</span>
+                  <span style={{ fontSize: '0.7rem', color: '#888' }}>({ratingsData.totalRatings} reviews)</span>
+                </div>
+              )}
             </div>
-            {recentReviews.map((review, idx) => (
-              <div key={idx} style={{ borderBottom: idx !== recentReviews.length - 1 ? '1px solid #F0F0F0' : 'none', paddingBottom: idx !== recentReviews.length - 1 ? '12px' : 0, marginBottom: idx !== recentReviews.length - 1 ? '12px' : 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <div>
-                    <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{review.name}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
-                      {[...Array(5)].map((_, i) => (<Star key={i} size={10} fill={i < review.rating ? '#FFB800' : 'none'} color={i < review.rating ? '#FFB800' : '#DDD'} />))}
+
+            {/* Star distribution */}
+            {ratingsData.totalRatings > 0 && (
+              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#F9F9F9', borderRadius: '10px' }}>
+                {[5,4,3,2,1].map(star => (
+                  <div key={star} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.65rem', color: '#888', width: '8px' }}>{star}</span>
+                    <Star size={10} fill="#FFB800" color="#FFB800" />
+                    <div style={{ flex: 1, height: '6px', backgroundColor: '#E0E0E0', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: `${ratingsData.totalRatings > 0 ? (ratingsData.distribution[star] / ratingsData.totalRatings) * 100 : 0}%`, height: '100%', backgroundColor: BRAND, borderRadius: '3px' }} />
+                    </div>
+                    <span style={{ fontSize: '0.65rem', color: '#888', width: '16px' }}>{ratingsData.distribution[star]}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {recentReviews.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#aaa', fontSize: '0.8rem', padding: '20px 0' }}>No reviews yet</p>
+            ) : (
+              recentReviews.map((review, idx) => (
+                <div key={idx} style={{ borderBottom: idx !== recentReviews.length - 1 ? '1px solid #F0F0F0' : 'none', paddingBottom: idx !== recentReviews.length - 1 ? '12px' : 0, marginBottom: idx !== recentReviews.length - 1 ? '12px' : 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{review.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginTop: '2px' }}>
+                        {[...Array(5)].map((_, i) => (<Star key={i} size={10} fill={i < review.rating ? '#FFB800' : 'none'} color={i < review.rating ? '#FFB800' : '#DDD'} />))}
+                      </div>
                     </div>
                   </div>
-                  <span style={{ fontSize: '0.6rem', padding: '2px 8px', backgroundColor: '#F0F0F0', borderRadius: '12px' }}>{review.source}</span>
+                  <p style={{ fontSize: '0.7rem', color: '#666', lineHeight: 1.4, margin: '6px 0 0' }}>{review.comment}</p>
+                  <p style={{ fontSize: '0.6rem', color: '#999', marginTop: '4px' }}>{review.date}</p>
                 </div>
-                <p style={{ fontSize: '0.7rem', color: '#666', lineHeight: 1.4, margin: '6px 0 0' }}>{review.comment}</p>
-                <p style={{ fontSize: '0.6rem', color: '#999', marginTop: '4px' }}>{review.date}</p>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           {/* Top Selling Items */}
-          <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px' }}>Top Selling Items</h2>
           <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Top Selling Items</h2>
+              <button
+                onClick={() => {
+                  const csv = ['Rank,Item,Quantity Sold,Revenue', ...topSellingItems.map((item, i) => `${i + 1},${item.name},${item.quantity},${item.revenue}`)].join('\n');
+                  const a = document.createElement('a');
+                  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+                  a.download = `top-items-${new Date().toISOString().slice(0, 10)}.csv`;
+                  a.click();
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '8px', backgroundColor: BRAND, color: 'white', border: 'none', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                <Download size={12} /> Export CSV
+              </button>
+            </div>
+          
             {topSellingItems.length === 0 ? (
               <p style={{ color: '#aaa', textAlign: 'center', padding: '20px' }}>No sales data yet</p>
             ) : (
@@ -1508,7 +2211,8 @@ const getChartInterval = (range) => {
                 </div>
               ))
             )}
-          </div>
+          </div>l
+          </>)}
         </section>
       )}
     </div>

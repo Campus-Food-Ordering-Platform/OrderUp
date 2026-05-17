@@ -53,5 +53,3 @@ passport.deserializeUser(async (id: number, done: (err: unknown, user?: Express.
 });
 
 export default passport;
-
-console.log('CLIENT ID:', process.env.GOOGLE_CLIENT_ID);

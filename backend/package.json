@@ -28,6 +28,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-oauth2-jwt-bearer": "^1.8.0",
     "express-session": "^1.19.0",
     "json2csv": "^6.0.0-alpha.2",
     "multer": "^2.1.1",

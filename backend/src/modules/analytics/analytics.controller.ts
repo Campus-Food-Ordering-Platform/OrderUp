@@ -303,3 +303,42 @@ export const getVendorAnalytics = async (
 };
 
 
+export const getItemTimeSeries = async (req: Request, res: Response) => {
+  try {
+    const vendor_id = req.params.vendor_id as string;
+    if (!vendor_id) return res.status(400).json({ error: 'Invalid vendor_id' });
+    const data = await AnalyticsService.getItemTimeSeries(vendor_id);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to fetch item time series' });
+  }
+};
+
+export const exportOrdersCSV = async (req: Request, res: Response) => {
+  try {
+    const { vendor_id } = req.params as { vendor_id: string };
+    const interval = (req.query.interval as string || 'hour') as 'hour' | 'day' | 'week' | 'month' | 'year';
+    const data = await AnalyticsService.getOrderInRange(vendor_id, null);
+    const parser = new Parser({ fields: ['period', 'orders'] });
+    const csv = parser.parse(data);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="peak-hours-report.csv"');
+    res.send(csv);
+  } catch {
+    res.status(500).json({ message: 'Export failed' });
+  }
+};
+
+export const exportItemsCSV = async (req: Request, res: Response) => {
+  try {
+    const { vendor_id } = req.params as { vendor_id: string };
+    const data = await AnalyticsService.getItems(vendor_id);
+    const parser = new Parser({ fields: ['name', 'weeklyOrders', 'monthlyOrders', 'weeklyRevenue', 'monthlyRevenue'] });
+    const csv = parser.parse(data);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="items-report.csv"');
+    res.send(csv);
+  } catch {
+    res.status(500).json({ message: 'Export failed' });
+  }
+};

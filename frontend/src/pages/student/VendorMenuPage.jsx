@@ -1,7 +1,7 @@
 // CHANGED: added useEffect
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart, Plus, Minus, Leaf, Flame, Home, Package, History, UserRound } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Plus, Minus, Leaf, Flame, Home, Package, History, UserRound, SlidersHorizontal, X } from 'lucide-react';
 import { useAuth0 } from '@auth0/auth0-react';
 
 const BRAND = '#C0474A';
@@ -22,6 +22,8 @@ export default function VendorMenuPage() {
   const [cart, setCart] = useState({});
   const [activeCategory, setActiveCategory] = useState('All');
   const [showLogout, setShowLogout] = useState(false);
+  const [activeFilters, setActiveFilters] = useState(new Set());
+  const [showFilters, setShowFilters] = useState(false);
 
   // CHANGED: replaced menuData[vendor?.id] with state + useEffect fetch
   const [items, setItems] = useState([]);
@@ -37,9 +39,24 @@ export default function VendorMenuPage() {
   // Build category list dynamically from items
   const categories = ['All', ...new Set(items.map((i) => i.category))];
 
-  const filteredItems = activeCategory === 'All'
-    ? items
-    : items.filter((i) => i.category === activeCategory);
+  // Collect all unique tags and allergens across the menu
+  const allTags      = [...new Set(items.flatMap(i => i.tags      || []))].sort();
+  const allAllergens = [...new Set(items.flatMap(i => i.allergens || []))].sort();
+
+  const toggleFilter = (value) => {
+    setActiveFilters(prev => {
+      const next = new Set(prev);
+      next.has(value) ? next.delete(value) : next.add(value);
+      return next;
+    });
+  };
+
+  const filteredItems = items.filter(item => {
+    const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
+    const itemValues = [...(item.tags || []), ...(item.allergens || [])];
+    const matchesFilters = activeFilters.size === 0 || [...activeFilters].every(f => itemValues.includes(f));
+    return matchesCategory && matchesFilters;
+  });
 
   const addToCart = (itemId) =>
     setCart((prev) => ({ ...prev, [itemId]: (prev[itemId] || 0) + 1 }));
@@ -170,74 +187,178 @@ export default function VendorMenuPage() {
       </header>
 
       {/* ── Vendor Info Strip ── */}
-      <div
-        style={{
-          backgroundColor: 'white',
-          padding: '16px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          borderBottom: '1px solid #EBEBEB',
-        }}
-      >
-        <div
-          style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '14px',
-            background: `linear-gradient(135deg, ${vendor.bgFrom}, ${vendor.bgTo})`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.8rem',
-            flexShrink: 0,
-          }}
-        >
-          {vendor.emoji}
-        </div>
-        <div>
-          <h1 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1a1a2e', margin: '0 0 4px' }}>
-            {vendor.name}
-          </h1>
-          <p style={{ fontSize: '0.8rem', color: '#888', margin: '0 0 6px' }}>{vendor.description}</p>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <span style={{ fontSize: '0.75rem', color: '#F59E0B', fontWeight: 600 }}>⭐ {vendor.rating}</span>
-            <span style={{ fontSize: '0.75rem', color: '#888' }}>🕐 {vendor.wait} min wait</span>
-          </div>
+    <div style={{
+      backgroundColor: 'white',
+      padding: '16px 20px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '14px',
+      borderBottom: '1px solid #EBEBEB',
+    }}>
+      {/* Logo or fallback */}
+      <div style={{
+        width: '56px', height: '56px', borderRadius: '14px',
+        overflow: 'hidden', flexShrink: 0,
+        backgroundColor: '#F5F0E8',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      }}>
+        {vendor.logo_url ? (
+          <img src={vendor.logo_url} alt={vendor.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <span style={{ fontSize: '1.8rem' }}>🍽️</span>
+        )}
+      </div>
+
+      <div>
+        <h1 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1a1a2e', margin: '0 0 4px' }}>
+          {vendor.name}
+        </h1>
+        <p style={{ fontSize: '0.8rem', color: '#888', margin: '0 0 6px' }}>{vendor.description}</p>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {vendor.location && (
+            <span style={{ fontSize: '0.75rem', color: '#888' }}>📍 {vendor.location}</span>
+          )}
+          {vendor.operating_hours?.hours && (
+            <span style={{ fontSize: '0.75rem', color: '#888' }}>🕐 {vendor.operating_hours.hours}</span>
+          )}
         </div>
       </div>
+    </div>
 
       {/* ── Category Filter Chips ── */}
       <div
         style={{
-          display: 'flex',
-          gap: '8px',
-          padding: '14px 16px',
-          overflowX: 'auto',
           backgroundColor: 'white',
-          borderBottom: '1px solid #EBEBEB',
+          borderBottom: showFilters ? 'none' : '1px solid #EBEBEB',
         }}
       >
-        {categories.map((cat) => (
+        <div style={{ display: 'flex', gap: '8px', padding: '14px 16px', overflowX: 'auto', alignItems: 'center' }}>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              style={{
+                padding: '6px 18px',
+                borderRadius: '20px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                border: activeCategory === cat ? 'none' : '1.5px solid #E0E0E0',
+                backgroundColor: activeCategory === cat ? BRAND : 'white',
+                color: activeCategory === cat ? 'white' : '#666',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {cat}
+            </button>
+          ))}
+          {/* Filter toggle button */}
           <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
+            onClick={() => setShowFilters(p => !p)}
             style={{
-              padding: '6px 18px',
+              marginLeft: 'auto',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '6px 14px',
               borderRadius: '20px',
               fontSize: '0.8rem',
               fontWeight: 600,
               whiteSpace: 'nowrap',
               cursor: 'pointer',
-              border: activeCategory === cat ? 'none' : '1.5px solid #E0E0E0',
-              backgroundColor: activeCategory === cat ? BRAND : 'white',
-              color: activeCategory === cat ? 'white' : '#666',
+              border: (showFilters || activeFilters.size > 0) ? 'none' : '1.5px solid #E0E0E0',
+              backgroundColor: (showFilters || activeFilters.size > 0) ? BRAND : 'white',
+              color: (showFilters || activeFilters.size > 0) ? 'white' : '#666',
               transition: 'all 0.15s ease',
             }}
           >
-            {cat}
+            <SlidersHorizontal size={13} />
+            Filters{activeFilters.size > 0 ? ` (${activeFilters.size})` : ''}
           </button>
-        ))}
+        </div>
+
+        {/* ── Expandable filter panel ── */}
+        {showFilters && (
+          <div style={{ padding: '0 16px 14px', borderBottom: '1px solid #EBEBEB' }}>
+
+            {allTags.length > 0 && (
+              <div style={{ marginBottom: '10px' }}>
+                <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', margin: '0 0 8px' }}>Dietary</p>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {allTags.map(tag => {
+                    const active = activeFilters.has(tag);
+                    return (
+                      <button
+                        key={tag}
+                        onClick={() => toggleFilter(tag)}
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          border: active ? 'none' : `1.5px solid ${tagColors[tag]?.color || '#ccc'}`,
+                          backgroundColor: active ? (tagColors[tag]?.color || '#666') : (tagColors[tag]?.bg || '#F5F5F5'),
+                          color: active ? 'white' : (tagColors[tag]?.color || '#666'),
+                          display: 'flex', alignItems: 'center', gap: '4px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {tag === 'Vegan' && <Leaf size={10} />}
+                        {tag}
+                        {active && <X size={10} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {allAllergens.length > 0 && (
+              <div>
+                <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#aaa', textTransform: 'uppercase', margin: '0 0 8px' }}>Allergen-free</p>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {allAllergens.map(allergen => {
+                    const active = activeFilters.has(allergen);
+                    return (
+                      <button
+                        key={allergen}
+                        onClick={() => toggleFilter(allergen)}
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          border: active ? 'none' : '1.5px solid #E8A838',
+                          backgroundColor: active ? '#E8A838' : '#FFF8E1',
+                          color: active ? 'white' : '#B8860B',
+                          display: 'flex', alignItems: 'center', gap: '4px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {allergen}
+                        {active && <X size={10} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {activeFilters.size > 0 && (
+              <button
+                onClick={() => setActiveFilters(new Set())}
+                style={{ marginTop: '10px', fontSize: '0.75rem', fontWeight: 700, color: BRAND, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Menu Grid ── */}
@@ -316,11 +437,7 @@ export default function VendorMenuPage() {
                     ))}
                   </div>
 
-                  {/* Calories */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <Flame size={10} color="#aaa" />
-                    <span style={{ fontSize: '0.68rem', color: '#aaa' }}>{item.calories} kcal</span>
-                  </div>
+                 
 
                   {/* Price + Add controls */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
@@ -415,7 +532,7 @@ export default function VendorMenuPage() {
             cursor: 'pointer',
             zIndex: 100,
           }}
-          onClick={() => navigate('/checkout', { state: { vendor, cart, items } })}
+            onClick={() => navigate('/checkout', { state: { vendor, cart, items } })}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
@@ -436,7 +553,7 @@ export default function VendorMenuPage() {
             </span>
           </div>
           <span style={{ color: 'white', fontSize: '0.95rem', fontWeight: 800 }}>
-            View Cart · R {totalPrice}
+           Go to checkout · R {totalPrice}
           </span>
         </div>
       )}
