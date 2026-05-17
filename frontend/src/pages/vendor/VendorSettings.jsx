@@ -307,6 +307,10 @@ export default function VendorSettings() {
             // image_url: vendorData.image_url,
           }),
         });
+        // ADD THIS before the if (updateRes.ok) check
+        const updateData = await updateRes.json();
+        console.log('Update response status:', updateRes.status);
+        console.log('Update response body:', updateData);
 
         if (updateRes.ok) {
           setShowSuccess(true);
@@ -326,6 +330,7 @@ export default function VendorSettings() {
       setSaving(false);
     }
   };
+  
 
   // ── Input style helpers ────────────────────────────────────────────────────
   const inputStyle = {
