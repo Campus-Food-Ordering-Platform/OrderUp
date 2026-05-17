@@ -8,10 +8,35 @@ const BRAND = '#C0474A';
 const filters = ['All', 'Asian', 'Fast Food', 'Cafe', 'Healthy', 'Pizza'];
 
 
-function VendorCard({ vendor, averageRating, onPress }) {
+function isVendorOpen(vendor) {
+  try {
+    const structured = vendor.operating_hours?.structured;
+    if (!structured) return true;
+
+    const hours = typeof structured === 'string' ? JSON.parse(structured) : structured;
+
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const todayKey = days[new Date().getDay()];
+    const todayHours = hours[todayKey];
+
+    if (!todayHours || !todayHours.open) return false;
+
+    const [openH, openM] = todayHours.from.split(':').map(Number);
+    const [closeH, closeM] = todayHours.to.split(':').map(Number);
+
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    return nowMinutes >= openH * 60 + openM && nowMinutes < closeH * 60 + closeM;
+  } catch {
+    return true;
+  }
+}
+
+function VendorCard({ vendor, averageRating, onPress, isOpen }) {
   return (
     <article
-      onClick={onPress}
+      onClick={isOpen ? onPress : undefined}
       style={{
         backgroundColor: 'white',
         borderRadius: '16px',
@@ -19,6 +44,9 @@ function VendorCard({ vendor, averageRating, onPress }) {
         boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
         cursor: 'pointer',
         transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+        // Grey out if closed
+        filter: isOpen ? 'none' : 'grayscale(60%)',
+        opacity: isOpen ? 1 : 0.75,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-3px)';
@@ -48,20 +76,27 @@ function VendorCard({ vendor, averageRating, onPress }) {
           </div>
         )}
 
-        {/* Category badge overlaid on image
-        {vendor.category?.[0] && (
-          <span style={{
-            position: 'absolute', top: '8px', left: '8px',
-            backgroundColor: 'rgba(0,0,0,0.55)',
-            color: 'white', fontSize: '0.6rem', fontWeight: 700,
-            padding: '3px 8px', borderRadius: '20px',
-            backdropFilter: 'blur(4px)',
+        {/* 👇 CLOSED overlay on the banner image */}
+        {!isOpen && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            {vendor.category[0]}
-          </span>
-        )} */}
+            <span style={{
+              color: 'rgba(255,255,255,0.6)',
+              fontSize: '1.1rem',
+              fontWeight: 800,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+            }}>
+              Closed
+            </span>
+          </div>
+        )}
       </div>
 
+      {/* rest of the card body stays exactly the same */}
       <div style={{ padding: '10px 12px' }}>
         <h3 style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1a1a2e', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
           {vendor.name || 'Unnamed Vendor'}
@@ -70,7 +105,6 @@ function VendorCard({ vendor, averageRating, onPress }) {
           {vendor.description || 'No description available'}
         </p>
 
-        {/* Location */}
         {vendor.location && (
           <p style={{ fontSize: '0.68rem', color: '#aaa', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             📍 {vendor.location}
@@ -85,8 +119,6 @@ function VendorCard({ vendor, averageRating, onPress }) {
           <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', color: '#888' }}>
             <Clock size={11} strokeWidth={2} />
             {vendor.operating_hours.hours || '?'} min
-            {/* Hours */}
-       
           </span>
           <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#FFF0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: BRAND, fontWeight: 700, fontSize: '0.85rem' }}>
             ›
@@ -96,7 +128,6 @@ function VendorCard({ vendor, averageRating, onPress }) {
     </article>
   );
 }
-
 export default function StudentDashboard() {
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -341,7 +372,7 @@ export default function StudentDashboard() {
               </div>
             ) : (
               filteredVendors.map((vendor) => (
-                <VendorCard key={vendor.id} vendor={vendor} averageRating={vendorRatings[vendor.id] ?? null} onPress={() => handleVendorPress(vendor)} />
+                <VendorCard key={vendor.id} vendor={vendor} averageRating={vendorRatings[vendor.id] ?? null} onPress={() => handleVendorPress(vendor)} isOpen={isVendorOpen(vendor)} />
               ))
             )}
           </div>
