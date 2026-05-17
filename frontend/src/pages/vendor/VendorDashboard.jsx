@@ -80,8 +80,29 @@ function OrderCard({ order, onUpdateStatus }) {
 
 // ============ MENU MANAGER DATA ============
 const CATEGORIES_DEFAULT = ['Cafe', 'Fast Food', 'Asian', 'Pizza', 'Healthy', 'Indian','Mains'];
-const ALLERGENS = ["Cow's Milk", 'Peanuts', 'Tree Nuts', 'Soya', 'Gluten', 'Egg', 'Fish', 'Shellfish'];
-const DIETARY_TAGS = ['Halaal', 'Vegetarian', 'Vegan', 'Kosher', 'Nut-Free', 'Gluten-Free', 'Dairy-Free'];
+//const ALLERGENS = ["Cow's Milk", 'Peanuts', 'Tree Nuts', 'Soya', 'Gluten', 'Egg', 'Fish', 'Shellfish'];
+//const DIETARY_TAGS = ['Halaal', 'Vegetarian', 'Vegan', 'Kosher', 'Nut-Free', 'Gluten-Free', 'Dairy-Free'];
+
+const ALLERGENS = [
+  { id: "Cow's Milk", label: "Cow's Milk", definition: "Contains milk or milk-derived ingredients such as cheese, butter, cream or lactose." },
+  { id: "Peanuts", label: "Peanuts", definition: "Contains peanuts or peanut-derived ingredients." },
+  { id: "Tree Nuts", label: "Tree Nuts", definition: "Contains almonds, Brazil nuts, cashew nuts, hazelnuts, macadamia nuts, pecan nut, pistachio nuts or walnuts." },
+  { id: "Soya", label: "Soya", definition: "Contains soybeans or soy-derived ingredients." },
+  { id: "Gluten", label: "Gluten", definition: "Contains wheat, rye, barley, oats or crossbred hybrids. Regulated in South Africa as Significant Cereals under R146 of 2010." },
+  { id: "Egg", label: "Egg", definition: "Contains egg or egg-derived ingredients." },
+  { id: "Fish", label: "Fish", definition: "Contains fish or fish-derived ingredients." },
+  { id: "Shellfish", label: "Shellfish", definition: "Contains prawns, crab, lobster, crayfish, mussels, oysters or similar seafood. Regulated in South Africa as Crustaceans and Molluscs under R146 of 2010." },
+];
+
+const DIETARY_TAGS = [
+  { id: "Halaal", label: "Halaal", definition: "Contains no pork or pork by-products and no alcohol. Prepared according to Islamic dietary law as defined by SANHA." },
+  { id: "Vegetarian", label: "Vegetarian", definition: "Contains no meat or fish but may contain dairy and eggs." },
+  { id: "Vegan", label: "Vegan", definition: "Contains no animal products including meat, fish, dairy, eggs or honey." },
+  { id: "Kosher", label: "Kosher", definition: "Prepared according to Jewish dietary law. Meat and dairy are not mixed." },
+  { id: "Nut-Free", label: "Nut-Free", definition: "Contains no tree nuts or peanuts. Suitable for people with nut allergies." },
+  { id: "Gluten-Free", label: "Gluten-Free", definition: "Contains no wheat, rye, barley, oats or crossbred hybrids. Suitable for people with coeliac disease or gluten intolerance." },
+  { id: "Dairy-Free", label: "Dairy-Free", definition: "Contains no milk or milk-derived ingredients. Suitable for people with lactose intolerance or a dairy allergy." },
+];
 
 const tagColors = {
   Halaal: { bg: '#E0F7EF', color: '#2A9D6A' },
@@ -108,6 +129,7 @@ function MenuManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState(makeEmptyForm());
+  const [activeTooltip, setActiveTooltip] = useState(null);
 
   const emptyForm = makeEmptyForm();
 
@@ -336,41 +358,93 @@ const handleEdit = (item) => {
               </select>
             </div>
               
-            <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', margin: '0 0 6px' }}>Allergens</p>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {ALLERGENS.map(allergen => {
-                  const selected = form.allergens.includes(allergen);
-                  return (
-                    <button key={allergen} onClick={() => toggleAllergen(allergen)}
-                      style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', border: 'none',
+          <div>
+            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', margin: '0 0 6px' }}>Allergens</p>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {ALLERGENS.map(allergen => {
+                const selected = form.allergens.includes(allergen.id);
+                return (
+                  <div key={allergen.id} style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => toggleAllergen(allergen.id)}
+                      style={{
+                        padding: '4px 8px 4px 12px', borderRadius: '20px',
+                        fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
+                        border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
                         backgroundColor: selected ? '#FFE8E8' : '#F5F5F5',
                         color: selected ? '#C0474A' : '#999',
-                        outline: selected ? '1.5px solid #C0474A' : '1.5px solid transparent' }}>
-                      {allergen}
+                        outline: selected ? '1.5px solid #C0474A' : '1.5px solid transparent',
+                      }}>
+                      {allergen.label}
+                      <span
+                        onMouseEnter={() => setActiveTooltip(allergen.id)}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                        onClick={e => { e.stopPropagation(); setActiveTooltip(activeTooltip === allergen.id ? null : allergen.id); }}
+                        style={{ fontSize: '0.65rem', color: selected ? '#C0474A' : '#bbb', cursor: 'help', fontWeight: 700 }}>
+                        ⓘ
+                      </span>
                     </button>
-                  );
-                })}
-              </div>
+                    {activeTooltip === allergen.id && (
+                      <div style={{
+                        position: 'absolute', bottom: '110%', left: '0',
+                        transform: 'none', backgroundColor: '#1a1a2e',
+                        color: 'white', fontSize: '0.68rem', padding: '8px 10px',
+                        borderRadius: '8px', width: '180px', zIndex: 100,
+                        lineHeight: 1.5, boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                        pointerEvents: 'none',
+                      }}>
+                        {allergen.definition}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
-            <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', margin: '6px 0 6px' }}>Dietary Tags</p>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {DIETARY_TAGS.map(tag => {
-                  const selected = form.tags.includes(tag);
-                  return (
-                    <button key={tag} onClick={() => toggleTag(tag)}
-                      style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', border: 'none',
-                        backgroundColor: selected ? (tagColors[tag]?.bg || '#eee') : '#F5F5F5',
-                        color: selected ? (tagColors[tag]?.color || '#444') : '#999',
-                        outline: selected ? `1.5px solid ${tagColors[tag]?.color || '#ccc'}` : '1.5px solid transparent' }}>
-                      {tag}
+          <div>
+            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#555', margin: '6px 0 6px' }}>Dietary Tags</p>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {DIETARY_TAGS.map(tag => {
+                const selected = form.tags.includes(tag.id);
+                return (
+                  <div key={tag.id} style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => toggleTag(tag.id)}
+                      style={{
+                        padding: '4px 8px 4px 12px', borderRadius: '20px',
+                        fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer',
+                        border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
+                        backgroundColor: selected ? (tagColors[tag.id]?.bg || '#eee') : '#F5F5F5',
+                        color: selected ? (tagColors[tag.id]?.color || '#444') : '#999',
+                        outline: selected ? `1.5px solid ${tagColors[tag.id]?.color || '#ccc'}` : '1.5px solid transparent',
+                      }}>
+                      {tag.label}
+                      <span
+                        onMouseEnter={() => setActiveTooltip(tag.id)}
+                        onMouseLeave={() => setActiveTooltip(null)}
+                        onClick={e => { e.stopPropagation(); setActiveTooltip(activeTooltip === tag.id ? null : activeTooltip); }}
+                        style={{ fontSize: '0.65rem', color: selected ? (tagColors[tag.id]?.color || '#444') : '#bbb', cursor: 'help', fontWeight: 700 }}>
+                        ⓘ
+                      </span>
                     </button>
-                  );
-                })}
-              </div>
+                    {activeTooltip === tag.id && (
+                     <div style={{
+                        position: 'absolute', bottom: '110%', left: '0',
+                        transform: 'none', backgroundColor: '#1a1a2e',
+                        color: 'white', fontSize: '0.68rem', padding: '8px 10px',
+                        borderRadius: '8px', width: '180px', zIndex: 100,
+                        lineHeight: 1.5, boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                        pointerEvents: 'none',
+                      }}>
+                        {tag.definition}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
               <button onClick={handleSave} style={{ flex: 1, padding: '10px', background: `linear-gradient(135deg, ${BRAND} 0%, #E8726A 100%)`, color: 'white', border: 'none', borderRadius: '2rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem' }}>{editingItem ? 'Save Changes' : 'Add Item'}</button>
