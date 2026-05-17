@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+import Tooltip from './Tooltip';
+
 const BRAND = '#C0474A';
 
 // ============ TABS CONFIGURATION ============
@@ -1225,6 +1227,7 @@ const getChartInterval = (range) => {
   </div>
   <div 
     onClick={() => navigate('/vendor-settings')}
+    title="Profile"
     style={{ 
       width: '34px', 
       height: '34px', 
