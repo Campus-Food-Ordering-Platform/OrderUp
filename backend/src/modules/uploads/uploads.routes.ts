@@ -17,7 +17,7 @@ router.get('/sign', (req: Request, res: Response) => {
 
   // resource_type is NEVER included in the signature params
   // it only goes in the upload URL and FormData
-  const signParams: Record<string, any> = { timestamp, folder };
+  const signParams: Record<string, any> = { timestamp, folder,  type: 'upload', };
 
   const signature = cloudinary.utils.api_sign_request(
     signParams,
@@ -31,8 +31,10 @@ router.get('/sign', (req: Request, res: Response) => {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
     folder,
     resource_type,
+    type: 'upload',
   });
 });
+
 
 // POST /api/upload
 // Legacy server-side upload using base64 — kept for backwards compatibility

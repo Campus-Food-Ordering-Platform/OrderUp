@@ -214,6 +214,7 @@ useEffect(() => {
       formData.append('signature', signature);
       formData.append('api_key', apiKey);
       formData.append('folder', 'orderup/menu-items');
+      formData.append('type', 'upload');
       const uploadRes = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         { method: 'POST', body: formData }
@@ -948,6 +949,7 @@ function VendorApplicationForm({ vendorId, vendorName, onSubmitted }) {
     formData.append('signature', signature);
     formData.append('api_key', apiKey);
     formData.append('folder', folder);
+    formData.append('type', 'upload');
     const uploadRes = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
       { method: 'POST', body: formData }
@@ -977,6 +979,7 @@ const handleLogoFile = async (file) => {
     formData.append('signature', signature);
     formData.append('api_key', apiKey);
     formData.append('folder', folder);
+    formData.append('type', 'upload');
     const uploadRes = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
       { method: 'POST', body: formData }
@@ -1009,6 +1012,7 @@ const handleCertFile = async (file) => {
     formData.append('api_key', apiKey);
     formData.append('folder', folder);
     formData.append('resource_type', resource_type);
+    formData.append('type', 'upload');
 
     const uploadRes = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
