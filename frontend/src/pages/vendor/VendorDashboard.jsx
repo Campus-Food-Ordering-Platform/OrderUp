@@ -25,6 +25,11 @@ const statusConfig = {
   collected: { bg: '#F0F0F0', color: '#888',    action: null,                btnBg: null, btnColor: null },
 };
 
+
+
+
+
+
 // ============ ORDER CARD COMPONENT ============
 function OrderCard({ order, onUpdateStatus }) {
   const config = statusConfig[order.status] || statusConfig['received'];
@@ -1462,6 +1467,7 @@ export default function VendorDashboard() {
   const [vendorStatus, setVendorStatus] = useState('loading');
   const [vendorId, setVendorId] = useState(null);
   const [vendorDisplayName, setVendorDisplayName] = useState('');
+  const [activeReport, setActiveReport] = useState('sales');
   // so here we passing the vendor menu 
   useEffect(() => {
     const raw = JSON.parse(localStorage.getItem('orderup_user') || '{}');
@@ -1954,10 +1960,14 @@ const getChartInterval = (range) => {
                 }}
               >
                 <Download size={13} />
-                Export CSV
+                Export Revenue CSV
               </button>
             </div>
           </div>
+
+
+          {/* ── Sales view (existing KPIs + charts) — only show when activeReport === 'sales' ── */}
+          {activeReport === 'sales' && (<>
 
           {/* KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '20px' }}>
@@ -2042,9 +2052,32 @@ const getChartInterval = (range) => {
 
           {/* Popular Times */}
           <div style={{ ...cardStyle, marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-              <Clock size={16} color={BRAND} />
-              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Popular Times</h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Clock size={16} color={BRAND} />
+                <h3 style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Popular Times</h3>
+              </div>
+              <button
+                onClick={() => {
+                  const hourCounts = {};
+                  orders.forEach(o => {
+                    const hour = new Date(o.created_at).getHours();
+                    const label = `${hour % 12 || 12}${hour < 12 ? 'am' : 'pm'} - ${(hour + 1) % 12 || 12}${(hour + 1) < 12 ? 'am' : 'pm'}`;
+                    hourCounts[label] = (hourCounts[label] || 0) + 1;
+                  });
+                  const rows = Object.entries(hourCounts)
+                    .map(([hour, count]) => ({ hour, orders: count }))
+                    .sort((a, b) => b.orders - a.orders);
+                  const csv = ['Hour,Orders', ...rows.map(r => `${r.hour},${r.orders}`)].join('\n');
+                  const a = document.createElement('a');
+                  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+                  a.download = `peak-hours-${new Date().toISOString().slice(0, 10)}.csv`;
+                  a.click();
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '8px', backgroundColor: BRAND, color: 'white', border: 'none', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                <Download size={12} /> Export CSV
+              </button>
             </div>
             {(() => {
               const hourCounts = {};
@@ -2140,8 +2173,23 @@ const getChartInterval = (range) => {
           </div>
 
           {/* Top Selling Items */}
-          <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px' }}>Top Selling Items</h2>
           <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Top Selling Items</h2>
+              <button
+                onClick={() => {
+                  const csv = ['Rank,Item,Quantity Sold,Revenue', ...topSellingItems.map((item, i) => `${i + 1},${item.name},${item.quantity},${item.revenue}`)].join('\n');
+                  const a = document.createElement('a');
+                  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+                  a.download = `top-items-${new Date().toISOString().slice(0, 10)}.csv`;
+                  a.click();
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '8px', backgroundColor: BRAND, color: 'white', border: 'none', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                <Download size={12} /> Export CSV
+              </button>
+            </div>
+          
             {topSellingItems.length === 0 ? (
               <p style={{ color: '#aaa', textAlign: 'center', padding: '20px' }}>No sales data yet</p>
             ) : (
@@ -2156,7 +2204,8 @@ const getChartInterval = (range) => {
                 </div>
               ))
             )}
-          </div>
+          </div>l
+          </>)}
         </section>
       )}
     </div>
