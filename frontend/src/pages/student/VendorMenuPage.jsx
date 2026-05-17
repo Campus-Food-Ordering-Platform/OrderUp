@@ -532,7 +532,7 @@ export default function VendorMenuPage() {
             cursor: 'pointer',
             zIndex: 100,
           }}
-          onClick={() => {}}
+            onClick={() => navigate('/checkout', { state: { vendor, cart, items } })}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
@@ -553,7 +553,7 @@ export default function VendorMenuPage() {
             </span>
           </div>
           <span style={{ color: 'white', fontSize: '0.95rem', fontWeight: 800 }}>
-            View Cart · R {totalPrice}
+           Go to checkout · R {totalPrice}
           </span>
         </div>
       )}
