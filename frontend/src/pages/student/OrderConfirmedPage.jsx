@@ -217,7 +217,7 @@ function OrderCard({ order, onRemove }) {
           <div>
             <p style={{ fontSize: '0.68rem', color: '#aaa', margin: '0 0 1px', fontWeight: 600, letterSpacing: '0.04em' }}>COLLECT AT</p>
             <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1a1a2e', margin: 0 }}>
-              The Matrix Food Court · {order.vendor_name ?? order.vendor?.name ?? 'Vendor'} stall
+            {order.vendor_location ?? 'The Matrix Food Court'} · {order.vendor_name ?? 'Vendor'} stall
             </p>
           </div>
         </div>

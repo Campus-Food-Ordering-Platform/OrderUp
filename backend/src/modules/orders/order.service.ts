@@ -80,15 +80,18 @@ export async function getStudentActiveOrder(studentId: string) {
 // get all the vendors (it allows us to show all active orders)
 export async function getAllActiveOrdersByStudent(userId: string): Promise<Order[]> {
   const result = await pool.query(
-    `SELECT o.*, p.name as vendor_name
-     FROM orders o
-     JOIN vendors v ON o.vendor_id = v.id
-     JOIN profiles p ON v.profile_id = p.id
-     WHERE o.customer_id = $1
-     AND o.status NOT IN ('collected')
-     ORDER BY o.created_at ASC`,
+    `SELECT o.*, p.name as vendor_name, v.location as vendor_location
+      FROM orders o
+      JOIN vendors v ON o.vendor_id = v.id
+      JOIN profiles p ON v.profile_id = p.id
+      WHERE o.customer_id = $1
+      AND o.status NOT IN ('collected')
+      ORDER BY o.created_at ASC`,
     [userId]
   );
+  // order.service.ts — inside getAllActiveOrdersByStudent, after the query
+console.log('active orders sample:', JSON.stringify(result.rows[0]));
+return result.rows;
   return result.rows;
 }
 
