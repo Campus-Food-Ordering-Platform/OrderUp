@@ -118,8 +118,11 @@ export default function VendorSettings() {
        setVendorData({
           name: vendorInfo.vendor_name || '',
           description: vendorInfo.description || '',
-          category: vendorInfo.category?.[0] || '',
-          location: vendorInfo.location || '',
+          category: Array.isArray(vendorInfo.category) 
+            ? vendorInfo.category[0] || '' 
+            : typeof vendorInfo.category === 'string'
+              ? vendorInfo.category.replace(/[{}"]/g, '').split(',')[0] || ''
+              : '',          location: vendorInfo.location || '',
           operating_hours: hoursRaw,
           phone: vendorInfo.phone || '',
           email: vendorInfo.email || '',
@@ -270,7 +273,7 @@ export default function VendorSettings() {
   console.log('Saving payload:', JSON.stringify({
     vendor_name:     vendorData.name,
     description:     vendorData.description,
-    category:        vendorData.category ? [vendorData.category] : [],
+    category: vendorData.category ? [vendorData.category.trim()] : [],
     location:        vendorData.location,
     operating_hours: hoursPayload,
     logo_url:        vendorData.logo_url,
