@@ -5,11 +5,13 @@ import pool from '../../config/db';
 // Fetch all valid vendors with their profile name (used on student dashboard)
 export const getAllVendors = async () => {
   const result = await pool.query(`
-    SELECT v.id, v.description, v.is_active, v.logo_url, p.name
+    SELECT 
+      v.id, v.vendor_name AS name, v.description, v.category,
+      v.location, v.operating_hours, v.logo_url, v.banner_url,
+      v.status, v.is_active
     FROM vendors v
-    JOIN profiles p ON v.profile_id = p.id
     WHERE v.status = 'active'
-    ORDER BY v.id ASC
+    ORDER BY v.vendor_name ASC
   `);
   return result.rows;
 };
@@ -17,7 +19,18 @@ export const getAllVendors = async () => {
 // Fetch a single vendor by their ID
 export const getVendorById = async (id: string) => {
   const result = await pool.query(`
-    SELECT v.id, v.description, v.is_active, v.logo_url, p.name
+    SELECT 
+      v.id,
+      v.vendor_name,
+      v.description,
+      v.category,
+      v.location,
+      v.operating_hours,
+      v.logo_url,
+      v.banner_url,
+      v.status,
+      v.is_active,
+      p.name AS owner_name
     FROM vendors v
     JOIN profiles p ON v.profile_id = p.id
     WHERE v.id = $1
@@ -30,11 +43,30 @@ export const getVendorById = async (id: string) => {
 // Fetch all menu items for a vendor — returns available AND unavailable
 // items so the student menu page can show "Out of stock" for unavailable ones
 export const getVendorMenu = async (vendorId: string) => {
-  const result = await pool.query(
-    `SELECT * FROM menu_items WHERE vendor_id = $1 ORDER BY category, name ASC`,
-    [vendorId]
-  );
-  return result.rows;
+    const result = await pool.query(
+        `SELECT 
+          m.id,
+          m.vendor_id,
+          m.name,
+          m.description,
+          m.price,
+          m.image_url,
+          m.category,
+          m.available,
+          ARRAY_AGG(DISTINCT a.allergen::text) FILTER (WHERE a.allergen IS NOT NULL) AS allergens,
+          ARRAY_AGG(DISTINCT t.tag::text) FILTER (WHERE t.tag IS NOT NULL) AS tags
+        FROM menu_items m
+        LEFT JOIN menu_item_allergens a ON a.menu_item_id = m.id
+        LEFT JOIN menu_item_dietary_tags t ON t.menu_item_id = m.id
+        WHERE m.vendor_id = $1
+        GROUP BY m.id`,
+        [vendorId]
+    );
+    return result.rows.map(row => ({
+      ...row,
+      allergens: Array.isArray(row.allergens) ? row.allergens : [],
+      tags: Array.isArray(row.tags) ? row.tags : [],
+    }));
 };
 
 // Create a new menu item — includes tags and available from the start
@@ -108,26 +140,34 @@ export const registerVendor = async (body: any) => {
   );
   return result.rows[0];
 };
+
+//So this adds the vendor details to the database after theey press submit 
 export const submitVendorApplication = async (body: any) => {
   const result = await pool.query(
     `INSERT INTO vendor_applications 
-      (profile_id, name, description, category, location, operating_hours, 
-       health_certificate_url, sample_items)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     RETURNING *`,
+      (profile_id, name, owner_name, owner_email, description, category, location, operating_hours, 
+      health_certificate_url, sample_items, logo_url, banner_url)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    RETURNING *`,
     [
       body.profile_id,
       body.name,
+      body.owner_name ?? null,
+      body.owner_email ?? null,
       body.description ?? null,
-      body.category ?? null,        
+      body.category ?? null,
       body.location ?? null,
       body.operating_hours ? JSON.stringify(body.operating_hours) : null,
       body.health_certificate_url ?? null,
       body.sample_items ?? null,
+      body.logo_url ?? null,
+      body.banner_url ?? null,
     ]
   );
   return result.rows[0];
 };
+
+
 export const getVendorStatusByProfileId = async (profileId: string) => {
   // First check if they have an approved vendor row
   const vendorResult = await pool.query(
@@ -146,6 +186,7 @@ export const getVendorStatusByProfileId = async (profileId: string) => {
   return null;
 };
 // ───────────── admin ─────────────
+
 export const updateVendorStatus = async (vendorId: string, status: 'active' | 'suspended') => {//for admin to change a vendor's status
   const result = await pool.query(
     `UPDATE vendors SET status = $1 WHERE id = $2 RETURNING *`,
@@ -165,6 +206,8 @@ export const getAllVendorsAdmin = async () => {
       v.operating_hours,
       v.status                  AS vendor_status,
       v.is_active,
+      v.logo_url,
+      v.banner_url,
       v.application_id,
       p.name                    AS owner_name,
       p.created_at              AS join_date,
@@ -185,7 +228,7 @@ export const getAllVendorsAdmin = async () => {
     LEFT JOIN orders o ON o.vendor_id = v.id
     GROUP BY
       v.id, v.vendor_name, v.description, v.category, v.location,
-      v.operating_hours, v.status, v.is_active, v.application_id,
+      v.operating_hours, v.status, v.is_active, v.application_id, v.logo_url, v.banner_url,
       p.name, p.created_at,
       va.id, va.status, va.health_certificate_url, va.sample_items,
       va.submitted_at, va.rejection_reason, va.description,
@@ -199,6 +242,8 @@ export const getAllVendorsAdmin = async () => {
   `);
   return result.rows;
 };
+
+//again this gets the info mation from the vendor application in that it allows us to see the information in screen
 export const getPendingApplications = async () => {
   const result = await pool.query(`
     SELECT
@@ -214,9 +259,12 @@ export const getPendingApplications = async () => {
       va.rejection_reason,
       va.status                 AS application_status,
       NULL                      AS vendor_status,
-      p.name                    AS owner_name,
+      va.owner_name             AS owner_name,
+      va.owner_email            AS email,
       p.created_at              AS join_date,
       va.id                     AS application_id,
+      va.banner_url,
+      va.logo_url,
       0                         AS revenue,
       0                         AS orders
     FROM vendor_applications va
@@ -249,9 +297,9 @@ export const approveApplication = async (applicationId: string) => {
     const vendorResult = await client.query(
       `INSERT INTO vendors 
         (id, profile_id, application_id, vendor_name, description, category, 
-         location, operating_hours, status, is_active)
+         location, operating_hours, status, is_active, logo_url, banner_url)
        VALUES 
-        (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, 'active', true)
+        (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, 'active', true, $8, $9)
        RETURNING *`,
       [
         app.profile_id,
@@ -261,6 +309,8 @@ export const approveApplication = async (applicationId: string) => {
         app.category,
         app.location,
         app.operating_hours,
+        app.logo_url ?? null,
+        app.banner_url ?? null,                                                             
       ]
     );
 
@@ -281,6 +331,34 @@ export const rejectApplication = async (applicationId: string, rejectionReason?:
      WHERE id = $1 
      RETURNING *`,
     [applicationId, rejectionReason ?? null]
+  );
+  return result.rows[0];
+};
+
+// for the settings page this allows us to alter the vendor profile 
+export const updateVendor = async (vendorId: string, body: any) => {
+  const result = await pool.query(
+    `UPDATE vendors
+     SET 
+       vendor_name      = COALESCE($1, vendor_name),
+       description      = COALESCE($2, description),
+       category         = COALESCE($3, category),
+       location         = COALESCE($4, location),
+       operating_hours  = COALESCE($5, operating_hours),
+       logo_url         = COALESCE($6, logo_url),
+       banner_url       = COALESCE($7, banner_url)
+     WHERE id = $8
+     RETURNING *`,
+    [
+      body.vendor_name      ?? null,
+      body.description      ?? null,
+      body.category         ?? null,
+      body.location         ?? null,
+      body.operating_hours  ?? null,
+      body.logo_url         ?? null,
+      body.banner_url       ?? null,
+      vendorId,
+    ]
   );
   return result.rows[0];
 };

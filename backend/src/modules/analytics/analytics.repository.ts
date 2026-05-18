@@ -187,3 +187,20 @@ export const getCustomerSummary = async (vendor_id: string, window: string) => {
   const result = await pool.query(query, [vendor_id]);
   return Number(result.rows[0]?.revenue || 0);
 };
+
+export const getItemOrderTimeSeries = async (vendor_id: string) => {
+  const query = `
+    SELECT
+      item->>'name' AS name,
+      DATE_TRUNC('week', o.created_at) AS week,
+      SUM((item->>'quantity')::int) AS quantity
+    FROM orders o,
+    jsonb_array_elements(o.items) AS item
+    WHERE o.vendor_id = $1
+      AND o.created_at >= NOW() - INTERVAL '3 months'
+    GROUP BY name, week
+    ORDER BY name, week
+  `;
+  const result = await pool.query(query, [vendor_id]);
+  return result.rows;
+};

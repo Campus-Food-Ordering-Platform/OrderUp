@@ -11,7 +11,7 @@ import authRoutes from './modules/auth/auth.routes';
 import cartRoutes from './modules/cart/cart.routes';
 import vendorRoutes from './modules/vendors/vendors.routes';
 import uploadRoutes from './modules/uploads/uploads.routes';
-import orderRoutes from '././modules/orders/order.routes';
+import orderRoutes from './modules/orders/order.routes';
 import paymentRoutes from './modules/payments/payment.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
 

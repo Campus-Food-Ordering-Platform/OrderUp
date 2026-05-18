@@ -8,10 +8,35 @@ const BRAND = '#C0474A';
 const filters = ['All', 'Asian', 'Fast Food', 'Cafe', 'Healthy', 'Pizza'];
 
 
-function VendorCard({ vendor, onPress }) {
+function isVendorOpen(vendor) {
+  try {
+    const structured = vendor.operating_hours?.structured;
+    if (!structured) return true;
+
+    const hours = typeof structured === 'string' ? JSON.parse(structured) : structured;
+
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const todayKey = days[new Date().getDay()];
+    const todayHours = hours[todayKey];
+
+    if (!todayHours || !todayHours.open) return false;
+
+    const [openH, openM] = todayHours.from.split(':').map(Number);
+    const [closeH, closeM] = todayHours.to.split(':').map(Number);
+
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    return nowMinutes >= openH * 60 + openM && nowMinutes < closeH * 60 + closeM;
+  } catch {
+    return true;
+  }
+}
+
+function VendorCard({ vendor, averageRating, onPress, isOpen }) {
   return (
     <article
-      onClick={onPress}
+      onClick={isOpen ? onPress : undefined}
       style={{
         backgroundColor: 'white',
         borderRadius: '16px',
@@ -19,6 +44,9 @@ function VendorCard({ vendor, onPress }) {
         boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
         cursor: 'pointer',
         transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+        // Grey out if closed
+        filter: isOpen ? 'none' : 'grayscale(60%)',
+        opacity: isOpen ? 1 : 0.75,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-3px)';
@@ -29,36 +57,70 @@ function VendorCard({ vendor, onPress }) {
         e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.07)';
       }}
     >
-      <div
-        style={{
-          height: '100px',
-          background: `linear-gradient(135deg, ${vendor.bg_from || '#FFE5D0'}, ${vendor.bg_to || '#FFBFA0'})`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '2.5rem',
-        }}
-        aria-hidden="true"
-      >
-        {vendor.emoji || '🍽️'}
+      {/* Photo / banner */}
+      <div style={{ height: '100px', position: 'relative', overflow: 'hidden', backgroundColor: '#F5F0E8' }}>
+        {vendor.banner_url ? (
+          <img
+            src={vendor.banner_url}
+            alt={vendor.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <div style={{
+            width: '100%', height: '100%',
+            background: 'linear-gradient(135deg, #FFE5D0, #FFBFA0)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '2.5rem',
+          }}>
+            🍽️
+          </div>
+        )}
+
+        {/* 👇 CLOSED overlay on the banner image */}
+        {!isOpen && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{
+              color: 'rgba(255,255,255,0.6)',
+              fontSize: '1.1rem',
+              fontWeight: 800,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+            }}>
+              Closed
+            </span>
+          </div>
+        )}
       </div>
 
+      {/* rest of the card body stays exactly the same */}
       <div style={{ padding: '10px 12px' }}>
         <h3 style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1a1a2e', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
           {vendor.name || 'Unnamed Vendor'}
         </h3>
-        <p style={{ fontSize: '0.72rem', color: '#888', marginBottom: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <p style={{ fontSize: '0.72rem', color: '#888', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {vendor.description || 'No description available'}
         </p>
 
+        {vendor.location && (
+          <p style={{ fontSize: '0.68rem', color: '#aaa', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            📍 {vendor.location}
+          </p>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 600, color: '#F59E0B' }}>
-            <Star size={11} fill="#F59E0B" strokeWidth={0} />
-            {vendor.rating || '—'}
+          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 600, color: averageRating !== null ? '#F59E0B' : '#ccc' }}>
+            <Star size={11} fill={averageRating !== null ? '#F59E0B' : '#ccc'} strokeWidth={0} />
+            {averageRating !== null ? averageRating.toFixed(1) : '—'}
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', color: '#888' }}>
             <Clock size={11} strokeWidth={2} />
-            {vendor.wait || '?'} min
+            {vendor.operating_hours.hours || '?'}
+            {/* Hours */}
+       
           </span>
           <div style={{ width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#FFF0F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: BRAND, fontWeight: 700, fontSize: '0.85rem' }}>
             ›
@@ -68,7 +130,6 @@ function VendorCard({ vendor, onPress }) {
     </article>
   );
 }
-
 export default function StudentDashboard() {
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +137,7 @@ export default function StudentDashboard() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeOrder, setActiveOrder] = useState(null);//this will hold the active order details, if any
+  const [vendorRatings, setVendorRatings] = useState({}); // { [vendorId]: averageRating }
 
 
   const navigate = useNavigate();
@@ -91,9 +153,23 @@ export default function StudentDashboard() {
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         return res.json();
       })
-      .then((data) => {
+      .then(async (data) => {
         setVendors(data);
         setLoading(false);
+        // Fetch average ratings for all vendors in parallel
+        const ratingEntries = await Promise.all(
+          data.map(async (vendor) => {
+            try {
+              const res = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/vendor/${vendor.id}/ratings`);
+              if (!res.ok) return [vendor.id, null];
+              const r = await res.json();
+              return [vendor.id, r.totalRatings > 0 ? r.averageRating : null];
+            } catch {
+              return [vendor.id, null];
+            }
+          })
+        );
+        setVendorRatings(Object.fromEntries(ratingEntries));
       })
       .catch((err) => {
         console.error('Failed to fetch vendors:', err);
@@ -140,7 +216,12 @@ export default function StudentDashboard() {
 
   // ── Null-safe filter ───────────────────────────────────────────────────────
   const filteredVendors = vendors.filter((vendor) => {
-    const matchesFilter = activeFilter === 'All' || vendor.category === activeFilter;
+    //const matchesFilter = activeFilter === 'All' || vendor.category === activeFilter; this was wrong
+    const matchesFilter = activeFilter === 'All' || (
+  Array.isArray(vendor.category)
+    ? vendor.category.includes(activeFilter)
+    : (vendor.category || '').includes(activeFilter)  // handles "{Fast Food}" string format
+    );
     const matchesSearch =
       (vendor.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (vendor.description || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -181,12 +262,7 @@ export default function StudentDashboard() {
         >
           <Package size={16} color="white" strokeWidth={2} />
         </div>
-        <div
-          onClick={() => navigate('/checkout')}
-          style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-        >
-          <ShoppingCart size={16} color="white" strokeWidth={2} />
-        </div>
+
         <div
           onMouseEnter={() => setShowLogout(true)}
           onMouseLeave={() => setShowLogout(false)}
@@ -298,7 +374,7 @@ export default function StudentDashboard() {
               </div>
             ) : (
               filteredVendors.map((vendor) => (
-                <VendorCard key={vendor.id} vendor={vendor} onPress={() => handleVendorPress(vendor)} />
+                <VendorCard key={vendor.id} vendor={vendor} averageRating={vendorRatings[vendor.id] ?? null} onPress={() => handleVendorPress(vendor)} isOpen={isVendorOpen(vendor)} />
               ))
             )}
           </div>

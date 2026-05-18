@@ -198,3 +198,7 @@ export const getRevenueSummary = async (
         window
     );
 };
+
+export const getItemTimeSeries = async (vendor_id: string) => {
+  return AnalyticsRepo.getItemOrderTimeSeries(vendor_id);
+};
