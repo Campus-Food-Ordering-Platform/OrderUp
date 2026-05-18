@@ -7,12 +7,14 @@ import { useAuth0 } from '@auth0/auth0-react';
 const BRAND = '#C0474A';
 
 const tagColors = {
-  Halal:       { bg: '#E0F7EF', color: '#2A9D6A' },
-  Vegan:       { bg: '#E8F8E8', color: '#2A7D2A' },
-  Vegetarian:  { bg: '#F0FFF0', color: '#3A8A3A' },
-  'Nut-free':  { bg: '#FFF8E1', color: '#B8860B' },
+  'Halaal':      { bg: '#E0F7EF', color: '#2A9D6A' },
+  'Vegan':       { bg: '#E8F8E8', color: '#2A7D2A' },
+  'Vegetarian':  { bg: '#F0FFF0', color: '#3A8A3A' },
+  'Kosher':      { bg: '#FFF8E1', color: '#B8860B' },
+  'Nut-Free':    { bg: '#FFF8E1', color: '#B8860B' },
+  'Gluten-Free': { bg: '#F3E8FF', color: '#7B4FBF' },
+  'Dairy-Free':  { bg: '#E8F4FD', color: '#77ade7' },
 };
-
 export default function VendorMenuPage() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -307,7 +309,7 @@ export default function VendorMenuPage() {
                           transition: 'all 0.15s ease',
                         }}
                       >
-                        {tag === 'Vegan' && <Leaf size={10} />}
+                        {tag === 'Vegan'}
                         {tag}
                         {active && <X size={10} />}
                       </button>
@@ -414,30 +416,30 @@ export default function VendorMenuPage() {
                     {item.description}
                   </p>
 
-                  {/* Tags — CHANGED: added (item.tags || []) to avoid crash when tags is null */}
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                    {(item.tags || []).map((tag) => (
-                      <span
-                        key={tag}
-                        style={{
-                          backgroundColor: tagColors[tag]?.bg || '#F0F0F0',
-                          color: tagColors[tag]?.color || '#666',
-                          fontSize: '0.62rem',
-                          fontWeight: 600,
-                          padding: '2px 8px',
-                          borderRadius: '20px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '2px',
-                        }}
-                      >
-                        {tag === 'Vegan' && <Leaf size={8} />}
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                 
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {(item.tags || []).map((tag) => (
+                          <span key={tag} style={{
+                            backgroundColor: tagColors[tag]?.bg || '#F0F0F0',
+                            color: tagColors[tag]?.color || '#666',
+                            fontSize: '0.62rem', fontWeight: 600,
+                            padding: '2px 8px', borderRadius: '20px',
+                            display: 'flex', alignItems: 'center', gap: '2px',
+                          }}>
+                            {tag === 'Vegan'}
+                            {tag}
+                          </span>
+                        ))}
+                        {(item.allergens || []).map((allergen) => (
+                          <span key={allergen} style={{
+                            backgroundColor: '#FFF8E1',
+                            color: '#C0474A',
+                            fontSize: '0.62rem', fontWeight: 600,
+                            padding: '2px 8px', borderRadius: '20px',
+                          }}>
+                            {allergen}
+                          </span>
+                        ))}
+                      </div>               
 
                   {/* Price + Add controls */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
