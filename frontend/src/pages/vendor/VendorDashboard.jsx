@@ -135,6 +135,7 @@ function MenuManager() {
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState(makeEmptyForm());
   const [activeTooltip, setActiveTooltip] = useState(null);
+  const [customCategories, setCustomCategories] = useState([]);
 
   const emptyForm = makeEmptyForm();
 
@@ -214,7 +215,6 @@ useEffect(() => {
       formData.append('signature', signature);
       formData.append('api_key', apiKey);
       formData.append('folder', 'orderup/menu-items');
-      formData.append('type', 'upload');
       const uploadRes = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         { method: 'POST', body: formData }
@@ -308,12 +308,23 @@ const handleEdit = (item) => {
     <div style={{ marginBottom: '14px' }}>
       <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#555', margin: '0 0 8px' }}>Menu categories</p>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-        {['All', ...CATEGORIES_DEFAULT].map(cat => (
+        {['All', ...CATEGORIES_DEFAULT, ...customCategories].map(cat => (
           <button key={cat} onClick={() => setActiveCategory(cat)}
             style={{ padding: '5px 16px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', border: activeCategory === cat ? 'none' : '1.5px solid #E0E0E0', backgroundColor: activeCategory === cat ? BRAND : 'white', color: activeCategory === cat ? 'white' : '#666' }}>
             {cat}
           </button>
         ))}
+        <button
+          onClick={() => {
+            const newCat = prompt('Enter new category name:');
+            if (newCat && newCat.trim() && !CATEGORIES_DEFAULT.includes(newCat.trim()) && !customCategories.includes(newCat.trim())) {
+              setCustomCategories([...customCategories, newCat.trim()]);
+              setActiveCategory(newCat.trim());
+            }
+          }}
+          style={{ padding: '5px 16px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', border: '1.5px dashed #C0474A', backgroundColor: 'transparent', color: '#C0474A' }}>
+          + Add Category
+        </button>
       </div>
     </div>
 
@@ -327,7 +338,7 @@ const handleEdit = (item) => {
               onDragOver={e => e.preventDefault()}
               onDrop={e => { e.preventDefault(); handleImageFile(e.dataTransfer.files[0]); }}
               onClick={() => document.getElementById('food-img-input').click()}
-              style={{ width: '100%', height: '160px', borderRadius: '12px', border: '2px dashed #E0E0E0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative', backgroundColor: form.banner_url ? 'transparent' : '#FAFAFA' }}
+              style={{ width: '100%', height: '160px', borderRadius: '12px', border: '2px dashed #E0E0E0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', position: 'relative', backgroundColor: form.image_url ? 'transparent' : '#FAFAFA' }}
             >
               {form.image_url ? (
                 <>
@@ -361,7 +372,7 @@ const handleEdit = (item) => {
               </div>
               <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
                 style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.85rem', outline: 'none', backgroundColor: 'white' }}>
-                {CATEGORIES_DEFAULT.map(c => <option key={c}>{c}</option>)}
+                {[...CATEGORIES_DEFAULT, ...customCategories].map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
               
