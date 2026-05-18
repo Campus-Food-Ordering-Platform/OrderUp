@@ -320,3 +320,72 @@ so that I can identify and resolve student or vendor complaints efficiently.
 | 6 | I am on the Vendor Menu page | I hover over the person icon | The "Sign Out" popup appears | Pass |
 | 7 | I signed out successfully | I try to navigate back using the browser back button | I am redirected back to the login page and cannot access student pages | Pass |
 
+## Sprint 4
+
+---
+
+## US019 - Vendor View Machine Learning Projections
+
+**User Story:**
+As a vendor, I want to view a machine learning projection chart on my analytics dashboard,
+so that I can forecast future sales and order volumes to better manage my inventory.
+
+### Acceptance Tests
+
+| # | Given | When | Then | Status |
+|---|-------|------|------|--------|
+| 1 | I am on the Analytics tab | I scroll to the projections section | I see a chart displaying projected future revenue/orders | Pass |
+| 2 | I am viewing the projection chart | The page loads | The chart renders successfully using the machine learning model data | Pass |
+| 3 | I am on the Analytics tab | I change the time period | The machine learning projection chart updates accordingly | Pass |
+| 4 | The machine learning API is unavailable | I view the analytics page | A graceful fallback or error message is displayed instead of crashing | Pass |
+
+---
+
+## US020 - Vendor Configure Operating Hours Schedule
+
+**User Story:**
+As a vendor, I want to set my specific operating hours for each day of the week,
+so that students will know my operating hour.
+
+### Acceptance Tests
+
+| # | Given | When | Then | Status |
+|---|-------|------|------|--------|
+| 1 | I am on the Vendor Settings page | I view the Business Hours section | I see a list of all 7 days with Open/Closed toggles | Pass |
+| 2 | I toggle a day to "Open" | The toggle activates | Time selection dropdowns (From / To) appear for that day | Pass |
+| 3 | I select an opening time and a closing time | I click "Save Changes" | The new operating schedule is saved to the database | Pass |
+| 4 | I toggle a day to "Closed" | I click "Save Changes" | That specific day is saved as closed in my schedule | Pass |
+
+---
+
+## US021 - Student View Vendor Store Status
+
+**User Story:**
+As a student, I want to see if a vendor is currently open or closed based on their set hours,
+so that I don't attempt to place an order when the stall is unavailable.
+
+### Acceptance Tests
+
+| # | Given | When | Then | Status |
+|---|-------|------|------|--------|
+| 1 | I am on the Student Dashboard | A vendor is currently within their open hours | The vendor card displays an "Open" indicator | Pass |
+| 2 | I am on the Student Dashboard | A vendor is currently outside their open hours | The vendor card displays a "Closed" indicator | Pass |
+| 3 | I click on a vendor that is closed | I view their menu page | I am notified that the store is currently closed and cannot accept orders | Pass |
+| 4 | I have items in my cart from a vendor | That vendor closes before I checkout | I am prevented from completing the checkout process | Pass |
+
+---
+
+## US022 - Vendor Access Dietary Tag Definitions
+
+**User Story:**
+As a vendor, I want to see detailed explanations of dietary tags when adding menu items,
+so that I can accurately label my food and ensure the safety of students with specific dietary restrictions.
+
+### Acceptance Tests
+
+| # | Given | When | Then | Status |
+|---|-------|------|------|--------|
+| 1 | I am adding or editing a menu item | I look at the Allergens and Dietary Tags sections | I see an information icon (ⓘ) next to each tag | Pass |
+| 2 | I hover over the information icon for "Halaal" | The tooltip appears | I see the detailed SANHA definition for Halaal food | Pass |
+| 3 | I hover over the information icon for "Gluten" | The tooltip appears | I see the detailed definition explaining what constitutes Gluten | Pass |
+| 4 | I move my mouse away from the information icon | I wait a moment | The tooltip disappears so it doesn't block the screen | Pass |
