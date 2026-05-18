@@ -123,7 +123,7 @@ export default function VendorSettings() {
           operating_hours: hoursRaw,
           phone: vendorInfo.phone || '',
           email: vendorInfo.email || '',
-          image_url: vendorInfo.image_url || null,
+          image_url: vendorInfo.banner_url || null,
           logo_url: vendorInfo.logo_url || null,
         });
       }
@@ -181,7 +181,7 @@ export default function VendorSettings() {
     formData.append('timestamp', timestamp);
     formData.append('signature', signature);
     formData.append('api_key', apiKey);
-    formData.append('folder', 'orderup/menu-items');
+    formData.append('folder', 'folder');//folder line
     const uploadRes = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
       { method: 'POST', body: formData }
@@ -307,10 +307,6 @@ export default function VendorSettings() {
             // image_url: vendorData.image_url,
           }),
         });
-        // ADD THIS before the if (updateRes.ok) check
-        const updateData = await updateRes.json();
-        console.log('Update response status:', updateRes.status);
-        console.log('Update response body:', updateData);
 
         if (updateRes.ok) {
           setShowSuccess(true);
@@ -330,7 +326,6 @@ export default function VendorSettings() {
       setSaving(false);
     }
   };
-  
 
   // ── Input style helpers ────────────────────────────────────────────────────
   const inputStyle = {

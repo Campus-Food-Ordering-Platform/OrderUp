@@ -17,7 +17,7 @@ router.get('/sign', (req: Request, res: Response) => {
 
   // resource_type is NEVER included in the signature params
   // it only goes in the upload URL and FormData
-  const signParams: Record<string, any> = { timestamp, folder,  type: 'upload', };
+  const signParams: Record<string, any> = { timestamp, folder };
 
   const signature = cloudinary.utils.api_sign_request(
     signParams,
