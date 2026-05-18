@@ -14,7 +14,7 @@ import uploadRoutes from './modules/uploads/uploads.routes';
 import orderRoutes from './modules/orders/order.routes';
 import paymentRoutes from './modules/payments/payment.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
-
+import notificationsRouter from './modules/notifications/notification.routes';
 
 const app = express();
 
@@ -53,7 +53,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 
 app.use('/api/analytics', analyticsRoutes);
-
+app.use('/api/notifications', notificationsRouter);
 app.use('/api/upload', uploadRoutes);         
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', err.message);

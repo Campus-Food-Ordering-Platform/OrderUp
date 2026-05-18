@@ -5,7 +5,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { subscribeToPush } from '../../utils/subscribeToPush';
 
 const BRAND = '#C0474A';
-const filters = ['All', 'Asian', 'Fast Food', 'Cafe', 'Healthy', 'Pizza'];
+const filters = ['All', 'Asian', 'Fast Food', 'Cafe', 'Healthy', 'Pizza', 'Indian', 'Mains'];
 
 
 function isVendorOpen(vendor) {
