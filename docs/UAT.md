@@ -228,7 +228,7 @@ so that I can identify and resolve student or vendor complaints efficiently.
 | 3 | I am on the Disputes tab | I type in the search bar | Only disputes matching the search query are displayed | Pass |
 | 4 | I am on the Disputes tab | No disputes match my search | An empty state message is displayed | Pass |
 
-# OrderUp – Sprint 3 User Stories & Acceptance Tests
+## Sprint 3 
 
 ---
 
@@ -319,4 +319,58 @@ so that I can identify and resolve student or vendor complaints efficiently.
 | 5 | I am on the Order History page | I hover over the person icon | The "Sign Out" popup appears | Pass |
 | 6 | I am on the Vendor Menu page | I hover over the person icon | The "Sign Out" popup appears | Pass |
 | 7 | I signed out successfully | I try to navigate back using the browser back button | I am redirected back to the login page and cannot access student pages | Pass |
+
+--
+
+## Sprint 4
+## US019 - Student Reorder a Past Order
+
+**User Story:** As a student, I want to be able to instantly reorder a past meal from my history, so that I can checkout faster without searching for the vendor and selecting items again.
+
+| # | Given | When | Then | Status |
+|---|---|---|---|---|
+| 1 | I am on the Order History page | I view a past order card | I see a "Reorder" button next to "Contact Support" | Pass |
+| 2 | I am on the Order History page | I click the "Reorder" button | The cart is pre-populated with the exact items, quantities, and vendor from that past order | Pass |
+| 3 | I click the "Reorder" button | The app redirects me to the Checkout page | The checkout shows the pre-populated items and the correct subtotal | Pass |
+| 4 | I am on the Checkout page via Reorder | I view the items | I can modify quantities (add/remove items) before placing the order | Pass |
+
+---
+
+## US020 - Vendor Edit Profile and Operating Info
+
+**User Story:** As an approved vendor, I want to edit my stall profile details (name, category, location, phone, and email), so that students always see up-to-date operating hours and contact information.
+
+| # | Given | When | Then | Status |
+|---|---|---|---|---|
+| 1 | I am logged in as an active vendor | I navigate to the "Vendor Settings" page | I see a form loaded with my current operating details | Pass |
+| 2 | I am on the Vendor Settings page | I try to submit the form without a stall name or location | The form fails and shows a clear validation error | Pass |
+| 3 | I am on the Vendor Settings page | I enter a phone number that is not 10 digits | The form fails and alerts me to enter a valid 10-digit number | Pass |
+| 4 | I fill in valid details | I click the "Save Changes" button | A success toast displays and I am redirected back to the Vendor Dashboard | Pass |
+| 5 | I am editing my details | I look at the preview card on the page | I see a live mobile-preview of "How students see you" updating in real-time | Pass |
+
+---
+
+## US021 - Secret Admin Setup Password Gate
+
+**User Story:** As a system administrator, I want a secure password gate protecting the admin setup route, so that unauthorized users cannot assign themselves the admin role.
+
+| # | Given | When | Then | Status |
+|---|---|---|---|---|
+| 1 | I navigate to the secret `/admin/setup` URL | I have not unlocked the page yet | I see a password gate screen asking for the admin credentials | Pass |
+| 2 | I am on the password gate screen | I enter an incorrect password and submit | An error message shows "Incorrect password. Access denied." | Pass |
+| 3 | I am on the password gate screen | I enter the correct secret password and submit | The setup page unlocks and shows the Google Sign-In prompt | Pass |
+| 4 | I sign in via Google after unlocking | The setup completes successfully | My profile is assigned the "admin" role and I am redirected to the Admin Dashboard | Pass |
+
+---
+
+## US022 - Student Enable Push Notifications
+
+**User Story:** As a student, I want to be able to subscribe to push notifications from my dashboard, so that I can receive real-time alerts when my order status changes.
+
+| # | Given | When | Then | Status |
+|---|---|---|---|---|
+| 1 | I am logged in as a student on the dashboard | I have not yet enabled notifications | I see a "🔔 Enable order notifications" button in the hero banner | Pass |
+| 2 | I click the "Enable order notifications" button | The browser prompts me | I am asked to allow notification permissions | Pass |
+| 3 | I accept the notification permission | The app registers the subscription | The subscription is sent to the backend and saved successfully | Pass |
+| 4 | I have successfully enabled notifications | I view the student dashboard | The "🔔 Enable order notifications" button is hidden to keep the UI clean | Pass |
 
