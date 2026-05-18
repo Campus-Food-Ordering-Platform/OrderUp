@@ -184,7 +184,7 @@ export default function VendorSettings() {
     formData.append('timestamp', timestamp);
     formData.append('signature', signature);
     formData.append('api_key', apiKey);
-    formData.append('folder', 'folder');//folder line
+    formData.append('folder', 'orderup/menu-items');//folder line
     const uploadRes = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
       { method: 'POST', body: formData }
