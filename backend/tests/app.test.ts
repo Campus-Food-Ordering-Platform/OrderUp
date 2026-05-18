@@ -1582,3 +1582,443 @@ describe('Order Status — full transition chain via API', () => {
     expect(res.body.error).toBe('Order is already at final status');
   });
 });
+// ─────────────────────────────────────────────
+// NEW TESTS — append these to the bottom of app.test.ts
+// Do not modify any existing tests above.
+// ─────────────────────────────────────────────
+
+// ─────────────────────────────────────────────
+// Vendor Status Check  (POST /api/vendors/status)
+// ─────────────────────────────────────────────
+describe('Vendor Status Check — POST /api/vendors/status', () => {
+
+  it('returns 400 if profile_id is missing', async () => {
+    const res = await request(app)
+      .post('/api/vendors/status')
+      .send({});
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('profile_id required');
+  });
+
+  it('returns { type: "none" } when no vendor or application exists', async () => {
+    // getVendorStatusByProfileId: vendors query → no row, applications query → no row
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })  // vendors check
+      .mockResolvedValueOnce({ rows: [] }); // applications check
+
+    const res = await request(app)
+      .post('/api/vendors/status')
+      .send({ profile_id: 'profile-unknown' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ type: 'none' });
+  });
+
+  it('returns { type: "vendor", status: "active" } for an approved vendor', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 'vendor-1', status: 'active', name: 'Pizza Place' }],
+    });
+
+    const res = await request(app)
+      .post('/api/vendors/status')
+      .send({ profile_id: 'profile-123' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.type).toBe('vendor');
+    expect(res.body.status).toBe('active');
+    expect(res.body.name).toBe('Pizza Place');
+  });
+
+  it('returns { type: "vendor", status: "suspended" } for a suspended vendor', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 'vendor-1', status: 'suspended', name: 'Suspended Stall' }],
+    });
+
+    const res = await request(app)
+      .post('/api/vendors/status')
+      .send({ profile_id: 'profile-suspended' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.type).toBe('vendor');
+    expect(res.body.status).toBe('suspended');
+  });
+
+  it('returns { type: "application", status: "pending" } when application is pending', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] }) // no vendor row yet
+      .mockResolvedValueOnce({
+        rows: [{ id: 'app-1', status: 'pending', name: 'New Stall' }],
+      });
+
+    const res = await request(app)
+      .post('/api/vendors/status')
+      .send({ profile_id: 'profile-pending' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.type).toBe('application');
+    expect(res.body.status).toBe('pending');
+  });
+
+  it('returns { type: "application", status: "rejected" } when application was rejected', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [{ id: 'app-2', status: 'rejected', name: 'Rejected Stall' }],
+      });
+
+    const res = await request(app)
+      .post('/api/vendors/status')
+      .send({ profile_id: 'profile-rejected' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.type).toBe('application');
+    expect(res.body.status).toBe('rejected');
+  });
+
+  it('returns 500 if the database throws', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app)
+      .post('/api/vendors/status')
+      .send({ profile_id: 'profile-crash' });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).toBe('Failed to check status');
+  });
+});
+
+// ─────────────────────────────────────────────
+// Submit Vendor Application  (POST /api/vendors/applications)
+// ─────────────────────────────────────────────
+describe('Submit Vendor Application — POST /api/vendors/applications', () => {
+
+  const validApplication = {
+    profile_id: 'profile-123',
+    name: 'Kota King',
+    owner_name: 'Thabo Nkosi',
+    owner_email: 'thabo@kota.co.za',
+    description: 'Best kota in town',
+    category: 'Fast Food',
+    location: 'Matrix Food Court, Stall 4',
+  };
+
+  it('returns 201 with the new application on success', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{
+        id: 'app-new',
+        profile_id: 'profile-123',
+        name: 'Kota King',
+        status: 'pending',
+      }],
+    });
+
+    const res = await request(app)
+      .post('/api/vendors/applications')
+      .send(validApplication);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.name).toBe('Kota King');
+    expect(res.body.status).toBe('pending');
+  });
+
+  it('returns 400 if profile_id is missing', async () => {
+    const { profile_id, ...body } = validApplication;
+    const res = await request(app)
+      .post('/api/vendors/applications')
+      .send(body);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toMatch(/profile_id/);
+  });
+
+  it('returns 400 if name (stall name) is missing', async () => {
+    const { name, ...body } = validApplication;
+    const res = await request(app)
+      .post('/api/vendors/applications')
+      .send(body);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toMatch(/[Vv]endor name/);
+  });
+
+  it('returns 400 if category is missing', async () => {
+    const { category, ...body } = validApplication;
+    const res = await request(app)
+      .post('/api/vendors/applications')
+      .send(body);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toMatch(/[Cc]ategory/);
+  });
+
+  it('returns 500 if the database throws', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app)
+      .post('/api/vendors/applications')
+      .send(validApplication);
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).toBe('Failed to submit application');
+  });
+});
+
+// ─────────────────────────────────────────────
+// Pending Applications  (GET /api/vendors/applications/pending)
+// ─────────────────────────────────────────────
+describe('Pending Applications — GET /api/vendors/applications/pending', () => {
+
+  it('returns 200 with a list of pending applications', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 'app-1', vendor_name: 'Stall A', application_status: 'pending', owner_name: 'Alice' },
+        { id: 'app-2', vendor_name: 'Stall B', application_status: 'pending', owner_name: 'Bob' },
+      ],
+    });
+
+    const res = await request(app).get('/api/vendors/applications/pending');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.length).toBe(2);
+    expect(res.body[0].vendor_name).toBe('Stall A');
+  });
+
+  it('returns 200 with an empty array when there are no pending applications', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app).get('/api/vendors/applications/pending');
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  it('returns 500 if the database throws', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app).get('/api/vendors/applications/pending');
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).toBe('Failed to fetch pending applications');
+  });
+});
+
+// ─────────────────────────────────────────────
+// Update Vendor Profile  (PUT /api/vendors/:id)
+// ─────────────────────────────────────────────
+describe('Update Vendor — PUT /api/vendors/:id', () => {
+
+  it('returns 200 with the updated vendor on success', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{
+        id: 'vendor-1',
+        vendor_name: 'Updated Name',
+        description: 'New description',
+        category: 'Cafe',
+        location: 'Block B',
+      }],
+    });
+
+    const res = await request(app)
+      .put('/api/vendors/vendor-1')
+      .send({ vendor_name: 'Updated Name', description: 'New description', category: 'Cafe', location: 'Block B' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.vendor_name).toBe('Updated Name');
+  });
+
+  it('returns 404 if the vendor does not exist', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app)
+      .put('/api/vendors/nonexistent')
+      .send({ vendor_name: 'Ghost Stall' });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Vendor not found');
+  });
+
+  it('returns 500 if the database throws', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app)
+      .put('/api/vendors/vendor-1')
+      .send({ vendor_name: 'Crash Stall' });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).toBe('Failed to update vendor');
+  });
+
+  it('accepts a partial update (only operating_hours)', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{
+        id: 'vendor-1',
+        vendor_name: 'Pizza Place',
+        operating_hours: '{"Mon":{"open":true,"from":"08:00","to":"17:00"}}',
+      }],
+    });
+
+    const res = await request(app)
+      .put('/api/vendors/vendor-1')
+      .send({ operating_hours: '{"Mon":{"open":true,"from":"08:00","to":"17:00"}}' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.id).toBe('vendor-1');
+  });
+});
+
+// ─────────────────────────────────────────────
+// Analytics — CSV exports (orders & items)
+// ─────────────────────────────────────────────
+describe('Analytics — GET /api/analytics/:vendor_id/orders/export/csv', () => {
+
+  it('returns CSV with period and orders columns', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        { period: '2024-01-01T00:00:00.000Z', orders: '8' },
+        { period: '2024-01-08T00:00:00.000Z', orders: '12' },
+      ],
+    });
+
+    const res = await request(app).get('/api/analytics/vendor-1/orders/export/csv');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/csv/);
+    expect(res.headers['content-disposition']).toMatch(/peak-hours-report\.csv/);
+    expect(res.text).toContain('period');
+    expect(res.text).toContain('orders');
+  });
+
+  it('returns 200 with header-only CSV when there is no order data', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app).get('/api/analytics/vendor-1/orders/export/csv');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.text).toContain('period');
+  });
+
+  it('returns 500 if the database throws', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app).get('/api/analytics/vendor-1/orders/export/csv');
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe('Export failed');
+  });
+});
+
+describe('Analytics — GET /api/analytics/:vendor_id/items/export/csv', () => {
+
+  it('returns CSV with item sales columns', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        { name: 'Burger', weeklyOrders: '20', monthlyOrders: '80', weeklyRevenue: '900.00', monthlyRevenue: '3600.00' },
+        { name: 'Pizza',  weeklyOrders: '15', monthlyOrders: '60', weeklyRevenue: '1200.00', monthlyRevenue: '4800.00' },
+      ],
+    });
+
+    const res = await request(app).get('/api/analytics/vendor-1/items/export/csv');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/csv/);
+    expect(res.headers['content-disposition']).toMatch(/items-report\.csv/);
+    expect(res.text).toContain('name');
+    expect(res.text).toContain('weeklyOrders');
+    expect(res.text).toContain('monthlyRevenue');
+  });
+
+  it('returns 200 with header-only CSV when no items have been sold', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app).get('/api/analytics/vendor-new/items/export/csv');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.text).toContain('name');
+  });
+
+  it('returns 500 if the database throws', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app).get('/api/analytics/vendor-bad/items/export/csv');
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.message).toBe('Export failed');
+  });
+});
+
+// ─────────────────────────────────────────────
+// Push Notification Subscription
+// (POST /api/notifications/subscribe)
+// ─────────────────────────────────────────────
+describe('Notifications — POST /api/notifications/subscribe', () => {
+
+  const validSubscription = {
+    endpoint: 'https://fcm.googleapis.com/fcm/send/abc123',
+    keys: { p256dh: 'key1', auth: 'key2' },
+  };
+
+  it('returns 201 on successful subscription save', async () => {
+    // 1. Resolve Auth0 ID → internal profile UUID
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ id: 'internal-uuid-123' }] })
+      // 2. INSERT / UPSERT push_subscriptions
+      .mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app)
+      .post('/api/notifications/subscribe')
+      .send({ customer_id: 'auth0|test123', subscription: validSubscription });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.success).toBe(true);
+  });
+
+  it('returns 400 if customer_id is missing', async () => {
+    const res = await request(app)
+      .post('/api/notifications/subscribe')
+      .send({ subscription: validSubscription });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toMatch(/customer_id/);
+  });
+
+  it('returns 400 if subscription object is missing', async () => {
+    const res = await request(app)
+      .post('/api/notifications/subscribe')
+      .send({ customer_id: 'auth0|test123' });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toMatch(/subscription/);
+  });
+
+  it('returns 404 if the Auth0 ID does not match any profile', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] }); // profile lookup returns nothing
+
+    const res = await request(app)
+      .post('/api/notifications/subscribe')
+      .send({ customer_id: 'auth0|ghost', subscription: validSubscription });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error).toBe('Profile not found');
+  });
+
+  it('returns 500 if the database throws during profile lookup', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app)
+      .post('/api/notifications/subscribe')
+      .send({ customer_id: 'auth0|crash', subscription: validSubscription });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).toBe('Failed to save subscription');
+  });
+
+  it('returns 500 if the database throws during upsert', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ id: 'internal-uuid-123' }] }) // profile found
+      .mockRejectedValueOnce(new Error('DB error'));                   // upsert fails
+
+    const res = await request(app)
+      .post('/api/notifications/subscribe')
+      .send({ customer_id: 'auth0|test123', subscription: validSubscription });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).toBe('Failed to save subscription');
+  });
+});
