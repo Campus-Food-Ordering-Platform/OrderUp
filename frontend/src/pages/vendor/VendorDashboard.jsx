@@ -231,7 +231,10 @@ useEffect(() => {
 
   const handleSave = async () => {
     if (!form.name || !form.price || !vendorId) return;
-    const payload = { ...form, price: Number(form.price) };
+    if (Number(form.price) <= 0) {
+      alert('Price must be greater than R0.00');
+      return;
+}    const payload = { ...form, price: Number(form.price) };
     if (payload.image_url && payload.image_url.length > 1_400_000) {
       alert('Image is too large. Please use an image under 1MB.');
       return;
@@ -368,7 +371,8 @@ const handleEdit = (item) => {
               <div style={{ flex: 1, position: 'relative' }}>
                 <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', color: '#888' }}>R</span>
                 <input placeholder="Price *" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} type="number"
-                  style={{ width: '100%', padding: '10px 14px 10px 28px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '10px 14px 10px 28px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}          min="0.01"  // ← add this
+        step="0.01" />
               </div>
               <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
                 style={{ flex: 1, padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #EBEBEB', fontSize: '0.85rem', outline: 'none', backgroundColor: 'white' }}>
