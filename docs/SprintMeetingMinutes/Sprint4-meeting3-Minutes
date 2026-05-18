@@ -1,0 +1,120 @@
+# Sprint 4 – Meeting 3 Minutes
+
+**Date:** 17 May 2026  
+**Meeting Type:** Sprint 4 Daily Scrum  
+**Attendees:** Adrian Draxel, Jonathan Moreno, Siya, Sanele, Naomi Moreno, Wendy Kumalo  
+
+---
+
+# 1. Meeting Overview
+
+The team discussed current development progress, ongoing bug fixes, analytics export functionality, UI improvements, and remaining tasks before sprint completion.
+
+---
+
+# 2. Individual Updates
+
+## Adrian Draxel
+
+### Work Planned
+- Implement vendor open/closed status functionality
+- Continue fixing application bugs
+- Add additional CSV export functionality for analytics reports as required by the project brief
+
+### Notes
+- Focused on final refinements and analytics requirements
+
+---
+
+## Jonathan Moreno
+
+### Work Completed
+- Attempted removal of the cart button
+- Accidentally introduced issues during modification
+- Fixed the resulting problems afterward
+
+### Notes
+- Requested team review to confirm the UI still appears clean and functional
+- Confirmed the application overall appears stable
+
+---
+
+## Siya
+
+### Work Completed
+- No development work completed during the morning due to studying commitments
+
+### Planned Work
+- Continue debugging application issues
+- Test deployed application features
+- Verify that all implemented functionality works correctly after deployment
+
+---
+
+## Sanele
+
+### Work Completed
+- Finished implementation of dietary tag hover information system
+- Added hover tooltips across the application displaying dietary information
+- Refined researched dietary information to ensure correctness
+
+### Concerns
+- Suggested UML diagrams may still require review or refinement
+
+---
+
+## Naomi Moreno
+
+### Work Completed
+- No direct front-end development required since previous meeting
+
+### Notes
+- Reviewed application state and monitored front-end consistency
+- Confirmed the application appears polished and stable
+- Acknowledged that recent front-end changes did not require additional intervention
+
+---
+
+## Wendy Kumalo
+
+### Work Completed
+- Added additional hover functionality/tooltips within the application interface
+
+### Notes
+- Confirmed the application appears close to completion
+
+---
+
+# 3. General Discussion
+
+## Application Status
+The team agreed that the application is nearing completion.
+
+### Remaining Work Includes:
+- Bug fixing
+- Deployment testing
+- Minor feature refinements
+- Analytics export improvements
+- Final verification of implemented functionality
+
+## UML Diagrams
+- UML and related diagrams may still require updates or refinement before final submission
+
+---
+
+# 4. Action Items
+
+| Task | Assigned To |
+|---|---|
+| Implement vendor open/closed status system | Adrian |
+| Add additional analytics CSV exports | Adrian |
+| Review cart button changes and UI stability | Jonathan + Team |
+| Continue deployment testing and debugging | Siya |
+| Review UML diagrams | Team |
+| Continue UI refinements | Wendy |
+
+---
+
+# 5. Meeting Adjournment
+
+Meeting adjourned after all member updates were completed.
