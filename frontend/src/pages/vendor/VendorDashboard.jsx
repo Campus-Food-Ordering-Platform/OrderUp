@@ -1712,14 +1712,9 @@ if (vendorStatus === 'suspended') {
     itemSalesMap[name].revenue += parseFloat(item.price);
   });
 });
-  // const topSellingItems = Object.values(itemSalesMap).sort((a, b) => b.quantity - a.quantity);
-  const weeklyRevenue = analyticsData.weeklyRevenue ?? [];
-  const weeklyOrders = analyticsData.weeklyOrders ?? [];
-  const topSellingItems = analyticsData.topSellingItems.map(i => ({
-    name: i.name,
-    quantity: i.weeklyOrders,
-    revenue: i.weeklyRevenue,
-  }));  
+const topSellingItems = Object.values(itemSalesMap).sort((a, b) => b.quantity - a.quantity);
+const weeklyRevenue = analyticsData.weeklyRevenue ?? [];
+const weeklyOrders = analyticsData.weeklyOrders ?? [];
 
 const getChartInterval = (range) => {
   switch (range) {
