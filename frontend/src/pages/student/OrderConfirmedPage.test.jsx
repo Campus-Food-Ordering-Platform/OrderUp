@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import OrderConfirmedPage from './OrderConfirmedPage';
@@ -16,214 +16,302 @@ vi.mock('@auth0/auth0-react', () => ({
 
 const mockNavigate = vi.fn();
 
-// Base state representing a completed order passed via location.state
-const baseOrderState = {
-  id: 'test-order-123',
-  order_number: 'ORD9999',
-  vendor: { name: 'Test Vendor', wait: 15 },
-  total: 85,
-  total_amount: 85,
-  note: 'No onions please',
-  status: 'received',
-};
-
-let mockLocationState = baseOrderState;
-
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    useLocation: () => ({ state: mockLocationState, search: '' }),
+    useLocation: () => ({ state: null, search: '' }),
     useNavigate: () => mockNavigate,
   };
 });
 
-// ── sessionStorage stub ───────────────────────────────────────────────────────
+// ── Sample order data ─────────────────────────────────────────────────────────
 
-const sessionStorageMock = (() => {
+const makeOrder = (overrides = {}) => ({
+  id: 'order-001',
+  order_number: 'ORD9999',
+  vendor_name: 'Test Vendor',
+  vendor_location: 'The Matrix Food Court',
+  total_amount: 85,
+  note: 'No onions please',
+  status: 'received',
+  created_at: new Date().toISOString(),
+  items: [
+    { name: 'Burger', quantity: 2, unit_price: 40 },
+    { name: 'Fries',  quantity: 1, unit_price: 5  },
+  ],
+  ...overrides,
+});
+
+// ── localStorage stub ─────────────────────────────────────────────────────────
+
+const localStorageMock = (() => {
   let store = {};
   return {
-    getItem: vi.fn((key) => store[key] ?? null),
-    setItem: vi.fn((key, val) => { store[key] = val; }),
+    getItem:    vi.fn((key) => store[key] ?? null),
+    setItem:    vi.fn((key, val) => { store[key] = val; }),
     removeItem: vi.fn((key) => { delete store[key]; }),
-    clear: vi.fn(() => { store = {}; }),
+    clear:      vi.fn(() => { store = {}; }),
   };
 })();
-Object.defineProperty(window, 'sessionStorage', { value: sessionStorageMock, writable: true });
+Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Sets up localStorage so fetchActiveOrders finds a user id */
+function setLocalUser(id = 'student-99') {
+  localStorageMock.getItem.mockImplementation((key) => {
+    if (key === 'orderup_user') return JSON.stringify({ id });
+    return null;
+  });
+}
+
+/** Default fetch: active-all returns one order, status poll returns 'received' */
+function mockFetchWithOrders(orders = [makeOrder()]) {
+  global.fetch = vi.fn((url) => {
+    if (url.includes('/active-all')) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(orders) });
+    }
+    if (url.includes('/status')) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ status: 'received' }) });
+    }
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+  });
+}
+
+// ── Setup ─────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockNavigate.mockReset();
-  mockLocationState = baseOrderState;
-  sessionStorageMock.getItem.mockReturnValue(null);
-
-  // Default fetch: status poll returns 'received'
-  global.fetch = vi.fn((url) => {
-    if (url.includes('/status')) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ status: 'received' }) });
-    }
-    if (url.includes('/api/orders/student')) {
-      return Promise.resolve({ ok: false });
-    }
-    return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
-  });
+  localStorageMock.clear();
+  setLocalUser();
+  mockFetchWithOrders();
 });
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('OrderConfirmedPage', () => {
 
-  // ── Success state ─────────────────────────────────────────────────────────
+  // ── Loading state ─────────────────────────────────────────────────────────
 
-  it('renders the "Order Placed!" heading', () => {
+  it('shows a loading spinner on initial render', () => {
+    // fetch never resolves → component stays in loading state
+    global.fetch = vi.fn(() => new Promise(() => {}));
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.getByText(/Order Placed/i)).toBeInTheDocument();
+    expect(screen.getByText(/Loading your orders/i)).toBeInTheDocument();
   });
 
-  it('renders the OrderUp brand in the header', () => {
+  // ── Header ────────────────────────────────────────────────────────────────
+
+  it('renders the OrderUp brand in the header', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
     expect(screen.getByText('OrderUp')).toBeInTheDocument();
   });
 
-  it('displays the vendor name in the confirmation message', () => {
+  // ── Active orders state ───────────────────────────────────────────────────
+
+  it('shows "Active Orders" heading once orders load', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.getAllByText(/Test Vendor/i)[0]).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/Active Orders/i)).toBeInTheDocument()
+    );
   });
 
-  it('shows the estimated wait time from vendor data', () => {
+  it('displays the vendor name on the order card', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.getByText('15 min')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText('Test Vendor')).toBeInTheDocument()
+    );
   });
 
-  it('displays the total paid amount', () => {
+  it('displays the order number on the card', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.getByText('R 85')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/ORD9999/i)).toBeInTheDocument()
+    );
   });
 
-  it('shows the Live Order Status tracker section', () => {
+  it('displays the total paid amount', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.getByText(/Live Order Status/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/R 85\.00/i)).toBeInTheDocument()
+    );
   });
 
-  it('shows the order tracking steps', () => {
+  it('shows the order tracking steps', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.getByText(/Order Received/i)).toBeInTheDocument();
-    expect(screen.getByText(/Preparing/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ready for Collection/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Order Received/i)).toBeInTheDocument();
+      expect(screen.getByText(/Preparing/i)).toBeInTheDocument();
+      expect(screen.getByText(/Ready for Collection/i)).toBeInTheDocument();
+    });
   });
 
-  it('shows the collection point information', () => {
+  it('shows the collection point information', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.getByText('The Matrix Food Court')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/The Matrix Food Court/i)).toBeInTheDocument()
+    );
   });
 
-  it('shows the collection point stall reference', () => {
+  it('shows the vendor stall reference in the collection info', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.getByText(/Collect at the Test Vendor stall/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/Test Vendor stall/i)).toBeInTheDocument()
+    );
   });
 
-  it('displays the special instructions note when provided', () => {
+  it('displays the special instructions note when provided', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.getByText(/No onions please/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/No onions please/i)).toBeInTheDocument()
+    );
   });
 
-  it('shows the special instructions label', () => {
+  it('does not show special instructions when note is absent', async () => {
+    mockFetchWithOrders([makeOrder({ note: null })]);
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.getByText(/Your special instructions/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText(/SPECIAL INSTRUCTIONS/i)).not.toBeInTheDocument()
+    );
   });
 
-  it('does not show the special instructions section when note is absent', () => {
-    mockLocationState = { ...baseOrderState, note: null };
+  it('shows item names and quantities on the order card', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.queryByText(/Your special instructions/i)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Burger')).toBeInTheDocument();
+      expect(screen.getByText('Fries')).toBeInTheDocument();
+    });
   });
 
-  // ── No active order state ─────────────────────────────────────────────────
-
-  it('shows "No Active Order" when there is no order data', () => {
-    mockLocationState = null;
+  it('renders a LIVE indicator badge', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.getByText(/No Active Order/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText('LIVE')).toBeInTheDocument()
+    );
   });
 
-  it('shows a Browse Vendors button when there is no order', () => {
-    mockLocationState = null;
+  it('shows the correct order count in the subtitle', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    expect(screen.getByText('Browse Vendors')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/1 order in progress/i)).toBeInTheDocument()
+    );
   });
 
-  it('navigates to student-dashboard when Browse Vendors is clicked', () => {
-    mockLocationState = null;
+  it('renders multiple order cards when multiple orders are active', async () => {
+    mockFetchWithOrders([
+      makeOrder({ id: 'order-001', order_number: 'ORD0001', vendor_name: 'Vendor A' }),
+      makeOrder({ id: 'order-002', order_number: 'ORD0002', vendor_name: 'Vendor B' }),
+    ]);
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText('Vendor A')).toBeInTheDocument();
+      expect(screen.getByText('Vendor B')).toBeInTheDocument();
+      expect(screen.getByText(/2 orders in progress/i)).toBeInTheDocument();
+    });
+  });
+
+
+  // ── Empty / no-user state ─────────────────────────────────────────────────
+
+  it('shows "No Active Orders" when the orders list is empty', async () => {
+    mockFetchWithOrders([]);
+    render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
+    await waitFor(() =>
+      expect(screen.getByText(/No Active Orders/i)).toBeInTheDocument()
+    );
+  });
+
+  it('shows a Browse Vendors button when there are no active orders', async () => {
+    mockFetchWithOrders([]);
+    render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
+    await waitFor(() =>
+      expect(screen.getByText('Browse Vendors')).toBeInTheDocument()
+    );
+  });
+
+  it('navigates to student-dashboard when Browse Vendors is clicked', async () => {
+    mockFetchWithOrders([]);
+    render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
+    await waitFor(() => screen.getByText('Browse Vendors'));
     fireEvent.click(screen.getByText('Browse Vendors'));
     expect(mockNavigate).toHaveBeenCalledWith('/student-dashboard');
   });
 
-  // ── Navigation ─────────────────────────────────────────────────────────────
 
-  it('navigates to student-dashboard when Home icon is clicked (order state)', () => {
+  // ── Navigation ────────────────────────────────────────────────────────────
+
+  it('navigates to student-dashboard when the Home icon is clicked', async () => {
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    // Home icon is a clickable div in the header; find by navigating siblings
-    const homeIcons = screen.getAllByRole('generic').filter(el =>
-      el.getAttribute('style')?.includes('cursor: pointer') &&
-      el.closest('header')
-    );
-    fireEvent.click(homeIcons[0]);
+    await waitFor(() => screen.getByText(/Active Orders/i));
+
+    const homeButtons = screen
+      .getAllByRole('generic')
+      .filter(el =>
+        el.getAttribute('style')?.includes('cursor: pointer') &&
+        el.closest('header')
+      );
+    fireEvent.click(homeButtons[0]);
     expect(mockNavigate).toHaveBeenCalledWith('/student-dashboard');
   });
 
-  // ── Status polling ─────────────────────────────────────────────────────────
+  it('navigates to student-history when the History icon is clicked', async () => {
+    render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
+    await waitFor(() => screen.getByText(/Active Orders/i));
 
-  it('polls the order status endpoint when orderData has an id', async () => {
+    const headerButtons = screen
+      .getAllByRole('generic')
+      .filter(el =>
+        el.getAttribute('style')?.includes('cursor: pointer') &&
+        el.closest('header')
+      );
+    // Second clickable icon in the header is History
+    fireEvent.click(headerButtons[1]);
+    expect(mockNavigate).toHaveBeenCalledWith('/student-history');
+  });
+
+  // ── API fetch behaviour ───────────────────────────────────────────────────
+
+  it('calls the active-all endpoint with the user id from localStorage', async () => {
+    setLocalUser('student-42');
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
     await waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/orders/test-order-123/status')
+        expect.stringContaining('/api/orders/student/student-42/active-all')
       )
     );
   });
 
-  it('updates step when status changes to "preparing"', async () => {
-    global.fetch = vi.fn((url) => {
-      if (url.includes('/status')) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ status: 'preparing' }) });
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
-    });
-
+  it('does not call fetch when no user id is present', async () => {
+    localStorageMock.getItem.mockReturnValue(null);
+    global.fetch = vi.fn();
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    // After poll, "Preparing" step should be active (CURRENT badge)
-    await waitFor(() =>
-      expect(screen.getAllByText(/CURRENT/i).length).toBeGreaterThan(0)
+    // Give effects time to run
+    await act(async () => { await new Promise(r => setTimeout(r, 50)); });
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining('/active-all')
     );
   });
 
-  // ── Paystack callback (reference in URL) ──────────────────────────────────
+  // ── Status polling ────────────────────────────────────────────────────────
 
-  it('shows no-order state when reference is in URL but sessionStorage is empty', async () => {
-    // Simulate Paystack redirect with ?reference=abc but no pending order in storage
-    vi.doMock('react-router-dom', async () => {
-      const actual = await vi.importActual('react-router-dom');
-      return {
-        ...actual,
-        useLocation: () => ({ state: null, search: '?reference=abc123' }),
-        useNavigate: () => mockNavigate,
-      };
-    });
-
-    global.fetch = vi.fn((url) => {
-      if (url.includes('/api/payments/verify')) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
-    });
-
-    sessionStorageMock.getItem.mockReturnValue(null);
-    // With no pendingOrder in sessionStorage the component stays in no-order state
-    mockLocationState = null;
+  it('polls the status endpoint for each active order', async () => {
+    vi.useFakeTimers();
     render(<MemoryRouter><OrderConfirmedPage /></MemoryRouter>);
-    await waitFor(() =>
-      expect(screen.getByText(/No Active Order/i)).toBeInTheDocument()
+
+    // Wait for initial load
+    await act(async () => { await Promise.resolve(); });
+
+    // Advance past the 5 s poll interval
+    await act(async () => { vi.advanceTimersByTime(5100); });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/orders/order-001/status')
     );
+
+    vi.useRealTimers();
   });
+
+
 });

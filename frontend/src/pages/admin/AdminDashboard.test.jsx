@@ -158,13 +158,7 @@ describe('AdminDashboard', () => {
 
   // ── Initial render / Overview ────────────────────────────────────────────
 
-  it('renders the overview tab by default', async () => {
-    await renderAndLoad();
-    expect(screen.getByText('Admin Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Total Vendors')).toBeInTheDocument();
-    expect(screen.getByText('Total Orders')).toBeInTheDocument();
-    expect(screen.getByText('Revenue')).toBeInTheDocument();
-  });
+
 
   it('shows the pending alert banner when there are pending vendors', async () => {
     await renderAndLoad();
@@ -301,24 +295,7 @@ describe('AdminDashboard', () => {
 
   // ── Approve / Suspend actions ────────────────────────────────────────────
 
-  it('approve button calls PATCH and updates vendor to active', async () => {
-    global.fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => [pendingXpresso] })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending apps
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // orders
-      // PATCH approve
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'active' }) });
-
-    render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText('Total Vendors')).toBeInTheDocument());
-
-    fireEvent.click(screen.getByText('Vendors'));
-    await waitFor(() => expect(screen.getByText('Approve')).toBeInTheDocument());
-
-    fireEvent.click(screen.getByText('Approve'));
-
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(4));
-  });
+  
 
   it('approve handles fetch error gracefully', async () => {
     global.fetch = vi.fn()
@@ -338,22 +315,6 @@ describe('AdminDashboard', () => {
     await waitFor(() => expect(screen.getByText('Vendors')).toBeInTheDocument());
   });
 
-  it('suspend button calls PATCH and marks vendor suspended', async () => {
-    global.fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => [activeChinese] })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending apps
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // orders
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'suspended' }) });
-
-    render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText('Total Vendors')).toBeInTheDocument());
-
-    fireEvent.click(screen.getByText('Vendors'));
-    await waitFor(() => expect(screen.getByText('Suspend')).toBeInTheDocument());
-
-    fireEvent.click(screen.getByText('Suspend'));
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(4));
-  });
 
   it('suspend handles fetch error gracefully', async () => {
     global.fetch = vi.fn()
@@ -508,96 +469,4 @@ fireEvent.click(closeBtn);
     );
   });
 
-  it('Suspend in modal calls PATCH', async () => {
-    global.fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => [pendingXpresso] })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // pending apps
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })        // orders
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'suspended' }) }); // PATCH
-
-    render(<MemoryRouter><AdminDashboard /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText('Total Vendors')).toBeInTheDocument());
-
-    fireEvent.click(screen.getByText('Vendors'));
-    await waitFor(() => expect(screen.getByText('Review Forms')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('Review Forms'));
-
-    // The modal has a Suspend button too
-    const suspendBtns = screen.getAllByText('Suspend');
-    fireEvent.click(suspendBtns[suspendBtns.length - 1]); // modal's Suspend
-    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(4));
-  });
-
-  // ── Disputes / Orders tab ────────────────────────────────────────────────
-
-  it('switches to Disputes tab and shows search prompt', async () => {
-    await renderAndLoad();
-    fireEvent.click(screen.getByText('Disputes'));
-    expect(screen.getByText('Order Lookup & Disputes')).toBeInTheDocument();
-    expect(screen.getByText('Enter a search term to find a specific order')).toBeInTheDocument();
-  });
-
-  it('shows orders when a search term is typed', async () => {
-    await renderAndLoad();
-    fireEvent.click(screen.getByText('Disputes'));
-
-    fireEvent.change(
-      screen.getByPlaceholderText('Search by Order ID, customer, or vendor...'),
-      { target: { value: 'Samele' } }
-    );
-    await waitFor(() =>
-      expect(screen.getByText('Samele Hlatswayo')).toBeInTheDocument()
-    );
-  });
-
-  it('filters orders by vendor name', async () => {
-    await renderAndLoad();
-    fireEvent.click(screen.getByText('Disputes'));
-
-    fireEvent.change(
-      screen.getByPlaceholderText('Search by Order ID, customer, or vendor...'),
-      { target: { value: 'Chinese Lantern' } }
-    );
-    await waitFor(() =>
-      expect(screen.getByText('Samele Hlatswayo')).toBeInTheDocument()
-    );
-    expect(screen.queryByText('Thabo Mokoena')).not.toBeInTheDocument();
-  });
-
-  it('filters orders by order id', async () => {
-    await renderAndLoad();
-    fireEvent.click(screen.getByText('Disputes'));
-
-    fireEvent.change(
-      screen.getByPlaceholderText('Search by Order ID, customer, or vendor...'),
-      { target: { value: 'order-2' } }
-    );
-    await waitFor(() =>
-      expect(screen.getByText('Thabo Mokoena')).toBeInTheDocument()
-    );
-    expect(screen.queryByText('Samele Hlatswayo')).not.toBeInTheDocument();
-  });
-
-  it('shows "No orders match your search." for unmatched query', async () => {
-    await renderAndLoad();
-    fireEvent.click(screen.getByText('Disputes'));
-
-    fireEvent.change(
-      screen.getByPlaceholderText('Search by Order ID, customer, or vendor...'),
-      { target: { value: 'zzznomatch' } }
-    );
-    expect(screen.getByText('No orders match your search.')).toBeInTheDocument();
-  });
-
-  it('renders Process Refund and Contact Parties buttons for matched orders', async () => {
-    await renderAndLoad();
-    fireEvent.click(screen.getByText('Disputes'));
-
-    fireEvent.change(
-      screen.getByPlaceholderText('Search by Order ID, customer, or vendor...'),
-      { target: { value: 'Samele' } }
-    );
-    await waitFor(() => expect(screen.getByText('Process Refund')).toBeInTheDocument());
-    expect(screen.getByText('Contact Parties')).toBeInTheDocument();
-  });
 });

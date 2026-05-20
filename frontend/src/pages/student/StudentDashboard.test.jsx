@@ -36,9 +36,9 @@ Object.defineProperty(navigator, 'serviceWorker', {
 });
 
 const mockVendors = [
-  { id: '1', name: 'Pizza Palace', category: 'Pizza', description: 'Best pizza in town' },
-  { id: '2', name: 'Chinese Lantern', category: 'Asian', description: 'Authentic Asian cuisine' },
-  { id: '3', name: 'Xpresso Cafe', category: 'Cafe', description: 'Great coffee and snacks' },
+  { id: '1', name: 'Pizza Palace', category: 'Pizza', description: 'Best pizza in town', operating_hours: { hours: '9am - 9pm' } },
+  { id: '2', name: 'Chinese Lantern', category: 'Asian', description: 'Authentic Asian cuisine', operating_hours: { hours: '10am - 8pm' } },
+  { id: '3', name: 'Xpresso Cafe', category: 'Cafe', description: 'Great coffee and snacks', operating_hours: { hours: '7am - 5pm' } },
 ];
 
 beforeEach(() => {

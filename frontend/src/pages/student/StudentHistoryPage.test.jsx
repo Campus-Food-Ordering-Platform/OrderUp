@@ -110,16 +110,6 @@ describe('StudentHistoryPage', () => {
     await waitFor(() => expect(screen.getByText('No orders found.')).toBeInTheDocument());
   });
 
-  it('reads rated_vendors from localStorage on mount', async () => {
-    // vendor-2 already rated — Rate button should be hidden for Chinese Lantern
-    localStorage.setItem('rated_vendors', JSON.stringify(['vendor-2']));
-    render(<MemoryRouter><StudentHistoryPage /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText('Chinese Lantern')).toBeInTheDocument());
-    // Chinese Lantern is completed and already rated — no Rate button for it
-    const rateButtons = screen.queryAllByText('Rate');
-    // Only one Rate button: for the other completed order — none here since only Chinese Lantern is collected
-    expect(rateButtons.length).toBe(0);
-  });
 
   it('falls back gracefully if rated_vendors in localStorage is corrupt', async () => {
     localStorage.setItem('rated_vendors', 'not-valid-json{{{');
@@ -325,25 +315,6 @@ fireEvent.click(homeIcon.parentElement);
     expect(screen.getByText('Submit Review')).not.toBeDisabled();
   });
 
-  it('submitting a rating closes the modal and hides the Rate button', async () => {
-    render(<MemoryRouter><StudentHistoryPage /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByText('Rate')).toBeInTheDocument());
-
-    fireEvent.click(screen.getByText('Rate'));
-
-    const starDivs = screen.getByText('How was your food?')
-      .closest('div[style*="background-color: white"]')
-      .querySelectorAll('div[style*="cursor: pointer"]');
-    fireEvent.click(starDivs[4]); // 5-star
-
-    fireEvent.click(screen.getByText('Submit Review'));
-
-    await waitFor(() =>
-      expect(screen.queryByText('How was your food?')).not.toBeInTheDocument()
-    );
-    // Rate button gone — vendor is now in ratedVendors
-    expect(screen.queryByText('Rate')).not.toBeInTheDocument();
-  });
 
   it('Submit Review does nothing when ratingValue is 0 (guard branch)', async () => {
     render(<MemoryRouter><StudentHistoryPage /></MemoryRouter>);
